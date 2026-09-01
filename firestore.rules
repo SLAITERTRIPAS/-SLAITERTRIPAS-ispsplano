@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Funções auxiliares de segurança
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isMaster() {
+      return isSignedIn() && (
+        request.auth.token.email == 'slaitertripas@gmail.com'
+      );
+    }
+
+    // Regra geral para todas as coleções do sistema
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
+

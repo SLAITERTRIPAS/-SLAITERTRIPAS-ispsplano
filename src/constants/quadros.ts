@@ -1,0 +1,18 @@
+export const QUADROS = [
+  "Quadro 1.1 Número de Estudantes que procuram o Ensino Superior",
+  "Quadro 1.2 Número de vagas preenchidas",
+  "Quadro 1.3 Número de Estudantes Novos Ingresso, Matriculados, graduados por Grau, Sexo e Cursos em Funcionamento no ano académico",
+  "Quadro 1.4 Número de Novos Ingressos, Matriculados e graduados por Nacionalidade e sexo",
+  "Quadro 1.5 Número de Estudantes Estrangeiros, Novos Ingressos, Matriculados e graduados por Curso, Grau e Sexo",
+  "Quadro 1.6 Número de Estudantes com Necessidades Especiais por Curso, Grau e Sexo",
+  "Quadro 1.7 Número de Estudantes com Outras Necessidades Especiais não especificadas no Quadro 1,6 por Curso, Grau e Sexo",
+  "Quadro 1.8 Número de Novos Ingressos, Matriculados e graduados por Sexo e Província de conclusão da 12ª classe e ou Equivalência",
+  "Quadro 1.9 Número de Novos Ingressos, Matriculados e graduados por Sexo e Província de Naturalidade",
+  "Quadro 1.10 Número de Novos Ingressos, Matriculados e graduados por Sexo e Faixa Etária",
+  "Quadro 1.11 Número de Estudantes Graduados por Curso consoante o ano da Primeira Matricula",
+  "Quadro 1.12 Cursos de curta duração e ou Especialização por Grau e Sexo",
+  "Quadro 1.13 Número de Estudantes Desistentes, Óbito ou que Anularam Matrícula Por Curso e Sexo",
+  "Quadro 1.14 Número de Estudantes Bolseiros por Curso, Sexo, tipo de Bolsa e Financiador",
+  "Quadro 1.15 Número de Estudantes Bolseiros, Novos Ingressos, Matriculados e graduados por Sexo e Faixa Etária",
+  "Quadro 1.16 Número de Estudantes Bolseiros, Novos Ingressos, Matriculados e graduados por Sexo e Província de Naturalidade",
+];

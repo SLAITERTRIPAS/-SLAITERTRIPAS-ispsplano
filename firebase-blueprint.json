@@ -1,0 +1,477 @@
+{
+  "entities": {
+    "ArchiveDocument": {
+      "title": "Documento de Arquivo",
+      "description": "Registo de documento histórico depositado no Arquivo Morto",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "maxLength": 100 },
+        "year": { "type": "number" },
+        "date": { "type": "string", "maxLength": 50 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "year", "date"]
+    },
+    "AlocacaoDocente": {
+      "title": "Alocação Docente",
+      "description": "Registo de alocação de um docente a um curso ou disciplina",
+      "type": "object",
+      "properties": {
+        "docenteId": { "type": "string", "maxLength": 128 },
+        "curso": { "type": "string", "maxLength": 200 },
+        "dataAlocacao": { "type": "string", "format": "date-time" },
+        "disciplina": { "type": "string", "maxLength": 200 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docenteId", "curso"]
+    },
+    "Colaborador": {
+      "title": "Colaborador",
+      "description": "Funcionário, Docente ou CTA do ISPS",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 200 },
+        "genero": { "type": "string", "enum": ["Masculino", "Feminino"] },
+        "nivelAcademico": { "type": "string", "maxLength": 100 },
+        "categoria": { "type": "string", "maxLength": 200 },
+        "unidade": { "type": "string", "maxLength": 200 },
+        "funcao": { "type": "string", "maxLength": 200 },
+        "tipo": { "type": "string", "enum": ["Docente", "CTA"] },
+        "status": {
+          "type": "string",
+          "enum": ["Ativo", "Aposentado", "Licença"]
+        },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nome", "genero", "unidade"]
+    },
+    "Estudante": {
+      "title": "Estudante",
+      "description": "Estudante matriculado no ISPS",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 200 },
+        "numeroEstudante": { "type": "string", "maxLength": 50 },
+        "curso": { "type": "string", "maxLength": 200 },
+        "ano": { "type": "number" },
+        "genero": { "type": "string", "enum": ["Masculino", "Feminino"] },
+        "regime": { "type": "string", "maxLength": 100 },
+        "status": {
+          "type": "string",
+          "enum": ["Ativo", "Graduado", "Interrompido"]
+        },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nome", "curso"]
+    },
+    "Event": {
+      "title": "Calendar Event",
+      "description": "An event on the institution's calendar",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 50 },
+        "startTime": { "type": "string", "maxLength": 10 },
+        "endTime": { "type": "string", "maxLength": 10 },
+        "location": { "type": "string", "maxLength": 200 },
+        "participants": { "type": "string", "maxLength": 1000 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "meeting",
+            "activity",
+            "Data Comemorativa",
+            "Feriado Nacional",
+            "Feriado Institucional"
+          ]
+        },
+        "agenda": { "type": "string", "maxLength": 2000 },
+        "preside": { "type": "string", "maxLength": 200 },
+        "remetente": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["active", "archived"] },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "date", "startTime", "endTime"]
+    },
+    "Nota": {
+      "title": "Daily Note",
+      "description": "A note/announcement for the day",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "date": { "type": "string", "maxLength": 50 },
+        "prazo": { "type": "string", "maxLength": 50 },
+        "remetente": { "type": "string", "maxLength": 200 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "date"]
+    },
+    "Expediente": {
+      "title": "Document Process",
+      "description": "Incoming or outgoing document process",
+      "type": "object",
+      "properties": {
+        "tipo": { "type": "string", "enum": ["Entrada", "Saída", "SIC"] },
+        "numero": { "type": "string", "maxLength": 50 },
+        "data": { "type": "string", "maxLength": 50 },
+        "assunto": { "type": "string", "maxLength": 500 },
+        "origem": { "type": "string", "maxLength": 200 },
+        "destino": { "type": "string", "maxLength": 200 },
+        "status": {
+          "type": "string",
+          "enum": ["Pendente", "Em andamento", "Concluído"]
+        },
+        "criadoPor": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tipo", "assunto", "status"]
+    },
+    "LibraryVisit": {
+      "title": "Library Visit",
+      "description": "A record of a visitor entering the library",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 200 },
+        "tipoVisitante": { "type": "string", "maxLength": 100 },
+        "numeroIdentificacao": { "type": "string", "maxLength": 50 },
+        "curso": { "type": "string", "maxLength": 200 },
+        "objetivo": { "type": "string", "maxLength": 500 },
+        "usaComputador": { "type": "boolean" },
+        "data": { "type": "string", "maxLength": 50 },
+        "horaEntrada": { "type": "string", "maxLength": 10 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LibraryBook": {
+      "title": "Library Book",
+      "description": "A book registration in the library",
+      "type": "object",
+      "properties": {
+        "titulo": { "type": "string", "maxLength": 300 },
+        "autor": { "type": "string", "maxLength": 200 },
+        "isbn": { "type": "string", "maxLength": 50 },
+        "exemplares": { "type": "string", "maxLength": 20 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "ServiceRequest": {
+      "title": "Service Request",
+      "description": "A request for a service from a visitor",
+      "type": "object",
+      "properties": {
+        "trackingCode": { "type": "string", "maxLength": 50 },
+        "visitorType": { "type": "string", "maxLength": 100 },
+        "service": { "type": "string", "maxLength": 200 },
+        "nome": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "maxLength": 50 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A registered supplier for UGEA",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 200 },
+        "tipoServico": { "type": "string", "maxLength": 200 },
+        "contacto": { "type": "string", "maxLength": 200 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "MatrixActivity": {
+      "title": "Matrix Activity",
+      "description": "An activity in the activity matrix",
+      "type": "object",
+      "properties": {
+        "atividade": { "type": "string", "maxLength": 1000 },
+        "responsavel": { "type": "string", "maxLength": 200 },
+        "unidade": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "maxLength": 50 },
+        "meta": { "type": "string", "maxLength": 500 },
+        "executada": { "type": "boolean" },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "FinancialData": {
+      "title": "Financial Data",
+      "description": "Annual financial report data",
+      "type": "object",
+      "properties": {
+        "ano": { "type": "string", "maxLength": 4 },
+        "orcamentoAnual": { "type": "number" },
+        "receitasProprias": { "type": "number" },
+        "subvencaoEstado": { "type": "number" },
+        "despesasPessoal": { "type": "number" },
+        "despesasFuncionamento": { "type": "number" },
+        "despesasInvestimento": { "type": "number" },
+        "status": { "type": "string", "maxLength": 50 },
+        "dataSubmissao": { "type": "string", "maxLength": 50 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SystemUser": {
+      "title": "System User",
+      "description": "Credentials and profile for system access",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 200 },
+        "email": { "type": "string", "maxLength": 200 },
+        "role": {
+          "type": "string",
+          "enum": [
+            "Admin",
+            "User",
+            "Administrador",
+            "Docente",
+            "CTA",
+            "Estudante"
+          ]
+        },
+        "nuit": { "type": "string", "maxLength": 20 },
+        "direcao": { "type": "string", "maxLength": 200 },
+        "departamento": { "type": "string", "maxLength": 200 },
+        "areaDeAfetacao": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["Pendente", "Afetado"] },
+        "mustChangePassword": { "type": "boolean" },
+        "password": { "type": "string", "maxLength": 100 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role"]
+    },
+    "ProcessoIndividual": {
+      "title": "Personal Process",
+      "description": "An employee's detailed personal process record",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 200 },
+        "nuit": { "type": "string", "maxLength": 20 },
+        "seccao": { "type": "string", "maxLength": 200 },
+        "dataSubmissao": { "type": "string", "maxLength": 50 },
+        "processoNo": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "maxLength": 50 },
+        "id": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Bem": {
+      "title": "Bem Patrimonial",
+      "description": "Item do património da instituição",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 300 },
+        "categoria": { "type": "string", "maxLength": 100 },
+        "quantidadeTotal": { "type": "number" },
+        "quantidadeDisponivel": { "type": "number" },
+        "localizacaoAtual": { "type": "string", "maxLength": 200 },
+        "estado": { "type": "string", "maxLength": 100 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nome", "categoria", "quantidadeTotal"]
+    },
+    "MovimentoEconomato": {
+      "title": "Movimento Economato",
+      "description": "Registo de entrada ou saída",
+      "type": "object",
+      "properties": {
+        "bemId": { "type": "string", "maxLength": 128 },
+        "tipo": { "type": "string", "enum": ["Entrada", "Saída"] },
+        "quantidade": { "type": "number" },
+        "data": { "type": "string", "maxLength": 50 },
+        "responsavel": { "type": "string", "maxLength": 200 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bemId", "tipo", "quantidade", "data"]
+    },
+    "Assiduidade": {
+      "title": "Assiduidade",
+      "description": "Registo de assiduidade de um colaborador",
+      "type": "object",
+      "properties": {
+        "colaboradorId": { "type": "string", "maxLength": 128 },
+        "nuit": { "type": "string", "maxLength": 20 },
+        "nomeCompleto": { "type": "string", "maxLength": 200 },
+        "data": { "type": "string", "format": "date" },
+        "diaSemana": { "type": "string", "maxLength": 20 },
+        "mes": { "type": "string", "maxLength": 20 },
+        "ano": { "type": "string", "maxLength": 4 },
+        "horaEntrada": { "type": "string", "maxLength": 10 },
+        "horaSaida": { "type": "string", "maxLength": 10 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Message": {
+      "title": "Mensagem",
+      "description": "Mensagem trocada entre utilizadores do sistema",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "maxLength": 5000 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 200 },
+        "recipientId": { "type": "string", "maxLength": 128 },
+        "recipientName": { "type": "string", "maxLength": 200 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "read": { "type": "boolean" },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["text", "senderId", "recipientId"]
+    },
+    "Monografia": {
+      "title": "Monografia",
+      "description": "Registo de trabalho de conclusão de curso",
+      "type": "object",
+      "properties": {
+        "titulo": { "type": "string", "maxLength": 500 },
+        "autor": { "type": "string", "maxLength": 200 },
+        "orientador": { "type": "string", "maxLength": 200 },
+        "ano": { "type": "number" },
+        "curso": { "type": "string", "maxLength": 200 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "tenantId": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["titulo", "autor", "orientador"]
+    }
+  },
+  "firestore": {
+    "archive_documents": {
+      "schema": "ArchiveDocument",
+      "description": "Collection of archived historical documents"
+    },
+    "colaboradores": {
+      "schema": "Colaborador",
+      "description": "Collection of staff and faculty"
+    },
+    "estudantes": {
+      "schema": "Estudante",
+      "description": "Collection of students"
+    },
+    "calendar_events": {
+      "schema": "Event",
+      "description": "Collection of institutional events"
+    },
+    "notes": {
+      "schema": "Nota",
+      "description": "Collection of daily notes/announcements"
+    },
+    "expedientes": {
+      "schema": "Expediente",
+      "description": "Collection of document processes"
+    },
+    "library_visits": {
+      "schema": "LibraryVisit",
+      "description": "Records of library visitors"
+    },
+    "library_books": {
+      "schema": "LibraryBook",
+      "description": "Records of library books"
+    },
+    "service_requests": {
+      "schema": "ServiceRequest",
+      "description": "Visitor service requests"
+    },
+    "suppliers": {
+      "schema": "Supplier",
+      "description": "UGEA supplier records"
+    },
+    "matrix_activities": {
+      "schema": "MatrixActivity",
+      "description": "Activity matrix records"
+    },
+    "financial_data": {
+      "schema": "FinancialData",
+      "description": "Annual financial reports"
+    },
+    "users": {
+      "schema": "SystemUser",
+      "description": "System access credentials"
+    },
+    "processos_individuais": {
+      "schema": "ProcessoIndividual",
+      "description": "Detailed employee processes"
+    },
+    "atividades": {
+      "schema": "MatrixActivity",
+      "description": "Additional activities"
+    },
+    "efetivo_escolar": {
+      "schema": "MatrixActivity",
+      "description": "School attendance data"
+    },
+    "funcionarios": {
+      "schema": "Colaborador",
+      "description": "Employees data"
+    },
+    "materiais_bens": { "schema": "Bem", "description": "Patrimonial assets" },
+    "movimentos_economato": {
+      "schema": "MovimentoEconomato",
+      "description": "Economato movements"
+    },
+    "alocacoes_docentes": {
+      "schema": "AlocacaoDocente",
+      "description": "Docente allocations to courses and subjects"
+    },
+    "assiduidade": {
+      "schema": "Assiduidade",
+      "description": "Staff attendance records"
+    },
+    "messages": {
+      "schema": "Message",
+      "description": "Messages between users"
+    },
+    "monografia": {
+      "schema": "Monografia",
+      "description": "Monografias e trabalhos de fim de curso"
+    },
+    "bolsas": {
+      "schema": "MatrixActivity",
+      "description": "Gestão de bolsas de estudo"
+    },
+    "turmas": { "schema": "MatrixActivity", "description": "Gestão de turmas" },
+    "espacos_fisicos": {
+      "schema": "MatrixActivity",
+      "description": "Registo de salas e laboratórios"
+    },
+    "config_sistema": {
+      "schema": "FinancialData",
+      "description": "Configurações globais do sistema"
+    }
+  }
+}

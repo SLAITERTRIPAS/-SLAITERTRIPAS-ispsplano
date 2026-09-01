@@ -1,0 +1,8 @@
+{
+  "name": "SIGEP-ISPS FINAL 1.1.1",
+  "description": "Plataforma unificada para indicadores estratégicos, projeções acadêmicas e conformidade normativa do ISPS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

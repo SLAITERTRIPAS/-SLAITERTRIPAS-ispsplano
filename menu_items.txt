@@ -1,0 +1,117 @@
+      title: 'Serviços Centrais', 
+      icon: Briefcase, 
+      color: 'bg-gray-600', 
+      items: [
+        { 
+          title: 'Direção de Coordenação de Serviços de Administração, Finanças e de Apoio (DICOSAFA)',
+          subItems: [
+            { title: 'Diretor da DICOSAFA' },
+            { 
+              title: 'Departamento de Recursos Humanos',
+              subItems: [
+                { title: 'Chefe do RH' },
+                { title: 'Repartição de Pessoal' },
+                { title: 'Repartição de Formação' },
+                { title: 'Repartição de Apoio Social' }
+              ]
+            },
+            { 
+              title: 'Departamento de Finanças',
+              subItems: [
+                { title: 'Chefe de Finanças' },
+                { title: 'Repartição de Plano e Orçamento' },
+                { title: 'Repartição de Tesouraria' },
+                { title: 'Setor de Estatística' }
+              ]
+            },
+            { 
+              title: 'Departamento de Património',
+              subItems: [
+                { title: 'Chefe de DP' },
+                { 
+                  title: 'Repartição de E-Património',
+                  subItems: [
+                    { title: 'Economato' },
+                    { title: 'Gestão Patrimonial' }
+                  ]
+                },
+                { title: 'Repartição de Infraestrutura e Manutenção' },
+                { 
+                  title: 'Repartição de Transporte',
+                  subItems: [
+                    { title: 'Gestão de Frota' },
+                    { title: 'Gestão de Viatura' }
+                  ]
+                }
+              ]
+            },
+            { 
+              title: 'Secretaria Geral',
+              subItems: [
+                { title: 'Chefe da SG' },
+                { title: 'Secretaria' },
+                { title: 'SIC' }
+              ]
+            },
+            { 
+              title: 'Departamento TIC',
+              subItems: [
+                { title: 'Chefe de DTIC' },
+                { title: 'Setor de Rede de Computadores' },
+                { title: 'Setor de Manutenção' },
+                { title: 'Reprografia' },
+                { title: 'Oficina de TIC' }
+              ]
+            },
+            { 
+              title: 'Departamento Lar de Estudantes',
+              subItems: [
+                { title: 'Chefe de DLA' },
+                { title: 'Repartição de Alojamento' },
+                { title: 'Repartição de Eventos' },
+                { title: 'Economato' }
+              ]
+            },
+            { 
+              title: 'Departamento de Produção Alimentar',
+              subItems: [
+                { title: 'Chefe de DPA' },
+                { title: 'Repartição de Produção Animal' },
+                { title: 'Repartição de Produção Vegetal' },
+                { title: 'Armazém de Thaka' }
+              ]
+            }
+          ]
+        },
+        { 
+          title: 'Direção de Coordenação de Serviços Académicos, Sociais, Extensão e Relações Públicas (DICOSSER)',
+          subItems: [
+            { title: 'Diretor da DICOSSER' },
+            { 
+              title: 'Departamento de Registo Académico',
+              subItems: [
+                { title: 'Chefe do DRA' },
+                { title: 'Atendimento Estudantil' },
+                { title: 'Repartição de Certificação' },
+                { title: 'Repartição de Exames de Admissão' },
+                { title: 'Repartição de Matrículas' }
+              ]
+            },
+            { 
+              title: 'Departamento de Assuntos Estudantis',
+              subItems: [
+                { title: 'Chefe do DAE' },
+                { title: 'Atendimento Estudantil' },
+                { 
+                  title: 'Repartição de Bolsa de Estudos'
+                },
+                { title: 'Repartição de Desporto e Recreação' }
+              ]
+            },
+            { 
+              title: 'Departamento de Biblioteca',
+              subItems: [
+                { title: 'Chefe de DBA' },
+                { 
+                  title: 'Biblioteca',
+                  subItems: [

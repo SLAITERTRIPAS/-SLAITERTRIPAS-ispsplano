@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "database": "ai-studio-remixsigepispsfi-568cf7ab-1c6a-4f17-a452-343b45e6e59f",
+    "rules": "firestore.rules"
+  }
+}

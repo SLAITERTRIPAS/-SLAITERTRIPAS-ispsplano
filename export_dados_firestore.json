@@ -1,0 +1,109 @@
+{
+  "exportadoEm": "2026-07-15T06:12:16.111Z",
+  "projetoId": "gen-lang-client-0579598070",
+  "databaseId": "ai-studio-remixremixremixs-b690b968-b962-4c61-be33-ff2097f64646",
+  "colecoes": {
+    "users": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "archive_documents": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "signatures": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "calendar_events": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "notes": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "expedientes": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "library_visits": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "library_books": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "service_requests": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "suppliers": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "matrix_activities": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "colaboradores": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "actividades": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "bolsas": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "atendimentos_estudantis": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "processos_individuais": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "efetivo_escolar": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "funcionarios": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "materiais_bens": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "movimentos_economato": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "financial_data": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "inventarios_patrimoniais": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "requisicoes_internas": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "assiduidade": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "alocacoes_docentes": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "espacos_fisicos": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "turmas": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "access_alerts": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "monografia": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "institucional_plans": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "reports": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "plan_schedules": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "messages": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    },
+    "counters": {
+      "erro": "Quota limit exceeded. Retry after quota limits are reset or enable billing for this project to avoid quota checks. Cause - Quota exceeded for quota metric 'Free daily read units per project (free tier database)' and limit 'Free daily read units per project (free tier database) per day' of service 'firestore.googleapis.com' for consumer 'project_number:313077276676'. This database cannot exceed free quota limits even when a billing instrument is enabled."
+    }
+  }
+}
