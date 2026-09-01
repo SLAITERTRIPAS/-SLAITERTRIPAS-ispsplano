@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { normalize as n, isMatch, toTitleCase as tc } from "../../lib/utils";
 import { isBossUser, isSuperBossUser, getRoles } from "../../lib/auth";
-import MainHeader from "../bloco1_apresentacao/MainHeader";
 import { firestoreService } from "../../lib/firestoreService";
 import { baseMenuItems } from "../../constants/menuHierarchy";
 

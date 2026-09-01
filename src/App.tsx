@@ -129,7 +129,6 @@ export default function App() {
   >([]);
   const [dashboardTitle, setDashboardTitle] = useState("");
   const [dashboardItems, setDashboardItems] = useState<any[]>([]);
-  const [passwordResetRequests, setPasswordResetRequests] = useState<any[]>([]);
   const [errorStates, setErrorStates] = useState<Record<string, string>>({});
   const [dashboardActiveItem, setDashboardActiveItem] = useState<
     string | undefined
@@ -1520,27 +1519,6 @@ export default function App() {
     };
   }, [user?.email, user?.nuit, processos?.length, colaboradores?.length]);
 
-  const handleFullReset = async () => {
-    if (
-      window.confirm(
-        "ATENÇÃO: Esta ação irá apagar TODOS os dados de atividades e processos. Esta ação é irreversível. Deseja continuar?",
-      )
-    ) {
-      try {
-        const result = await databaseMaintenance.fullSystemReset();
-        handleShowAlert(
-          `Reset concluído! ${result.totalRemoved} documentos removidos.`,
-        );
-        window.location.reload();
-      } catch (err: any) {
-        handleShowAlert("Erro ao realizar o reset: " + err.message);
-      }
-    }
-  };
-
-  const renderView = () => null;
-  const _legacyRenderView = () => null;
-
   return (
     <div
       className={`h-screen w-full flex flex-col font-serif relative ${view === "home" ? "bg-slate-950 text-white" : "bg-white text-black"}`}
@@ -1617,7 +1595,6 @@ export default function App() {
                 libraryRegistrations={libraryRegistrations}
                 bookRegistrations={bookRegistrations}
                 notes={notes}
-                passwordResetRequests={passwordResetRequests}
                 goBack={goBack}
                 onLogout={handleLogout}
                 openSubMenu={openSubMenu}
@@ -1625,6 +1602,7 @@ export default function App() {
                 onShowAlert={handleShowAlert}
                 onSetView={handleSetView}
                 matrixActivities={matrixActivities}
+                activities={activities}
                 suppliers={suppliers}
                 dashboardActiveItem={dashboardActiveItem}
                 setInnerPath={setInnerPath}

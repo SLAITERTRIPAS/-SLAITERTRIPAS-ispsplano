@@ -29,18 +29,18 @@ export default function SplashScreen({
     let currentProg = 0;
 
     progressTimer = setInterval(() => {
-      currentProg += 2.5; // 40 passos para chegar a 100
+      currentProg += 5; // 20 passos para chegar a 100
       if (currentProg >= 100) {
         setProgress(100);
         clearInterval(progressTimer);
         setTimeout(() => {
           setProgress(0);
           setPhase("welcome");
-        }, 150);
+        }, 100);
       } else {
         setProgress(Math.min(100, Math.round(currentProg)));
       }
-    }, 50); // 50ms * 40 passos = 2000ms (2.0 segundos para a primeira fase)
+    }, 50); // 50ms * 20 passos = 1000ms (1.0 segundo para a primeira fase)
 
     return () => {
       if (progressTimer) clearInterval(progressTimer);
@@ -54,17 +54,17 @@ export default function SplashScreen({
     let currentProg = 0;
 
     progressTimer = setInterval(() => {
-      currentProg += 2.5; // 40 passos para chegar a 100
+      currentProg += 5; // 20 passos para chegar a 100
       if (currentProg >= 100) {
         setProgress(100);
         clearInterval(progressTimer);
         setTimeout(() => {
           onFinishRef.current();
-        }, 150);
+        }, 100);
       } else {
         setProgress(Math.min(100, Math.round(currentProg)));
       }
-    }, 50); // 50ms * 40 passos = 2000ms (2.0 segundos para a segunda fase)
+    }, 50); // 50ms * 20 passos = 1000ms (1.0 segundo para a segunda fase)
 
     return () => {
       if (progressTimer) clearInterval(progressTimer);

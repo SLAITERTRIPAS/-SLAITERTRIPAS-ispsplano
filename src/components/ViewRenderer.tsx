@@ -1,49 +1,60 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import SplashScreen from "../blocos/bloco1_apresentacao/SplashScreen";
 import LoginScreen from "../blocos/bloco1_apresentacao/LoginScreen";
 import MainMenu from "../blocos/bloco1_apresentacao/MainMenu";
-import SistemaView from "../blocos/bloco5_sistema/SistemaView";
-import DirectorDashboard from "../blocos/bloco2_orgaos_gestao/DirectorDashboard";
-import ReposicaoTesteView from "../blocos/bloco3_unidades_organicas/ReposicaoTesteView";
-import WorkflowRequisicaoView from "../blocos/bloco5_sistema/WorkflowRequisicaoView";
-import MatrixView from "../blocos/bloco5_sistema/MatrixView";
-import ArchiveView from "../blocos/bloco5_sistema/ArchiveView";
-import BalancoMensalView from "../blocos/bloco4_servicos_centrais/BalancoMensalView";
 import MainContent from "../blocos/bloco1_apresentacao/MainContent";
 import Footer from "../blocos/bloco1_apresentacao/Footer";
 import SubMenu from "../blocos/bloco1_apresentacao/SubMenu";
-import EventDetailView from "../blocos/bloco8_gerais/EventDetailView";
-import NoteDetailView from "../blocos/bloco5_sistema/NoteDetailView";
-import NotaDoDiaForm from "../blocos/bloco6_documentos/NotaDoDiaForm";
-import AgendarNovoEncontroView from "../blocos/bloco5_sistema/AgendarNovoEncontroView";
-import VisitorWelcomeView from "../blocos/bloco4_servicos_centrais/VisitorWelcomeView";
-import VisitorServicesView from "../blocos/bloco4_servicos_centrais/VisitorServicesView";
-import ServiceRequestForm from "../blocos/bloco5_sistema/ServiceRequestForm";
-import TrackingView from "../blocos/bloco5_sistema/TrackingView";
-import GestaoDocumentosView from "../blocos/bloco4_servicos_centrais/GestaoDocumentosView";
-import MonitoriaView from "../blocos/bloco5_sistema/MonitoriaView";
-import GestaoPessoalView from "../blocos/bloco4_servicos_centrais/GestaoPessoalView";
-import UGEA_SupplierManagementView from "../blocos/bloco4_servicos_centrais/UGEA_SupplierManagementView";
-import UGEA_SupplierRegistrationForm from "../blocos/bloco4_servicos_centrais/UGEA_SupplierRegistrationForm";
-import UGEA_PlanView from "../blocos/bloco4_servicos_centrais/UGEA_PlanView";
-import MonografiaView from "../blocos/bloco3_unidades_organicas/MonografiaView";
-import GestaoPatrimonialView from "../blocos/bloco4_servicos_centrais/GestaoPatrimonialView";
-import DocumentosView from "../blocos/bloco6_documentos/DocumentosView";
 import MainHeader from "../blocos/bloco1_apresentacao/MainHeader";
-import ReportsView from "../blocos/bloco7_relatorios/ReportsView";
-import AssinaturaDigitalView from "../blocos/bloco5_sistema/AssinaturaDigitalView";
-import EconomatoView from "../blocos/bloco4_servicos_centrais/EconomatoView";
-import SystemRegistrationForm from "../blocos/bloco5_sistema/SystemRegistrationForm";
-import LibraryVisitForm from "../blocos/bloco3_unidades_organicas/LibraryVisitForm";
-import AcaoOrcamentalView from "./AcaoOrcamentalView";
-import PlanoWorkflowView from "../blocos/bloco5_sistema/PlanoWorkflowView";
-import { SectorSelectionView } from "../blocos/bloco1_apresentacao/SectorSelectionView";
 import { MatrixActivity, Event, Nota, ServiceRequest, BookRegistration } from "../types";
 import { firestoreService } from "../lib/firestoreService";
 import { ErrorBoundary } from "./ErrorBoundary";
 import EventBlock from "../blocos/bloco8_gerais/EventBlock";
-import { RefreshCw, X } from "lucide-react";
+import { RefreshCw, X, Loader2 } from "lucide-react";
 import { isSuperBossUser, getUserWorkspace } from "../lib/auth";
+
+// Lazy loading heavy views
+const SistemaView = lazy(() => import("../blocos/bloco5_sistema/SistemaView"));
+const DirectorDashboard = lazy(() => import("../blocos/bloco2_orgaos_gestao/DirectorDashboard"));
+const ReposicaoTesteView = lazy(() => import("../blocos/bloco3_unidades_organicas/ReposicaoTesteView"));
+const WorkflowRequisicaoView = lazy(() => import("../blocos/bloco5_sistema/WorkflowRequisicaoView"));
+const MatrixView = lazy(() => import("../blocos/bloco5_sistema/MatrixView"));
+const ArchiveView = lazy(() => import("../blocos/bloco5_sistema/ArchiveView"));
+const BalancoMensalView = lazy(() => import("../blocos/bloco4_servicos_centrais/BalancoMensalView"));
+const EventDetailView = lazy(() => import("../blocos/bloco8_gerais/EventDetailView"));
+const NoteDetailView = lazy(() => import("../blocos/bloco5_sistema/NoteDetailView"));
+const NotaDoDiaForm = lazy(() => import("../blocos/bloco6_documentos/NotaDoDiaForm"));
+const AgendarNovoEncontroView = lazy(() => import("../blocos/bloco5_sistema/AgendarNovoEncontroView"));
+const VisitorWelcomeView = lazy(() => import("../blocos/bloco4_servicos_centrais/VisitorWelcomeView"));
+const VisitorServicesView = lazy(() => import("../blocos/bloco4_servicos_centrais/VisitorServicesView"));
+const ServiceRequestForm = lazy(() => import("../blocos/bloco5_sistema/ServiceRequestForm"));
+const TrackingView = lazy(() => import("../blocos/bloco5_sistema/TrackingView"));
+const GestaoDocumentosView = lazy(() => import("../blocos/bloco4_servicos_centrais/GestaoDocumentosView"));
+const MonitoriaView = lazy(() => import("../blocos/bloco5_sistema/MonitoriaView"));
+const GestaoPessoalView = lazy(() => import("../blocos/bloco4_servicos_centrais/GestaoPessoalView"));
+const UGEA_SupplierManagementView = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_SupplierManagementView"));
+const UGEA_SupplierRegistrationForm = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_SupplierRegistrationForm"));
+const UGEA_PlanView = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_PlanView"));
+const MonografiaView = lazy(() => import("../blocos/bloco3_unidades_organicas/MonografiaView"));
+const GestaoPatrimonialView = lazy(() => import("../blocos/bloco4_servicos_centrais/GestaoPatrimonialView"));
+const DocumentosView = lazy(() => import("../blocos/bloco6_documentos/DocumentosView"));
+const ReportsView = lazy(() => import("../blocos/bloco7_relatorios/ReportsView"));
+const AssinaturaDigitalView = lazy(() => import("../blocos/bloco5_sistema/AssinaturaDigitalView"));
+const EconomatoView = lazy(() => import("../blocos/bloco4_servicos_centrais/EconomatoView"));
+const SystemRegistrationForm = lazy(() => import("../blocos/bloco5_sistema/SystemRegistrationForm"));
+const LibraryVisitForm = lazy(() => import("../blocos/bloco3_unidades_organicas/LibraryVisitForm"));
+const AcaoOrcamentalView = lazy(() => import("./AcaoOrcamentalView"));
+const PlanoWorkflowView = lazy(() => import("../blocos/bloco5_sistema/PlanoWorkflowView"));
+const SectorSelectionView = lazy(() => import("../blocos/bloco1_apresentacao/SectorSelectionView").then(m => ({ default: m.SectorSelectionView })));
+
+const ViewLoading = () => (
+  <div className="flex flex-col items-center justify-center h-full w-full bg-slate-50/50 backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="animate-spin text-blue-900" size={40} />
+      <p className="text-blue-900 font-black text-xs tracking-widest animate-pulse">CARREGANDO MÓDULO...</p>
+    </div>
+  </div>
+);
 
 const WorkspaceRedirect: React.FC<{
   workspace: string;
@@ -78,7 +89,6 @@ interface ViewRendererProps {
   libraryRegistrations?: any[];
   bookRegistrations?: any[];
   notes?: any[];
-  passwordResetRequests?: any[];
   goBack: () => void;
   onLogout: () => void;
   onNavigate?: (title: string, items: any[]) => void;
@@ -116,7 +126,26 @@ interface ViewRendererProps {
   onSelectSector?: (sector: string) => void;
 }
 
-export const ViewRenderer: React.FC<ViewRendererProps> = ({
+export const ViewRenderer: React.FC<ViewRendererProps> = (props) => {
+  if (!props.bootComplete) {
+    return (
+      <SplashScreen
+        user={props.extendedUser}
+        isFirstLogin={false}
+        onFinish={props.onBootComplete}
+        initStatus={props.initStatus}
+      />
+    );
+  }
+
+  return (
+    <Suspense fallback={<ViewLoading />}>
+      <ViewRendererInner {...props} />
+    </Suspense>
+  );
+};
+
+const ViewRendererInner: React.FC<ViewRendererProps> = ({
   view,
   user,
   extendedUser,
@@ -129,7 +158,6 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
   libraryRegistrations = [],
   bookRegistrations = [],
   notes = [],
-  passwordResetRequests = [],
   goBack,
   onLogout,
   onNavigate = (_title?: string, _items?: any[]) => {},
@@ -140,9 +168,6 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
   onDeleteNote = async (_id?: string) => {},
   onUpdateUser = async (_id?: string, _data?: any) => {},
   onLogin = (_user?: any) => {},
-  initStatus = "",
-  bootComplete = true,
-  onBootComplete = () => {},
   onSetView = (_v?: any) => {},
   onGlobalSync = () => {},
   isSyncing = false,
@@ -166,10 +191,6 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
   activities = [],
   onSelectSector,
 }) => {
-  if (!bootComplete) {
-    return <SplashScreen user={extendedUser} isFirstLogin={false} onFinish={onBootComplete} initStatus={initStatus} />;
-  }
-
   if (view === "home") {
     return (
       <>

@@ -90,6 +90,13 @@ import {
 } from "./plano/PlanoHelpers";
 import { ActivityTableHeader } from "./plano/ActivityTableHeader";
 import { ActivityTableRow } from "./plano/ActivityTableRow";
+import {
+  isSalaryActivity,
+  getIsUserHR as isUserHRFunc,
+  getDirectionKeysMatched,
+  isDepartmentMatch,
+} from "./plano/PlanoLogic";
+import { usePlanoPermissions } from "./plano/usePlanoPermissions";
 import ActivityForm from "../bloco5_sistema/ActivityForm";
 import { DPEPDashboard } from "../../components/DPEPDashboard";
 import {
@@ -103,21 +110,6 @@ import {
 
 // Standard divisions and sectors of Songo for mock grouping if not filled
 const DEV_SECTORS = Object.keys(REPARTICOES);
-
-const isDepartmentMatch = (deptA?: any, deptB?: any): boolean => {
-  if (!deptA || !deptB) return false;
-  const norm = (s: any) =>
-    String(s || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/^departamento\s+(de\s+|da\s+|dos\s+|do\s+)?/i, "")
-      .trim();
-  const a = norm(deptA);
-  const b = norm(deptB);
-  if (!a || !b) return false;
-  return a === b;
-};
 
 const GABINETES_DESTINATARIOS = [
   "Gabinete do Diretor Geral",
@@ -195,22 +187,7 @@ export default function PlanoWorkflowView({
     return realUser;
   }, [realUser, simulateSector, title]);
 
-  // Acesso condicional: todo o utilizador deve estar alocado a uma área
-  const isAllocated = useMemo(() => {
-    if (!user) return false;
-    
-    // Se o utilizador tem qualquer campo de alocação preenchido, é considerado alocado
-    if (user.direcao || user.departamento || user.unidadeOrganica || user.setor || user.reparticao) return true;
-    
-    // Exceção para departamentos conhecidos (DICOSAFA/TIC) ou chefias baseadas no título
-    const context = `${user.title || ""} ${user.cargo || ""} ${user.cargoChefia || ""} ${user.role || ""} ${user.email || ""}`.toUpperCase();
-    if (context.includes("DICOSAFA") || context.includes("TIC") || context.includes("SECRETARIA GERAL") || context.includes("CHEFE") || context.includes("DIRETOR")) return true;
-    
-    // Administradores e Super utilizadores têm sempre acesso
-    if (isSuperBossUser(user)) return true;
-    
-    return false;
-  }, [user]);
+  const { isAllocated, isDPEP } = usePlanoPermissions(user, title);
   
   if (!isAllocated) {
     return (
@@ -223,26 +200,6 @@ export default function PlanoWorkflowView({
       </div>
     );
   }
-
-  const isDPEP = useMemo(() => {
-    if (!user) return false;
-    const titleUpper = String(
-      user.title ||
-      user.cargo ||
-      user.cargoChefia ||
-      ""
-    ).toUpperCase();
-    const deptUpper = String(user.departamento || "").toUpperCase();
-    const roleUpper = String(user.role || "").toUpperCase();
-    return (
-      titleUpper.includes("DPEP") ||
-      deptUpper.includes("DPEP") ||
-      roleUpper.includes("DPEP") ||
-      titleUpper.includes("PLANIFICAÇÃO") ||
-      deptUpper.includes("PLANIFICAÇÃO") ||
-      isSuperBossUser(user)
-    );
-  }, [user]);
 
   const [rawActivities, setRawActivities] = useState(initialActivities);
 
@@ -1200,31 +1157,6 @@ export default function PlanoWorkflowView({
     }
   };
 
-  const isSalaryActivity = (act: any): boolean => {
-    if (!act) return false;
-    const title = (
-      act.titulo ||
-      act.nomeAtividade ||
-      act.nome ||
-      ""
-    ).toUpperCase();
-    const obj = (act.objetivoAtividade || act.objetivo || "").toUpperCase();
-    const rubrica = (act.rubrica || "").toUpperCase();
-    const nec = (act.necessidade || "").toUpperCase();
-    const combo = `${title} ${obj} ${rubrica} ${nec}`;
-
-    return (
-      combo.includes("SALÁRIO") ||
-      combo.includes("SALARIO") ||
-      combo.includes("REMUNERAÇÃO") ||
-      combo.includes("REMUNERACAO") ||
-      combo.includes("PAGAMENTO DE SAL") ||
-      combo.includes("GARANTIR SAL") ||
-      combo.includes("112")
-    );
-  };
-
-
   // Consolidação Orçamental Hierárquica:
   // 1. Orçamento do Departamento = soma do valor total de todas as atividades planificadas para o departamento
   // 2. Orçamento da Direção = soma dos orçamentos de todos os departamentos que respondem a essa direção
@@ -1237,19 +1169,7 @@ export default function PlanoWorkflowView({
     return nonSalaryActs.reduce((acc, act) => acc + getActivityTotal(act), 0);
   }, [filteredActivities]);
 
-  const isUserHR = useMemo(() => {
-    const dept = String(user?.departamento || title || "").toUpperCase();
-    const cargo = (user?.cargo || "").toUpperCase();
-    return (
-      dept.includes("RECURSOS HUMANOS") ||
-      dept.includes(" RH ") ||
-      dept.endsWith(" RH") ||
-      dept.startsWith("RH ") ||
-      dept === "RH" ||
-      cargo.includes("RH") ||
-      cargo.includes("RECURSOS HUMANOS")
-    );
-  }, [user, title]);
+  const isUserHR = useMemo(() => isUserHRFunc(user, title), [user, title]);
 
   const deptSalaryTotal = useMemo(() => {
     // Lista estrita de departamentos de RH
@@ -1269,88 +1189,6 @@ export default function PlanoWorkflowView({
     
     return salaryActs.reduce((acc, act) => acc + getActivityTotal(act) * 12, 0);
   }, [filteredActivities, user, title, isUserHR]);
-
-  const getDirectionKeysMatched = (
-    dirTitle: string = "",
-    userDept: string = "",
-  ) => {
-    const t = (dirTitle || "").toUpperCase();
-    const ud = (userDept || "").toUpperCase();
-
-    if (
-      t.includes("DICOSAFA") ||
-      ud.includes("DICOSAFA") ||
-      t.includes("COSSAFA") ||
-      ud.includes("COSSAFA") ||
-      t.includes("ADMINISTRAÇÃO, FINANÇAS") ||
-      ud.includes("ADMINISTRAÇÃO, FINANÇAS") ||
-      t.includes("ADMINISTRACAO, FINANCAS") ||
-      ud.includes("ADMINISTRACAO, FINANCAS")
-    ) {
-      return "DICOSAFA";
-    }
-    if (
-      t.includes("DICOSSER") ||
-      ud.includes("DICOSSER") ||
-      t.includes("COSSER") ||
-      ud.includes("COSSER") ||
-      t.includes("REGISTO ACADÉMICO") ||
-      t.includes("REGISTO ACADEMICO") ||
-      t.includes("DRA") ||
-      ud.includes("REGISTO ACADÉMICO") ||
-      ud.includes("REGISTO ACADEMICO") ||
-      ud.includes("DRA") ||
-      t.includes("SERVIÇOS SOCIAIS") ||
-      ud.includes("SERVIÇOS SOCIAIS") ||
-      t.includes("SERVICOS SOCIAIS") ||
-      ud.includes("SERVICOS SOCIAIS")
-    ) {
-      return "DICOSSER";
-    }
-    if (
-      t.includes("ENGENHARIA") ||
-      t.includes("DIVISÃO") ||
-      t.includes("DIVISAO") ||
-      ud.includes("ENGENHARIA") ||
-      ud.includes("DIVISÃO") ||
-      ud.includes("DIVISAO")
-    ) {
-      return "Divisão de Engenharia";
-    }
-    if (
-      t.includes("INCUBADORA") ||
-      t.includes("INCUBACAO") ||
-      t.includes("INCUBACÃO") ||
-      t.includes("CIE") ||
-      ud.includes("INCUBADORA") ||
-      ud.includes("INCUBACAO") ||
-      ud.includes("INCUBACÃO") ||
-      ud.includes("CIE")
-    ) {
-      return "Centro de Incubação de Empresas";
-    }
-    if (
-      t.includes("GERAL") ||
-      t.includes("GABINETE") ||
-      t.includes("DG") ||
-      t.includes("GDG") ||
-      ud.includes("GERAL") ||
-      ud.includes("GABINETE") ||
-      ud.includes("DG") ||
-      ud.includes("GDG")
-    ) {
-      return "Gabinete do Diretor-Geral";
-    }
-
-    if (t.includes("DICO") || t.includes("DIR")) {
-      const found = Object.keys(DEPARTAMENTOS).find(
-        (k) => t.includes(k.toUpperCase()) || k.toUpperCase().includes(t),
-      );
-      if (found) return found;
-    }
-
-    return "DICOSAFA";
-  };
 
   const directionKey = getDirectionKeysMatched(title, user?.departamento);
   const departmentsForThisDirection =
