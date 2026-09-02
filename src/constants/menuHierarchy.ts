@@ -41,6 +41,7 @@ export const baseMenuItems = [
             title: "Unidade Gestora e Executora de Aquisições",
             subItems: [
               { title: "Chefe da UGEA" },
+              { title: "Gestão de Produtos e Preços" },
               { title: "Gestão de Fornecedores" },
               { title: "Plano de Aquisição" },
               { title: "Plano de Contratação" },

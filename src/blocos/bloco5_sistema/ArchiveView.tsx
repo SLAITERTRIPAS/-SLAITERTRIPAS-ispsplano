@@ -536,7 +536,8 @@ export default function ArchiveView({
 
     const hierarchy: Record<string, Record<string, Record<string, Record<string, Record<string, ArchiveDocument[]>>>>> = {};
 
-    yearDocs.forEach((doc) => {
+    yearDocs.forEach((item) => {
+      const doc = item as any;
       const orgao = doc.orgao || "Instituto Superior Politécnico de Songo";
       const direcao = doc.direcao || "DICOSSER (Direção de Serviços)";
       const isUgea = 

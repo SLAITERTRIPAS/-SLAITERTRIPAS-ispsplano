@@ -95,8 +95,8 @@ export const SYSTEM_ORGAOS: SystemOrganInfo[] = [
   },
   {
     id: "servicos_centrais",
-    name: "Unidade Orgânica",
-    shortName: "Unidade Orgânica",
+    name: "Serviços Centrais",
+    shortName: "Serviços Centrais",
     description: "Recursos humanos, processos individuais, assiduidade, dados financeiros, orçamentos, fornecedores, economato, património e arquivo",
     iconName: "Briefcase",
     badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-300",
@@ -1240,6 +1240,20 @@ export async function runAutomaticBackupIfNeeded(): Promise<SystemBackupRecord |
   return null;
 }
 
+export async function autoRestoreOnStartup(onProgress?: (msg: string) => void): Promise<boolean> {
+  try {
+    const latestBackup = localStorage.getItem("sigep_backup_latest");
+    if (latestBackup) {
+      console.log("A executar regra automática de restauração da base de dados após deploy/remix...");
+      await restoreFullBackup(latestBackup, onProgress);
+      return true;
+    }
+  } catch (e) {
+    console.warn("Aviso ao executar restauração automática no arranque:", e);
+  }
+  return false;
+}
+
 /**
  * Obtém os dados completos de um backup salvo, reconstruindo de forma multi-camada
  */
@@ -1696,5 +1710,18 @@ export async function restoreSystemBackup(rawInputData: BackupData | any[] | str
     "users", "documentos_normativos", "calendar_events", "notes", "messages", "configuracoes", "config_sistema", "drafts", "system_backups"
   ];
   return restoreTargetedBackup(rawInputData, systemColls, "Restauração do Sistema", onProgress);
+}
+
+export async function exportOrganBackup(organId: string, onProgress?: (msg: string) => void): Promise<BackupResult> {
+  const organ = SYSTEM_ORGAOS.find((o) => o.id === organId);
+  if (!organ) throw new Error("Órgão não encontrado");
+  const prefix = `SIGEP_ORGAO_${organ.id.toUpperCase()}`;
+  return generateTargetedBackup(organ.collections, prefix, `Backup do Órgão: ${organ.name}`, onProgress);
+}
+
+export async function restoreOrganBackup(organId: string, rawInputData: BackupData | any[] | string, onProgress?: (msg: string) => void) {
+  const organ = SYSTEM_ORGAOS.find((o) => o.id === organId);
+  if (!organ) throw new Error("Órgão não encontrado");
+  return restoreTargetedBackup(rawInputData, organ.collections, `Restauração do Órgão: ${organ.name}`, onProgress);
 }
 

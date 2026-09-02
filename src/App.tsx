@@ -20,7 +20,7 @@ import SplashScreen from "./blocos/bloco1_apresentacao/SplashScreen";
 import BackupRestoreModal from "./components/modals/BackupRestoreModal";
 import { ViewRenderer } from "./components/ViewRenderer";
 import { EFETIVO_GERAL_DATA } from "./constants/colaboradoresList";
-import { runAutomaticBackupIfNeeded } from "./lib/backupService";
+import { runAutomaticBackupIfNeeded, autoRestoreOnStartup } from "./lib/backupService";
 import { Database } from "lucide-react";
 import {
   Event,
@@ -115,6 +115,7 @@ export default function App() {
     | "assinatura_digital"
     | "documentos_normativos"
     | "relatorios"
+    | "produtos_precos"
   >("login");
   const [statsActiveItem, setStatsActiveItem] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -202,8 +203,13 @@ export default function App() {
     handleSelectSector(selectedSectorForLogin);
   };
 
-  // Sistema de Backup Automático de 12 horas e Alertas de Progresso
+  // Sistema de Backup Automático de 12 horas e Restauração Automática no Arranque (Deploy/Remix)
   useEffect(() => {
+    // Regra de restauração de base de dados no arranque (após deploy/remix)
+    autoRestoreOnStartup().catch((e) =>
+      console.warn("Erro ao executar restauração automática no arranque:", e),
+    );
+
     // Verificação inicial ao carregar o sistema
     runAutomaticBackupIfNeeded().catch((e) =>
       console.warn("Erro ao verificar backup automático inicial:", e),
@@ -1280,6 +1286,11 @@ export default function App() {
     if (title === "Monografia" || title === "Gerar Monografia") {
       setDashboardTitle(title);
       setView("monografia");
+      return;
+    }
+    if (title === "Gestão de Produtos e Preços") {
+      setDashboardTitle(title);
+      setView("produtos_precos");
       return;
     }
     if (title === "Gestão de Fornecedores") {

@@ -2068,7 +2068,7 @@ export default function JustificacaoFaltaDispensaForm({
             </p>
 
             <AssinaturaDigitalPad
-              onSaveAssinatura={(signatureData) => handleSignatureConfirmed(signatureData)}
+              onSaveAssinatura={(signatureData: any) => handleSignatureConfirmed(typeof signatureData === 'string' ? signatureData : (signatureData.assinaturaImg || JSON.stringify(signatureData)))}
               onCancel={() => setShowSignatureModal(false)}
               defaultNome={
                 currentSignatureTarget === "funcionario"

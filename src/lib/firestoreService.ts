@@ -410,7 +410,7 @@ export async function updateInCollection<T>(
       saveLocalData(collectionName, localList);
     }
   } catch (error: any) {
-    console.error(`Erro crítico na atualização de ${collectionName}/${id}:`, error);
+    console.warn(`Aviso na atualização de ${collectionName}/${id} (fallback local ativo):`, error?.message || error);
     
     // Fallback local apenas para pendência de sincronização
     const localList = getLocalData(collectionName);
@@ -2219,20 +2219,28 @@ export const firestoreService = {
 
 export function subscribeToMessages(userId: string, callback: any) {
   if (!userId) return () => {};
-  const q = query(
-    collection(db, "messages"),
-    where("recipientId", "==", String(userId)),
-  );
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      callback(msgs);
-    },
-    (error) => {
-      console.error("Erro ao subscrever mensagens:", error);
-    },
-  );
+  try {
+    const q = query(
+      collection(db, "messages"),
+      where("recipientId", "==", String(userId)),
+    );
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        callback(msgs);
+      },
+      (error) => {
+        // Fallback gracefully to local storage messages
+        const local = getLocalData("messages").filter((m: any) => String(m.recipientId) === String(userId));
+        callback(local);
+      },
+    );
+  } catch (e) {
+    const local = getLocalData("messages").filter((m: any) => String(m.recipientId) === String(userId));
+    callback(local);
+    return () => {};
+  }
 }
 
 export async function deleteAllFromCollection(collectionName: string) {

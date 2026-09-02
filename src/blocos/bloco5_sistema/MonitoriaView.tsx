@@ -258,7 +258,7 @@ export default function MonitoriaView({
         isPlanificada: true,
       },
     ];
-    setMonitoriaActivities((prev) => [...importActivities, ...prev]);
+    setMonitoriaActivities((prev: any) => [...(importActivities as any), ...prev]);
     alert(
       `Actividade(s) planificada(s) importada(s) para o mês de ${month} com sucesso!`,
     );

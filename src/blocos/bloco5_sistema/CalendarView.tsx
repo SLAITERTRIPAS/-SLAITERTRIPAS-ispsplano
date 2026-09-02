@@ -204,6 +204,17 @@ export default function CalendarView({
       );
     }
 
+    // Trailing empty slots to complete 35 or 42 cells (5 or 6 full rows)
+    const totalSlots = calendarDays.length <= 35 ? 35 : 42;
+    while (calendarDays.length < totalSlots) {
+      calendarDays.push(
+        <div
+          key={`empty-trailing-${calendarDays.length}`}
+          className="min-h-0 border border-slate-300/30 bg-transparent"
+        ></div>,
+      );
+    }
+
     return calendarDays;
   };
 
@@ -211,7 +222,7 @@ export default function CalendarView({
     <div className="w-full flex justify-center items-start py-6 px-4">
       <div className="w-full max-w-7xl flex flex-col xl:flex-row gap-6 relative mx-auto">
         {/* Left side: Calendar Grid */}
-        <div className="relative bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden flex flex-col w-full xl:w-[70%]">
+        <div className="relative bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden flex flex-col w-full xl:w-[70%] aspect-[35/30]">
           {/* Background Logo */}
           <div
             className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none"

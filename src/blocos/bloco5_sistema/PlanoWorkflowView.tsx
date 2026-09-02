@@ -1991,7 +1991,7 @@ export default function PlanoWorkflowView({
         
         // Limpeza Global de Rascunhos: Eliminar todas as atividades que não foram homologadas nem submetidas ao PESOE final
         const globalDrafts = rawActivities.filter(
-          (a) => a.status !== "institucional" && a.status !== "pendente_monitoria" && a.status !== "em_andamento" && a.status !== "concluido"
+          (a) => (a.status as string) !== "institucional" && (a.status as string) !== "pendente_monitoria" && (a.status as string) !== "em_andamento" && (a.status as string) !== "concluido"
         );
         if (globalDrafts.length > 0) {
           await Promise.all(

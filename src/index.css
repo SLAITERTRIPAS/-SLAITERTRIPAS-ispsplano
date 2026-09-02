@@ -123,6 +123,9 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 
   html {

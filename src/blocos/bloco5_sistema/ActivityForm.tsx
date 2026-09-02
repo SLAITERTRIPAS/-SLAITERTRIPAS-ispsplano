@@ -513,7 +513,7 @@ export default function ActivityForm({
     };
   };
 
-  const [formData, setFormData] = useState(() => {
+  const [formData, setFormData] = useState<any>(() => {
     const targetArea = sectorName || initialData?.departamento || initialData?.setor || (user ? getUserWorkspace(user) : "");
     const nextNum = calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : "");
     if (initialData) {
@@ -6978,7 +6978,7 @@ export default function ActivityForm({
                     const finalDirecao = formData.direcao || formData.unidadeSelecionada || userDir || "Direção Geral";
                     const finalUnidade = formData.unidadeOrganica || formData.unidadeCentral || userUnidade || selectedCategory || "Songo";
 
-                    const submissionData = {
+                    const submissionData: any = {
                       ...formData,
                       ...calculateTotalActivityData(months, formData),
                       title: formData.nomeAtividade,
@@ -6986,7 +6986,7 @@ export default function ActivityForm({
                       selectedCategory,
                       ano: nextYear,
                       mesesRealizacao: months,
-                      mesRealizacao: months[0] || formData.mesRealizacao || formData.mes || "",
+                      mesRealizacao: months[0] || formData.mesRealizacao || (formData as any).mes || "",
                       setor: finalSetor,
                       reparticao: finalReparticao,
                       departamento: finalDepartamento,

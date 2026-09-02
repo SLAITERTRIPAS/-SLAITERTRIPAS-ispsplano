@@ -30,6 +30,8 @@ import {
   exportSystemBackup,
   restoreDataBackup,
   restoreSystemBackup,
+  exportOrganBackup,
+  restoreOrganBackup,
   runAutomaticBackup,
   getStoredBackupsList,
   getStoredBackupData,
@@ -124,6 +126,63 @@ export default function BackupRestoreModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportOrganClick = async (organId: string, organName: string) => {
+    try {
+      setLoading(true);
+      setCurrentOrganProcessing(organName);
+      setStatusMessage(`A gerar backup exclusivo do órgão ${organName}...`);
+      setErrorMessage("");
+      setSuccessMessage("");
+      const res = await exportOrganBackup(organId, (msg) => setStatusMessage(msg));
+      if (res.success) {
+        setOrganStats(res.organStats || null);
+        setSuccessMessage(`Backup do órgão ${organName} descarregado com sucesso (${res.filename})!`);
+      } else {
+        setErrorMessage(`Falha ao exportar órgão ${organName}: ${res.error}`);
+      }
+    } catch (err: any) {
+      setErrorMessage(`Erro ao exportar órgão ${organName}: ${err?.message}`);
+    } finally {
+      setLoading(false);
+      setCurrentOrganProcessing("");
+      setStatusMessage("");
+    }
+  };
+
+  const handleUploadOrganClick = async (organId: string, organName: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!window.confirm(`Tem a certeza que deseja restaurar o backup do órgão "${organName}"? Esta operação atualizará apenas os setores e coleções pertencentes a este órgão, mantendo os demais intactos.`)) {
+      if (e.target) e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        setLoading(true);
+        setCurrentOrganProcessing(organName);
+        setStatusMessage(`A restaurar dados exclusivos do órgão ${organName}...`);
+        setErrorMessage("");
+        setSuccessMessage("");
+        const content = event.target?.result as string;
+        const parsed = JSON.parse(content);
+        const res = await restoreOrganBackup(organId, parsed, (msg) => setStatusMessage(msg));
+        setSuccessMessage(`Órgão ${organName} restaurado com sucesso! (${res.totalRestored} registos aplicados). A reiniciar sistema...`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (err: any) {
+        setErrorMessage(`Erro ao restaurar órgão ${organName}: ${err?.message || err}`);
+      } finally {
+        setLoading(false);
+        setCurrentOrganProcessing("");
+        setStatusMessage("");
+        if (e.target) e.target.value = "";
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleFileUploadData = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -528,6 +587,33 @@ export default function BackupRestoreModal({
                             <CheckCircle size={12} />
                             <span>Sincronizado</span>
                           </span>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-gray-200/60 flex items-center gap-2">
+                          <button
+                            onClick={() => handleExportOrganClick(organ.id, organ.name)}
+                            disabled={loading}
+                            className="flex-1 bg-[#121c60] hover:bg-[#1a2b70] text-white font-bold py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1.5 shadow-xs transition-all disabled:opacity-50"
+                            title="Descarregar backup exclusivo deste órgão e seus respetivos setores"
+                          >
+                            <Download size={13} />
+                            <span>Backup do Órgão</span>
+                          </button>
+
+                          <label
+                            className="flex-1 bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-1.5 px-2.5 rounded-lg text-[11px] flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                            title="Restaurar dados exclusivamente para este órgão"
+                          >
+                            <Upload size={13} />
+                            <span>Restaurar</span>
+                            <input
+                              type="file"
+                              accept=".json"
+                              onChange={(e) => handleUploadOrganClick(organ.id, organ.name, e)}
+                              disabled={loading}
+                              className="hidden"
+                            />
+                          </label>
                         </div>
                       </div>
                     );

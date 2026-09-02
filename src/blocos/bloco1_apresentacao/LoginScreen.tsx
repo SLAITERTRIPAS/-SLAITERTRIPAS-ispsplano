@@ -541,6 +541,50 @@ export default function LoginScreen({
         const localUser = findLocalUser(lowerInput, password);
         if (localUser) {
           user = localUser;
+        } else if (isQuotaError) {
+          // Busca flexível no EFETIVO_GERAL_DATA em caso de erro de quota
+          const flexibleMatch = EFETIVO_GERAL_DATA.find((c: any) => {
+            const cName = (c.nome || "").toLowerCase();
+            const cEmail = (c.email || "").toLowerCase();
+            const cNuit = String(c.nuit || "");
+            return cName.includes(lowerInput) || cEmail.includes(lowerInput) || cNuit.includes(lowerInput);
+          });
+          if (flexibleMatch) {
+            user = {
+              id: (flexibleMatch as any).id || generateCollaboratorId(flexibleMatch.nome || "", flexibleMatch.nuit || ""),
+              name: flexibleMatch.nome,
+              nome: flexibleMatch.nome,
+              email: (flexibleMatch.email || `${flexibleMatch.nome.toLowerCase().split(" ").join(".")}@songo.ac.mz`).toLowerCase(),
+              nuit: flexibleMatch.nuit,
+              role: flexibleMatch.tipo === "Docente" ? "Docente" : "CTA",
+              unidade: flexibleMatch.unidade || "",
+              direcao: (flexibleMatch as any).direcao || "",
+              departamento: (flexibleMatch as any).departamento || "",
+              reparticao: (flexibleMatch as any).reparticao || "",
+              cargo: flexibleMatch.cargo || "",
+              status: flexibleMatch.status || "Ativo",
+              areaDeAfetacao: (flexibleMatch as any).areaDeAfetacao || "",
+              password: "1234",
+              mustChangePassword: true,
+            };
+          } else if (lowerInput.length >= 2) {
+            // Criar utilizador de contingência para garantir acesso mesmo com quota esgotada
+            user = {
+              id: `offline_${Date.now()}`,
+              name: identifier.trim(),
+              nome: identifier.trim(),
+              email: lowerInput.includes("@") ? lowerInput : `${lowerInput.split(" ").join(".")}@songo.ac.mz`,
+              nuit: /^\d+$/.test(lowerInput) ? lowerInput : "000000000",
+              role: "CTA",
+              unidade: "Serviços Centrais",
+              direcao: "Direcção Geral",
+              departamento: "Geral",
+              cargo: "Funcionário",
+              status: "Ativo",
+              password: "1234",
+              mustChangePassword: true,
+            };
+          }
         }
       }
 
@@ -558,8 +602,7 @@ export default function LoginScreen({
         return;
       }
 
-      if (user) {
-        const isDefaultInput = password === "1234";
+      const isDefaultInput = password === "1234";
         const dbPassword = user.password;
         const hasChangedPassword = user.mustChangePassword === false;
 
@@ -797,9 +840,7 @@ export default function LoginScreen({
             },
           });
         }, 500);
-      } else {
-        setError("A senha está incorreta.");
-      }
+
     } catch (err: any) {
       console.error(err);
       let errMsg = err.message || String(err);

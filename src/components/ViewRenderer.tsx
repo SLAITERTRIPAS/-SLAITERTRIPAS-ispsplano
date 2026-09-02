@@ -35,6 +35,7 @@ const GestaoPessoalView = lazy(() => import("../blocos/bloco4_servicos_centrais/
 const UGEA_SupplierManagementView = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_SupplierManagementView"));
 const UGEA_SupplierRegistrationForm = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_SupplierRegistrationForm"));
 const UGEA_PlanView = lazy(() => import("../blocos/bloco4_servicos_centrais/UGEA_PlanView"));
+const GestaoProdutosPrecosView = lazy(() => import("../blocos/bloco9_produtos_precos/GestaoProdutosPrecosView"));
 const MonografiaView = lazy(() => import("../blocos/bloco3_unidades_organicas/MonografiaView"));
 const GestaoPatrimonialView = lazy(() => import("../blocos/bloco4_servicos_centrais/GestaoPatrimonialView"));
 const DocumentosView = lazy(() => import("../blocos/bloco6_documentos/DocumentosView"));
@@ -642,6 +643,9 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
 
     case "plano_contratacao":
       return <UGEA_PlanView type="Contratação" activities={matrixActivities} onBack={goBack} />;
+
+    case "produtos_precos":
+      return <GestaoProdutosPrecosView />;
 
     case "monografia":
       return (
