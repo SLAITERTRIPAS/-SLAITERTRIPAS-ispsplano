@@ -328,41 +328,16 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
     // Administrador de Sistema tem acesso total para suporte e manutenção
     if (isSysAdmin) return true;
 
-    // Se a atividade NÃO foi submetida / enviada ainda (rascunho ou pendente de submissão do criador),
-    // apenas o criador pode ver. Ninguém mais tem acesso até que seja enviada/recebida!
-    const isSubmetida = a.submetido === true || (a.status && a.status !== "rascunho" && a.status !== "draft");
-    if (!isSubmetida) {
-      return false;
-    }
-
-    // Verificar se foi expressamente partilhado com o utilizador ou com a sua área
-    if (Array.isArray(a.sharedWith)) {
-      if (a.sharedWith.includes(uEmail) || (uId && a.sharedWith.includes(uId))) return true;
-      const uArea = String(user.setor || user.reparticao || user.departamento || user.direcao || "").toLowerCase().trim();
-      if (uArea && a.sharedWith.some((area: any) => String(area).toLowerCase().trim() === uArea)) return true;
-    }
-
-    // Verificar se foi enviado / encaminhado / submetido especificamente para o utilizador
-    const sentTo = [
-      a.enviadoPara,
-      a.submetidoPara,
-      a.encaminhadoPara,
-      a.destinatario,
-      a.destinatarioEmail,
-      a.responsavelEmail,
-      a.atribuidoA,
-      a.responsavelId,
-      a.aprovadorAtual,
-    ]
-      .filter(Boolean)
-      .map((x) => String(x).toLowerCase().trim());
-
-    if (
-      sentTo.includes(uEmail) ||
-      (uId && sentTo.includes(String(uId).toLowerCase().trim()))
-    ) {
-      return true;
-    }
+    // Regra estrita para o Setor de Monitoria e DPEP (Planificação):
+    // Devem ser avaliados ANTES de isPlannedByOwnSector para evitar que a Direção genérica ("Gabinete do Diretor-Geral")
+    // exponha atividades não submetidas de outros setores ao DPEP / Planificação.
+    const userTitleCargo = String(user.title || user.cargo || user.cargoChefia || "").toLowerCase();
+    const isMonitoriaUser =
+      uSector.includes("monitoria") ||
+      uDept.includes("monitoria") ||
+      uRole.includes("monitoria") ||
+      userTitleCargo.includes("monitoria") ||
+      String(user.areaDeAfetacao || "").toLowerCase().includes("monitoria");
 
     // Verificar se foi enviado para o Setor, Repartição, Departamento ou Gabinete do utilizador
     const sentToSectors = [
@@ -377,20 +352,22 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       .filter(Boolean)
       .map((x) => String(x).toLowerCase().trim());
 
-    // Regra estrita para o Setor de Monitoria:
-    // O Setor de Monitoria NÃO planifica nada. Ele APENAS recebe as atividades APROVADAS / INSTITUCIONAIS
-    // para monitorar o nível de execução.
-    const userTitleCargo = String(user.title || user.cargo || user.cargoChefia || "").toLowerCase();
-    const isMonitoriaUser =
-      uSector.includes("monitoria") ||
-      uDept.includes("monitoria") ||
-      uRole.includes("monitoria") ||
-      userTitleCargo.includes("monitoria") ||
-      String(user.areaDeAfetacao || "").toLowerCase().includes("monitoria");
+    const sentTo = [
+      a.enviadoPara,
+      a.submetidoPara,
+      a.encaminhadoPara,
+      a.destinatario,
+      a.destinatarioEmail,
+      a.responsavelEmail,
+      a.atribuidoA,
+      a.responsavelId,
+      a.aprovadorAtual,
+    ]
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim());
 
     if (isMonitoriaUser) {
       const st = String(a.status || "").toLowerCase();
-      // Não visualiza rascunhos ou propostas pendentes em fase de elaboração
       if (st === "rascunho" || st === "draft") {
         return false;
       }
@@ -425,7 +402,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       return false;
     }
 
-    // Regra estrita para o DPEP / Chefe do DPEP:
+    // Regra estrita para o DPEP / Chefe do DPEP (ex: VLV117780880 - Veca Vicente):
     // O Chefe do DPEP e o Setor de Planificação apenas visualizam as suas próprias atividades
     // ou propostas de outros setores que tenham sido EFETIVAMENTE SUBMETIDAS/ENVIADAS à Planificação/DPEP.
     const isDPEPUser =
@@ -444,7 +421,9 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       const aDept = String(a.departamento || "").toLowerCase();
       const aSect = String(a.setor || a.reparticao || "").toLowerCase();
       const aDir = String(a.direcao || "").toLowerCase();
+      const aOrig = String(a.origem || a.setorOrigin || a.setorCriador || a.unidadeOrganica || "").toLowerCase();
 
+      // Atividade própria do DPEP / Planificação
       const isOwnDPEP =
         aDept.includes("dpep") ||
         aDept.includes("planificação") ||
@@ -452,9 +431,9 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
         aSect.includes("dpep") ||
         aSect.includes("planificação") ||
         aSect.includes("planificacao") ||
-        aDir.includes("dpep") ||
-        aDir.includes("planificação") ||
-        aDir.includes("planificacao");
+        aOrig.includes("dpep") ||
+        aOrig.includes("planificação") ||
+        aOrig.includes("planificacao");
 
       if (isOwnDPEP) return true;
 
@@ -464,19 +443,51 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
         a.status === "planificacao" ||
         a.status === "dpep_chefe" ||
         a.status === "institucional" ||
+        a.status === "meritos" ||
         sentToSectors.some((s) => s.includes("dpep") || s.includes("planifica")) ||
         sentTo.some((s) => s.includes("dpep") || s.includes("planifica"));
 
-      if (isSentToDpep && (a.submetido === true || (a.status && a.status !== "rascunho" && a.status !== "draft"))) {
+      const isSubmitted = a.submetido === true || (a.status && a.status !== "rascunho" && a.status !== "draft");
+
+      if (isSentToDpep && isSubmitted) {
         return true;
       }
 
       return false;
     }
 
+    // Garantia Soberana: Todas as atividades planificadas e submetidas pertencentes ao Setor, Repartição,
+    // Departamento do utilizador são SEMPRE visíveis no plano da sua área de origem!
     const userSectorNames = [uSector, uDept, uDir, user.areaDeAfetacao || ""]
       .filter(Boolean)
       .map((x) => String(x).toLowerCase().trim());
+
+    const isPlannedByOwnSector = userSectorNames.some((uSec) => {
+      if (!uSec || uSec.length < 2) return false;
+      const aSec = String(a.setor || a.reparticao || "").toLowerCase().trim();
+      const aDept = String(a.departamento || "").toLowerCase().trim();
+      const aDir = String(a.direcao || "").toLowerCase().trim();
+      const aOrig = String(a.origem || a.setorOrigin || a.setorCriador || a.unidadeOrganica || "").toLowerCase().trim();
+
+      // Para direções genéricas ("gabinete do diretor-geral"), apenas compara departamento/setor específico para evitar sobreposição entre setores do mesmo gabinete
+      if (uSec === "gabinete do diretor-geral" || uSec === "direção geral") {
+        return (
+          (aDept && uDept && (aDept.includes(uDept) || uDept.includes(aDept))) ||
+          (aSec && uSector && (aSec.includes(uSector) || uSector.includes(aSec)))
+        );
+      }
+
+      return (
+        (aSec && (aSec.includes(uSec) || uSec.includes(aSec))) ||
+        (aDept && (aDept.includes(uSec) || uSec.includes(aDept))) ||
+        (aDir && (aDir.includes(uSec) || uSec.includes(aDir))) ||
+        (aOrig && (aOrig.includes(uSec) || uSec.includes(aOrig)))
+      );
+    });
+
+    if (isPlannedByOwnSector) {
+      return true;
+    }
 
     const isSectorRecipient = sentToSectors.some((targetSector) =>
       userSectorNames.some((uSec) => targetSector.includes(uSec) || uSec.includes(targetSector))

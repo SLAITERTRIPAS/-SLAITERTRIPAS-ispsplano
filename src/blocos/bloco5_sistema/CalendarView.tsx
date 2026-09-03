@@ -110,6 +110,7 @@ export default function CalendarView({
     type: "Reunião" as
       | "Reunião"
       | "Encontro"
+      | "Início e Fechamento de Atividade"
       | "Data Comemorativa"
       | "Feriado Nacional"
       | "Feriado Institucional",
@@ -796,6 +797,9 @@ export default function CalendarView({
                     >
                       <option value="Reunião">Reunião</option>
                       <option value="Encontro">Encontro</option>
+                      <option value="Início e Fechamento de Atividade">
+                        Início e Fechamento de Atividade
+                      </option>
                       <option value="Data Comemorativa">
                         Data Comemorativa
                       </option>

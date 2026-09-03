@@ -690,10 +690,23 @@ export default function PlanoWorkflowView({
       return;
     }
     try {
+      const toUpdate = rawActivities.filter((a) =>
+        selectedActivityIds.includes(a.id)
+      );
+
+      // Reordenar e renumerar cronologicamente por mês de realização antes de submeter à monitoria
+      if (toUpdate.length > 0) {
+        await reorderAndRenumber(toUpdate);
+      }
+
       for (const id of selectedActivityIds) {
         await firestoreService.matrixActivities.update(id, {
           statusAprovacao: approvalStatus,
           aprovada: approvalStatus === "aprovada",
+          status: approvalStatus === "aprovada" ? "institucional" : approvalStatus,
+          submetidoMonitoria: approvalStatus === "aprovada",
+          submetido: true,
+          dataAprovacao: new Date().toISOString(),
         });
       }
       setRawActivities((prev) =>
@@ -703,17 +716,50 @@ export default function PlanoWorkflowView({
                 ...a,
                 statusAprovacao: approvalStatus,
                 aprovada: approvalStatus === "aprovada",
+                status: approvalStatus === "aprovada" ? "institucional" : approvalStatus,
+                submetidoMonitoria: approvalStatus === "aprovada",
+                submetido: true,
+                dataAprovacao: new Date().toISOString(),
               }
             : a,
         ),
       );
       onShowAlert(
-        `${selectedActivityIds.length} atividades marcadas como: ${approvalStatus === "aprovada" ? "Aprovadas" : approvalStatus}`,
+        `${selectedActivityIds.length} atividade(s) aprovada(s) e submetida(s) automaticamente ao Setor de Monitoria (organizadas por mês de realização)!`,
       );
       setSelectedActivityIds([]);
     } catch (err) {
       console.error(err);
       onShowAlert("Erro ao atualizar estado de aprovação em lote.");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedActivityIds.length === 0) {
+      onShowAlert("Selecione pelo menos uma atividade para excluir.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Tem certeza que deseja excluir ${selectedActivityIds.length} atividade(s) selecionada(s)?`
+      )
+    ) {
+      return;
+    }
+    try {
+      for (const id of selectedActivityIds) {
+        await firestoreService.matrixActivities.delete(id);
+      }
+      setRawActivities((prev) =>
+        prev.filter((a) => !selectedActivityIds.includes(a.id))
+      );
+      onShowAlert(
+        `${selectedActivityIds.length} atividade(s) excluída(s) com sucesso.`
+      );
+      setSelectedActivityIds([]);
+    } catch (err) {
+      console.error(err);
+      onShowAlert("Erro ao excluir atividades selecionadas.");
     }
   };
 
@@ -2456,12 +2502,34 @@ export default function PlanoWorkflowView({
     targetActivities?: any[],
   ) => {
     let initialDest = "";
-    if (toStatus === "reparticao") initialDest = user?.reparticao || "Chefe da Repartição";
-    else if (toStatus === "departamento") initialDest = user?.departamento || "Chefe do Departamento";
-    else if (toStatus === "direcao") initialDest = user?.direcao || "Diretor da Direção";
-    else if (toStatus === "planificacao" || toStatus === "dpep_chefe") initialDest = "Departamento de Planificação Estudos e Projetos (DPEP)";
-    else if (toStatus === "orgao_colegial" || toStatus === "institucional") initialDest = "Conselho de Direção / Órgão Colegial";
-    else initialDest = destinationLabel || "Gabinete Destinatário";
+    if (
+      selectedRoleMode === "Direção" ||
+      selectedRoleMode === "Departamento" ||
+      fromStatus === "direcao" ||
+      toStatus === "planificacao"
+    ) {
+      initialDest = "Repartição de Planificação (DPEP)";
+    } else if (
+      selectedRoleMode === "Planificação" ||
+      fromStatus === "planificacao" ||
+      toStatus === "dpep_chefe"
+    ) {
+      initialDest = "Gabinete do Chefe do DPEP";
+    } else if (
+      selectedRoleMode === "Chefe DPEP" ||
+      fromStatus === "dpep_chefe" ||
+      toStatus === "orgao_colegial"
+    ) {
+      initialDest = "Conselho de Representantes (CR, CAS e DG)";
+    } else if (toStatus === "reparticao") {
+      initialDest = user?.reparticao || "Chefe da Repartição";
+    } else if (toStatus === "departamento") {
+      initialDest = user?.departamento || "Chefe do Departamento";
+    } else if (toStatus === "direcao") {
+      initialDest = user?.direcao || "Diretor da Direção";
+    } else {
+      initialDest = destinationLabel || "Gabinete Destinatário";
+    }
 
     setSelectedDestinatario(initialDest);
     setWorkflowToProcess({
@@ -2514,9 +2582,8 @@ export default function PlanoWorkflowView({
         destinatarioCargo: resolvedDest.responsavelCargo,
       };
 
-      if (toStatus === "institucional") {
-        await reorderAndRenumber(toUpdate);
-      }
+      // Reorganizar e renumerar atividades cronologicamente por Mês de Realização em todas as tramitações
+      await reorderAndRenumber(toUpdate);
 
       await Promise.all([
         ...toUpdate.map((act) => {
@@ -2538,7 +2605,7 @@ export default function PlanoWorkflowView({
           });
         }),
         firestoreService.archive_documents.add({
-          title: `Cópia: Plano de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
+          title: `Cópia: Proposta de Plano de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
           year: selectedYear,
           type: "Planos de Atividades e Orçamentos",
           date: new Date().toISOString().split("T")[0],
@@ -2549,6 +2616,8 @@ export default function PlanoWorkflowView({
           destinatarioResponsavel: resolvedDest.responsavelNome,
         }),
       ]);
+
+      setSelectedActivityIds([]);
 
       onShowAlert(
         `Sucesso! ${toUpdate.length} atividades foram assinadas e enviadas para o setor ${resolvedDest.setorNome} aos cuidados de ${resolvedDest.responsavelNome} (${resolvedDest.responsavelCargo}).`,
@@ -3610,27 +3679,88 @@ export default function PlanoWorkflowView({
                     {selectedActivityIds.length} atividade(s) selecionada(s)
                   </span>
                   <span className="text-xs font-medium text-slate-300">
-                    Ações em lote para aprovação e recondução:
+                    Opções para o perfil ({selectedRoleMode}):
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => handleBulkUpdateApproval("aprovada")}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                  >
-                    <span>✓ Aprovar Selecionadas</span>
-                  </button>
-                  <button
-                    onClick={handleBulkRolloverYear}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                  >
-                    <span>🔄 Reconduzir para Ano+1</span>
-                  </button>
+                  {/* SUBMETER - Para Setor, Repartição, Departamento, Direção Central, Planificação e Chefe DPEP */}
+                  {!isReadOnly && selectedRoleMode !== "Órgão Colegial" && (
+                    <button
+                      onClick={() => {
+                        const targetActs = filteredActivities.filter((a) =>
+                          selectedActivityIds.includes(a.id)
+                        );
+                        if (targetActs.length === 0) {
+                          alert("Nenhuma atividade selecionada para submeter.");
+                          return;
+                        }
+                        if (selectedRoleMode === "Setor")
+                          handleWorkflowTransition("setorial", "reparticao", "Setor", "Repartição", targetActs);
+                        else if (selectedRoleMode === "Repartição")
+                          handleWorkflowTransition("reparticao", "departamento", "Repartição", "Departamento", targetActs);
+                        else if (selectedRoleMode === "Departamento")
+                          handleWorkflowTransition("departamento", "direcao", "Departamento", "Direção", targetActs);
+                        else if (selectedRoleMode === "Direção")
+                          handleWorkflowTransition("direcao", "planificacao", "Direção Central", "Repartição de Planificação", targetActs);
+                        else if (selectedRoleMode === "Planificação")
+                          handleWorkflowTransition("planificacao", "dpep_chefe", "Setor de Planificação", "Chefe do DPEP", targetActs);
+                        else if (selectedRoleMode === "Chefe DPEP")
+                          handleWorkflowTransition("dpep_chefe", "orgao_colegial", "Chefe do DPEP", "Conselho de Representantes (CR, CAS e DG)", targetActs);
+                        else
+                          handleWorkflowTransition("setorial", "reparticao", "Setor", "Repartição", targetActs);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      title="Submeter atividades selecionadas"
+                    >
+                      <Send size={13} />
+                      <span>Submeter ({selectedActivityIds.length})</span>
+                    </button>
+                  )}
+
+                  {/* APROVAR - Para Conselho de Representantes / Órgão Colegial */}
+                  {(selectedRoleMode === "Órgão Colegial" || user?.role === "Administrador") && (
+                    <button
+                      onClick={() => handleBulkUpdateApproval("aprovada")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      title="Aprovar e submeter automaticamente ao Setor de Monitoria"
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Aprovar ({selectedActivityIds.length})</span>
+                    </button>
+                  )}
+
+                  {/* RECONDUZIR - Para Conselho de Representantes / Órgão Colegial */}
+                  {(selectedRoleMode === "Órgão Colegial" || user?.role === "Administrador") && (
+                    <button
+                      onClick={handleBulkRolloverYear}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      title="Reconduzir para Ano+1"
+                    >
+                      <RotateCcw size={13} />
+                      <span>Reconduzir ({selectedActivityIds.length})</span>
+                    </button>
+                  )}
+
+                  {/* EXCLUIR - Para Diretor Central, Departamento, Planificação e Chefe DPEP */}
+                  {(selectedRoleMode === "Direção" || selectedRoleMode === "Departamento" || selectedRoleMode === "Planificação" || selectedRoleMode === "Chefe DPEP" || user?.role === "Administrador") && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                      title="Excluir atividades selecionadas"
+                    >
+                      <Trash2 size={13} />
+                      <span>Excluir ({selectedActivityIds.length})</span>
+                    </button>
+                  )}
+
+                  {/* LIMPAR - Para todos os perfis */}
                   <button
                     onClick={() => setSelectedActivityIds([])}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer"
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1"
+                    title="Limpar seleção"
                   >
-                    ✕ Limpar Seleção
+                    <X size={13} />
+                    <span>Limpar</span>
                   </button>
                 </div>
               </div>
@@ -7870,32 +8000,67 @@ export default function PlanoWorkflowView({
                         >
                           <option value="">Selecione o Gabinete / Setor</option>
                           {(() => {
-                            if (!workflowToProcess) return GABINETES_DESTINATARIOS;
-                            const { toStatus } = workflowToProcess;
-                            
                             let options: string[] = [];
-                            if (toStatus === "reparticao") options = [user?.reparticao || "Chefe da Repartição"];
-                            else if (toStatus === "departamento") options = [user?.departamento || "Chefe do Departamento"];
-                            else if (toStatus === "direcao") options = [user?.direcao || "Diretor da Direção"];
-                            else if (toStatus === "planificacao") options = ["Departamento de Planificação Estudos e Projetos (DPEP)", "Setor de Planificação (DPEP)"];
-                            else if (toStatus === "dpep_chefe") options = ["Gabinete do Chefe do DPEP", "Departamento de Planificação Estudos e Projetos (DPEP)", "Chefe do DPEP"];
-                            else if (toStatus === "orgao_colegial") options = ["Conselho de Direção / Órgão Colegial", "Conselho de Direção"];
-                            else if (toStatus === "institucional") options = ["Conselho de Direção", "Gabinete do Diretor Geral", "Arquivo Geral"];
-                            
-                            const validOptions = options.filter(o => o && o.trim() !== "");
-                            const fullList = validOptions.length > 0 ? validOptions : GABINETES_DESTINATARIOS;
+
+                            const fromSt = workflowToProcess?.fromStatus;
+                            const toSt = workflowToProcess?.toStatus;
+
+                            // 1. Se for o setor ao escolher submeter -> Lista dos setores da sua Direção
+                            if (selectedRoleMode === "Setor" || fromSt === "setorial" || fromSt === "reparticao") {
+                              const userDir = (user?.direcao || user?.departamento || "").toLowerCase().trim();
+                              const setoresDaDirecao = LISTA_SETORES_DESTINATARIOS
+                                .filter((s) => {
+                                  if (!userDir) return true;
+                                  return (
+                                    s.setorNome.toLowerCase().includes(userDir) ||
+                                    s.descricao?.toLowerCase().includes(userDir) ||
+                                    s.responsavelCargo.toLowerCase().includes("repartição") ||
+                                    s.responsavelCargo.toLowerCase().includes("departamento") ||
+                                    s.responsavelCargo.toLowerCase().includes("direção")
+                                  );
+                                })
+                                .map((s) => s.setorNome);
+
+                              options = [
+                                user?.reparticao || "Chefe da Repartição",
+                                user?.departamento || "Chefe do Departamento",
+                                user?.direcao || "Diretor da Direção",
+                                ...setoresDaDirecao
+                              ];
+                            }
+                            // 2. Se for diretor central -> Só pode submeter à Repartição de Planificação
+                            else if (selectedRoleMode === "Direção" || selectedRoleMode === "Departamento" || fromSt === "direcao" || fromSt === "departamento" || toSt === "planificacao") {
+                              options = [
+                                "Repartição de Planificação (DPEP)",
+                                "Setor de Planificação (DPEP)",
+                                "Departamento de Planificação Estudos e Projetos (DPEP)"
+                              ];
+                            }
+                            // 3. Se for o setor de planificação -> Só submete ao Chefe do DPEP
+                            else if (selectedRoleMode === "Planificação" || fromSt === "planificacao" || toSt === "dpep_chefe") {
+                              options = [
+                                "Gabinete do Chefe do DPEP",
+                                "Chefe do Departamento de Planificação Estudos e Projetos (DPEP)"
+                              ];
+                            }
+                            // 4. Se for o chefe de DPEP -> Ao submeter, só vem Conselho de Representantes (CR, CAS e DG)
+                            else if (selectedRoleMode === "Chefe DPEP" || fromSt === "dpep_chefe" || toSt === "orgao_colegial") {
+                              options = [
+                                "Conselho de Representantes (CR, CAS e DG)",
+                                "Conselho de Direção / Órgão Colegial",
+                                "Conselho Científico e Académico (CAS)",
+                                "Gabinete do Diretor Geral (DG)"
+                              ];
+                            } else {
+                              options = GABINETES_DESTINATARIOS;
+                            }
+
+                            const validOptions = Array.from(new Set(options)).filter((o) => o && o.trim() !== "");
                             return (
                               <>
-                                {fullList.map((g) => (
+                                {validOptions.map((g) => (
                                   <option key={g} value={g}>{g}</option>
                                 ))}
-                                <optgroup label="Todos os Setores do Instituto">
-                                  {LISTA_SETORES_DESTINATARIOS.map((s) => (
-                                    <option key={s.setorNome} value={s.setorNome}>
-                                      {s.setorNome} ({s.responsavelCargo})
-                                    </option>
-                                  ))}
-                                </optgroup>
                               </>
                             );
                           })()}

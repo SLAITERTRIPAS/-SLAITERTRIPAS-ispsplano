@@ -46,6 +46,8 @@ interface ActivityMonitor {
   data?: string;
   responsavel?: string;
   justificativa?: string;
+  indicadores?: string;
+  observacoes?: string;
   dataMes?: string;
   departamento?: string;
   valor?: number;
@@ -102,6 +104,8 @@ export default function MonitoriaView({
         data: a.dataRealizacao || "",
         responsavel: a.responsavel || "",
         justificativa: a.justificativa || a.motivo || "",
+        indicadores: a.indicadores || a.indicador || a.metas || a.meta || (a.progresso !== undefined ? `${a.progresso}%` : "100% Meta"),
+        observacoes: a.observacoes || a.justificativa || a.motivo || a.detalhes || "-",
       }));
 
       setMonitoriaActivities((prev) => {
@@ -131,6 +135,8 @@ export default function MonitoriaView({
         data: a.dataRealizacao || "",
         responsavel: a.responsavel || "",
         justificativa: a.justificativa || a.motivo || "",
+        indicadores: a.indicadores || a.indicador || a.metas || a.meta || (a.progresso !== undefined ? `${a.progresso}%` : "100% Meta"),
+        observacoes: a.observacoes || a.justificativa || a.motivo || a.detalhes || "-",
       }));
 
       setMonitoriaActivities((prev) => {
@@ -690,46 +696,49 @@ export default function MonitoriaView({
                       </span>
                     </div>
 
-                    <table className="w-full">
+                    <table className="w-full border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 font-black  text-slate-800">
-                          <th className="w-10 text-center">N/O</th>
-                          <th className="w-24">Código</th>
-                          <th>Nome da Actividade</th>
-                          <th className="w-20">Mês</th>
-                          <th className="w-20">Data</th>
-                          <th className="w-32">Responsável</th>
-                          <th>Justificação Estado</th>
-                          <th className="w-16 text-center">Status %</th>
-                          <th className="w-24 text-center">Estado</th>
+                        <tr className="bg-slate-100 font-black text-slate-900 border border-slate-300 text-xs">
+                          <th className="px-3 py-2 border border-slate-300 text-center">Mês / Período</th>
+                          <th className="px-3 py-2 border border-slate-300">Atividade</th>
+                          <th className="px-3 py-2 border border-slate-300">Responsável</th>
+                          <th className="px-3 py-2 border border-slate-300 text-center">Status</th>
+                          <th className="px-3 py-2 border border-slate-300">Indicadores</th>
+                          <th className="px-3 py-2 border border-slate-300 text-right">Orçamento Planificado</th>
+                          <th className="px-3 py-2 border border-slate-300">Observações</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {monitoriaActivities.map((activity, index) => (
-                          <tr key={activity.id}>
-                            <td className="text-center font-bold text-gray-400">
-                              {index + 1}
+                        {monitoriaActivities.map((activity) => (
+                          <tr key={activity.id} className="border-b border-slate-200 text-xs">
+                            <td className="px-3 py-2 text-center font-semibold text-slate-700 border border-slate-200">
+                              {activity.mes || activity.dataMes || "-"}
                             </td>
-                            <td className="font-mono text-blue-700 font-bold">
-                              {activity.referencia}
-                            </td>
-                            <td className="font-bold">
+                            <td className="px-3 py-2 font-bold text-slate-900 border border-slate-200">
                               {activity.title}
-                              <div className="text-[7px] text-gray-400 font-medium ">
-                                {activity.setor}
-                              </div>
+                              {activity.referencia && (
+                                <span className="block text-[9px] font-mono text-blue-700 mt-0.5">
+                                  {activity.referencia}
+                                </span>
+                              )}
                             </td>
-                            <td>{activity.mes}</td>
-                            <td>{activity.data || "-"}</td>
-                            <td>{activity.responsavel || "-"}</td>
-                            <td className="italic text-gray-500">
-                              {activity.justificativa || activity.motivo || "-"}
+                            <td className="px-3 py-2 font-medium text-slate-800 border border-slate-200">
+                              {activity.responsavel || activity.setor || "-"}
                             </td>
-                            <td className="text-center font-black text-blue-900">
-                              {activity.progresso || 0}%
+                            <td className="px-3 py-2 text-center font-bold border border-slate-200">
+                              {activity.status?.replace("_", " ") || "Pendente"}
                             </td>
-                            <td className="text-center font-bold  text-[8px]">
-                              {activity.status.replace("_", " ")}
+                            <td className="px-3 py-2 text-slate-700 border border-slate-200">
+                              {activity.indicadores || (activity.progresso ? `${activity.progresso}%` : "100% Meta")}
+                            </td>
+                            <td className="px-3 py-2 text-right font-black text-slate-900 border border-slate-200">
+                              {(activity.orcamento || activity.valorTotal || activity.valor || 0).toLocaleString("pt-MZ", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }) + " MZN"}
+                            </td>
+                            <td className="px-3 py-2 italic text-slate-600 border border-slate-200">
+                              {activity.observacoes || activity.justificativa || activity.motivo || activity.detalhes || "-"}
                             </td>
                           </tr>
                         ))}
@@ -773,33 +782,27 @@ export default function MonitoriaView({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-max">
                     <thead>
-                      <tr className="bg-slate-900 text-[9px] tracking-widest text-white font-black ">
-                        <th className="px-4 py-4 border border-slate-800 text-center w-12">
-                          N/O
+                      <tr className="bg-slate-900 text-xs tracking-wider text-white font-black border border-slate-800">
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Mês / Período
                         </th>
                         <th className="px-4 py-4 border border-slate-800">
-                          Cód. Actividade
+                          Atividade
                         </th>
-                        <th className="px-4 py-4 border border-slate-800">
-                          Nome da Actividade
-                        </th>
-                        <th className="px-4 py-4 border border-slate-800">
-                          Mês Realização
-                        </th>
-                        <th className="px-4 py-4 border border-slate-800">
-                          Data
-                        </th>
-                        <th className="px-4 py-4 border border-slate-800">
+                        <th className="px-4 py-4 border border-slate-800 w-44">
                           Responsável
                         </th>
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Status
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 w-48">
+                          Indicadores
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 text-right w-44">
+                          Orçamento Planificado
+                        </th>
                         <th className="px-4 py-4 border border-slate-800">
-                          Justificação Estado
-                        </th>
-                        <th className="px-4 py-4 border border-slate-800 text-center w-28">
-                          Status (%)
-                        </th>
-                        <th className="px-4 py-4 border border-slate-800 text-center">
-                          Estado
+                          Observações
                         </th>
                       </tr>
                     </thead>
@@ -811,51 +814,39 @@ export default function MonitoriaView({
                             activity.status === "em_realizacao" ||
                             activity.status === "agendada" ||
                             activity.status === "pendente" ||
-                            activity.status === "pendente_monitoria",
+                            activity.status === "pendente_monitoria" ||
+                            activity.status === "executada" ||
+                            activity.status === "realizada",
                         )
-                        .map((activity, index) => (
+                        .map((activity) => (
                           <tr
                             key={activity.id}
-                            className="hover:bg-blue-50/20 transition-colors"
+                            className="hover:bg-blue-50/20 transition-colors border-b border-gray-100 text-xs"
                           >
-                            <td className="px-4 py-4 font-bold text-gray-400 text-center border-x border-gray-100">
-                              {index + 1}
+                            {/* 1. Mês / Período */}
+                            <td className="px-4 py-4 font-semibold text-gray-700 text-center border-r border-gray-100">
+                              {activity.mes || activity.dataMes || "-"}
                             </td>
-                            <td className="px-4 py-4 border-r border-gray-100 font-mono text-[10px] text-blue-600 font-bold">
-                              {activity.referencia}
-                            </td>
-                            <td className="px-4 py-4 border-r border-gray-100">
+
+                            {/* 2. Atividade */}
+                            <td className="px-4 py-4 border-r border-gray-100 font-bold text-slate-800">
                               <div className="flex flex-col">
                                 <span className="font-bold text-slate-800 text-xs leading-tight">
                                   {activity.title}
                                 </span>
-                                <span className="text-[9px] text-gray-400 font-bold  mt-1">
-                                  {activity.setor}
-                                </span>
+                                {activity.referencia && (
+                                  <span className="text-[10px] font-mono text-blue-600 font-bold mt-1">
+                                    {activity.referencia}
+                                  </span>
+                                )}
                               </div>
                             </td>
-                            <td className="px-4 py-4 border-r border-gray-100 text-xs font-medium text-gray-600">
-                              {activity.mes || activity.dataMes || "-"}
-                            </td>
-                            <td className="px-4 py-4 border-r border-gray-100">
-                              <input
-                                type="date"
-                                defaultValue={activity.data || ""}
-                                onBlur={(e) =>
-                                  updateActivityField(
-                                    activity.id,
-                                    "dataRealizacao",
-                                    e.target.value,
-                                    activity.isPlanificada,
-                                  )
-                                }
-                                className="text-[10px] bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 w-full"
-                              />
-                            </td>
+
+                            {/* 3. Responsável */}
                             <td className="px-4 py-4 border-r border-gray-100">
                               <input
                                 type="text"
-                                defaultValue={activity.responsavel || ""}
+                                defaultValue={activity.responsavel || activity.setor || ""}
                                 onBlur={(e) =>
                                   updateActivityField(
                                     activity.id,
@@ -864,53 +855,13 @@ export default function MonitoriaView({
                                     activity.isPlanificada,
                                   )
                                 }
-                                className="text-[10px] bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 w-full font-medium"
+                                className="text-xs bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 w-full font-medium text-slate-800"
                                 placeholder="Responsável..."
                               />
                             </td>
-                            <td className="px-4 py-4 border-r border-gray-100">
-                              <textarea
-                                defaultValue={
-                                  activity.justificativa ||
-                                  activity.motivo ||
-                                  ""
-                                }
-                                onBlur={(e) =>
-                                  updateActivityField(
-                                    activity.id,
-                                    "justificativa",
-                                    e.target.value,
-                                    activity.isPlanificada,
-                                  )
-                                }
-                                rows={1}
-                                className="w-full text-[10px] bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 resize-none min-h-[32px] italic text-gray-500"
-                                placeholder="Justificação..."
-                              />
-                            </td>
-                            <td className="px-4 py-4 border-r border-gray-100">
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  defaultValue={activity.progresso || 0}
-                                  onBlur={(e) =>
-                                    updateActivityField(
-                                      activity.id,
-                                      "progresso",
-                                      parseInt(e.target.value),
-                                      activity.isPlanificada,
-                                    )
-                                  }
-                                  className="w-12 text-[10px] font-black text-center bg-gray-50 border border-gray-200 rounded p-1 outline-none focus:ring-1 focus:ring-blue-400"
-                                />
-                                <span className="text-[10px] font-black text-gray-400">
-                                  %
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4 border-r border-gray-100">
+
+                            {/* 4. Status */}
+                            <td className="px-4 py-4 border-r border-gray-100 text-center">
                               <select
                                 value={activity.status}
                                 onChange={(e) =>
@@ -923,7 +874,7 @@ export default function MonitoriaView({
                                     activity.isPlanificada,
                                   )
                                 }
-                                className={`px-2 py-1 rounded-full text-[9px] font-black tracking-widest outline-none cursor-pointer border focus:ring-2 transition-all w-full ${
+                                className={`px-2 py-1 rounded-full text-[10px] font-black tracking-wider outline-none cursor-pointer border transition-all w-full text-center ${
                                   activity.status === "executada" ||
                                   activity.status === "realizada"
                                     ? "bg-green-100 text-green-700 border-green-200"
@@ -942,6 +893,66 @@ export default function MonitoriaView({
                                 </option>
                                 <option value="pendente">Pendente</option>
                               </select>
+                            </td>
+
+                            {/* 5. Indicadores */}
+                            <td className="px-4 py-4 border-r border-gray-100">
+                              <input
+                                type="text"
+                                defaultValue={
+                                  activity.indicadores ||
+                                  (activity.progresso
+                                    ? `${activity.progresso}%`
+                                    : "100% Meta")
+                                }
+                                onBlur={(e) =>
+                                  updateActivityField(
+                                    activity.id,
+                                    "indicadores",
+                                    e.target.value,
+                                    activity.isPlanificada,
+                                  )
+                                }
+                                className="text-xs bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 w-full font-medium text-slate-700"
+                                placeholder="Indicadores..."
+                              />
+                            </td>
+
+                            {/* 6. Orçamento Planificado */}
+                            <td className="px-4 py-4 border-r border-gray-100 text-right font-black text-slate-900">
+                              {(
+                                activity.orcamento ||
+                                activity.valorTotal ||
+                                activity.valor ||
+                                0
+                              ).toLocaleString("pt-MZ", {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }) + " MZN"}
+                            </td>
+
+                            {/* 7. Observações */}
+                            <td className="px-4 py-4">
+                              <textarea
+                                defaultValue={
+                                  activity.observacoes ||
+                                  activity.justificativa ||
+                                  activity.motivo ||
+                                  activity.detalhes ||
+                                  ""
+                                }
+                                onBlur={(e) =>
+                                  updateActivityField(
+                                    activity.id,
+                                    "observacoes",
+                                    e.target.value,
+                                    activity.isPlanificada,
+                                  )
+                                }
+                                rows={1}
+                                className="w-full text-xs bg-transparent outline-none focus:bg-white border-b border-transparent focus:border-blue-300 resize-none min-h-[30px] italic text-gray-600"
+                                placeholder="Observações..."
+                              />
                             </td>
                           </tr>
                         ))}
@@ -971,15 +982,27 @@ export default function MonitoriaView({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-max">
                     <thead>
-                      <tr className="bg-gray-50 text-xs tracking-widest text-gray-400 font-black">
-                        <th className="px-6 py-6 border-b border-gray-100">
-                          Actividade
+                      <tr className="bg-slate-900 text-xs tracking-wider text-white font-black border border-slate-800">
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Mês / Período
                         </th>
-                        <th className="px-6 py-6 border-b border-gray-100">
-                          Mês
+                        <th className="px-4 py-4 border border-slate-800">
+                          Atividade
                         </th>
-                        <th className="px-6 py-6 border-b border-gray-100 text-right">
-                          Orçamento
+                        <th className="px-4 py-4 border border-slate-800 w-44">
+                          Responsável
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Status
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 w-48">
+                          Indicadores
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 text-right w-44">
+                          Orçamento Planificado
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800">
+                          Observações
                         </th>
                       </tr>
                     </thead>
@@ -987,19 +1010,36 @@ export default function MonitoriaView({
                       {monitoriaActivities.map((activity) => (
                         <tr
                           key={activity.id}
-                          className="hover:bg-blue-50/20 transition-colors"
+                          className="hover:bg-blue-50/20 transition-colors text-xs border-b border-gray-100"
                         >
-                          <td className="px-6 py-6 font-bold text-gray-900">
-                            {activity.title}
+                          <td className="px-4 py-4 font-semibold text-gray-700 text-center border-r border-gray-100">
+                            {activity.mes || activity.dataMes || "-"}
                           </td>
-                          <td className="px-6 py-6 text-gray-600">
-                            {activity.mes}
+                          <td className="px-4 py-4 font-bold text-slate-800 border-r border-gray-100">
+                            <div>{activity.title}</div>
+                            {activity.referencia && (
+                              <span className="text-[10px] font-mono text-blue-600 font-bold block mt-1">
+                                {activity.referencia}
+                              </span>
+                            )}
                           </td>
-                          <td className="px-6 py-6 text-right font-black text-green-600">
-                            {activity.orcamento.toLocaleString("pt-MZ", {
+                          <td className="px-4 py-4 border-r border-gray-100 font-medium text-slate-800">
+                            {activity.responsavel || activity.setor || "-"}
+                          </td>
+                          <td className="px-4 py-4 border-r border-gray-100 text-center font-bold">
+                            {activity.status?.replace("_", " ") || "Pendente"}
+                          </td>
+                          <td className="px-4 py-4 border-r border-gray-100 text-slate-700">
+                            {activity.indicadores || (activity.progresso ? `${activity.progresso}%` : "100% Meta")}
+                          </td>
+                          <td className="px-4 py-4 text-right font-black text-slate-900 border-r border-gray-100">
+                            {(activity.orcamento || activity.valorTotal || activity.valor || 0).toLocaleString("pt-MZ", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             }) + " MZN"}
+                          </td>
+                          <td className="px-4 py-4 italic text-gray-600">
+                            {activity.observacoes || activity.justificativa || activity.motivo || activity.detalhes || "-"}
                           </td>
                         </tr>
                       ))}
@@ -1041,43 +1081,66 @@ export default function MonitoriaView({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-max">
                     <thead>
-                      <tr className="bg-gray-50 text-xs tracking-widest text-gray-400 font-black">
-                        <th className="px-6 py-5 border-b border-gray-100">N/o</th>
-                        <th className="px-6 py-5 border-b border-gray-100">Código da Atividade</th>
-                        <th className="px-6 py-5 border-b border-gray-100">Mês de Realização</th>
-                        <th className="px-6 py-5 border-b border-gray-100">Departamento</th>
-                        <th className="px-6 py-5 border-b border-gray-100">Responsável</th>
-                        <th className="px-6 py-5 border-b border-gray-100 text-right">Valor Total</th>
+                      <tr className="bg-slate-900 text-xs tracking-wider text-white font-black border border-slate-800">
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Mês / Período
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800">
+                          Atividade
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 w-44">
+                          Responsável
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 text-center w-36">
+                          Status
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 w-48">
+                          Indicadores
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800 text-right w-44">
+                          Orçamento Planificado
+                        </th>
+                        <th className="px-4 py-4 border border-slate-800">
+                          Observações
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 text-gray-800 font-medium">
+                    <tbody className="divide-y divide-gray-50 text-xs text-gray-800">
                       {monitoriaActivities
                         .filter((activity) => {
                           const m = (activity.mes || activity.dataMes || "").toLowerCase();
                           return m.includes(selectedScheduledMonth.toLowerCase());
                         })
-                        .map((activity, index) => (
-                          <tr key={activity.id} className="hover:bg-blue-50/20 transition-colors">
-                            <td className="px-6 py-5 font-mono text-sm font-bold text-gray-400">
-                              {index + 1}
-                            </td>
-                            <td className="px-6 py-5 font-bold text-blue-900">
-                              {activity.referencia || `ACT-${index + 1}`}
-                            </td>
-                            <td className="px-6 py-5 font-semibold text-blue-600">
+                        .map((activity) => (
+                          <tr key={activity.id} className="hover:bg-blue-50/20 transition-colors border-b border-gray-100">
+                            <td className="px-4 py-4 font-semibold text-gray-700 text-center border-r border-gray-100">
                               {activity.mes || selectedScheduledMonth}
                             </td>
-                            <td className="px-6 py-5 font-medium text-gray-700">
-                              {activity.setor || activity.departamento || "-"}
+                            <td className="px-4 py-4 font-bold text-slate-800 border-r border-gray-100">
+                              <div>{activity.title}</div>
+                              {activity.referencia && (
+                                <span className="text-[10px] font-mono text-blue-600 font-bold block mt-1">
+                                  {activity.referencia}
+                                </span>
+                              )}
                             </td>
-                            <td className="px-6 py-5 font-medium text-gray-600">
-                              {activity.responsavel || "Equipa do Departamento"}
+                            <td className="px-4 py-4 border-r border-gray-100 font-medium text-slate-800">
+                              {activity.responsavel || activity.setor || activity.departamento || "-"}
                             </td>
-                            <td className="px-6 py-5 text-right font-black text-gray-900">
-                              {(activity.orcamento || activity.valor || 0).toLocaleString("pt-MZ", {
+                            <td className="px-4 py-4 border-r border-gray-100 text-center font-bold">
+                              {activity.status?.replace("_", " ") || "Agendada"}
+                            </td>
+                            <td className="px-4 py-4 border-r border-gray-100 text-slate-700">
+                              {activity.indicadores || (activity.progresso ? `${activity.progresso}%` : "100% Meta")}
+                            </td>
+                            <td className="px-4 py-4 text-right font-black text-slate-900 border-r border-gray-100">
+                              {(activity.orcamento || activity.valorTotal || activity.valor || 0).toLocaleString("pt-MZ", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               }) + " MZN"}
+                            </td>
+                            <td className="px-4 py-4 italic text-gray-600">
+                              {activity.observacoes || activity.justificativa || activity.motivo || activity.detalhes || "-"}
                             </td>
                           </tr>
                         ))}
@@ -1086,7 +1149,7 @@ export default function MonitoriaView({
                         return m.includes(selectedScheduledMonth.toLowerCase());
                       }).length === 0 && (
                         <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center text-gray-500 italic">
+                          <td colSpan={7} className="px-6 py-12 text-center text-gray-500 italic">
                             Nenhuma atividade agendada para {selectedScheduledMonth} de 2027.
                           </td>
                         </tr>
@@ -1094,7 +1157,7 @@ export default function MonitoriaView({
                     </tbody>
                     <tfoot>
                       <tr className="bg-blue-50/60 font-black text-blue-950 border-t-2 border-blue-100">
-                        <td colSpan={5} className="px-6 py-5 text-right  tracking-wider text-sm">
+                        <td colSpan={5} className="px-6 py-5 text-right tracking-wider text-sm">
                           Soma Total do Orçamento para as Atividades em Referência:
                         </td>
                         <td className="px-6 py-5 text-right text-lg text-blue-700">
@@ -1103,12 +1166,13 @@ export default function MonitoriaView({
                               const m = (activity.mes || activity.dataMes || "").toLowerCase();
                               return m.includes(selectedScheduledMonth.toLowerCase());
                             })
-                            .reduce((sum, a) => sum + (Number(a.orcamento || a.valor) || 0), 0)
+                            .reduce((sum, a) => sum + (Number(a.orcamento || a.valorTotal || a.valor) || 0), 0)
                             .toLocaleString("pt-MZ", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             }) + " MZN"}
                         </td>
+                        <td></td>
                       </tr>
                     </tfoot>
                   </table>

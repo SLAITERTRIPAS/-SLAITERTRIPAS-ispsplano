@@ -126,6 +126,7 @@ export default function AgendarNovoEncontroView({
                 >
                   <option value="Reunião">Reunião</option>
                   <option value="Encontro">Encontro</option>
+                  <option value="Início e Fechamento de Atividade">Início e Fechamento de Atividade</option>
                   <option value="Data Comemorativa">Data Comemorativa</option>
                   <option value="Feriado Nacional">Feriado Nacional</option>
                   <option value="Feriado Institucional">

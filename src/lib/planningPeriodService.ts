@@ -204,8 +204,8 @@ export async function savePeriodoPlanificacao(
       eventDocRef,
       {
         title: `Período Oficial de Planificação Setorial - ${payload.ano || new Date().getFullYear()}`,
-        type: "Feriado Institucional",
-        agenda: `Período Oficial de Planificação Setorial. Status: ${payload.status === "aberto" ? "Aberto (30 Dias)" : "Encerrado"}. Datas: ${payload.dataInicioPlanificacao} até ${payload.dataFimPlanificacao}`,
+        type: "Início e Fechamento de Atividade",
+        agenda: `Período Oficial de Abertura e Fechamento do Ciclo de Planificação Setorial. Status: ${payload.status === "aberto" ? "Aberto (30 Dias)" : "Encerrado"}. Datas: ${payload.dataInicioPlanificacao} até ${payload.dataFimPlanificacao}`,
         date: payload.dataInicioPlanificacao || `${new Date().getFullYear()}-04-01`,
         startTime: "07:30",
         endTime: "15:30",

@@ -150,7 +150,11 @@ export interface Event {
     | "activity"
     | "Data Comemorativa"
     | "Feriado Nacional"
-    | "Feriado Institucional";
+    | "Feriado Institucional"
+    | "Início e Fechamento de Atividade"
+    | "Início e Fechamento de Atividades"
+    | "Prazo Definido"
+    | string;
   agenda: string;
   preside?: string;
   remetente?: string;

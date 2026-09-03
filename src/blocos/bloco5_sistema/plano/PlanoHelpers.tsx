@@ -68,9 +68,9 @@ export const compareActivitiesStandardOrder = (
   const compDir = compareDirections(dirA, dirB);
   if (compDir !== 0) return compDir;
 
-  // 2. N/O (Número de Ordem)
+  // 2. Ordem Numérica / N/O (Número de Ordem - N.º Sequencial da Atividade: 1, 2, 3...)
   const getNoNum = (x: any) => {
-    const val = x.no ?? x.numeroAtividade ?? x.nAtividade;
+    const val = x.no ?? x.numeroAtividade ?? x.nAtividade ?? x.numeroDirecao;
     if (val !== undefined && val !== null && val !== "") {
       const parsed = parseInt(String(val).replace(/[^\d]/g, ""), 10);
       if (!isNaN(parsed)) return parsed;
@@ -81,21 +81,12 @@ export const compareActivitiesStandardOrder = (
   const noB = getNoNum(b);
   if (noA !== noB) return noA - noB;
 
-  const strNoA = String(a.no ?? a.numeroAtividade ?? a.nAtividade ?? "");
-  const strNoB = String(b.no ?? b.numeroAtividade ?? b.nAtividade ?? "");
+  const strNoA = String(a.no ?? a.numeroAtividade ?? a.nAtividade ?? a.numeroDirecao ?? "");
+  const strNoB = String(b.no ?? b.numeroAtividade ?? b.nAtividade ?? b.numeroDirecao ?? "");
   const compNo = strNoA.localeCompare(strNoB, undefined, { numeric: true });
   if (compNo !== 0) return compNo;
 
-  // 3. Código da Atividade
-  const codA = String(a.codigoAtividade || a.referencia || a.codigo || "");
-  const codB = String(b.codigoAtividade || b.referencia || b.codigo || "");
-  const compCod = codA.localeCompare(codB, undefined, {
-    numeric: true,
-    sensitivity: "base",
-  });
-  if (compCod !== 0) return compCod;
-
-  // 4. Mês de Realização
+  // 3. Mês de Realização (Organização por Mês de Realização - Janeiro a Dezembro)
   const getM =
     getActMonthIdxFunc ||
     ((act: any) => {
@@ -139,6 +130,15 @@ export const compareActivitiesStandardOrder = (
   const monthA = getM(a);
   const monthB = getM(b);
   if (monthA !== monthB) return monthA - monthB;
+
+  // 4. Código da Atividade
+  const codA = String(a.codigoAtividade || a.referencia || a.codigo || "");
+  const codB = String(b.codigoAtividade || b.referencia || b.codigo || "");
+  const compCod = codA.localeCompare(codB, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  if (compCod !== 0) return compCod;
 
   // 5. Valor Total da Atividade
   const getTot = (act: any): number => {

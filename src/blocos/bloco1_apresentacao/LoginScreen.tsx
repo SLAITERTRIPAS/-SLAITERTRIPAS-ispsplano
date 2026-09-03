@@ -5,6 +5,15 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  FileText,
+  Calendar,
+  Building2,
+  Clock,
+  Coins,
+  Target,
+  Tag,
+  Info,
+  Printer,
 } from "lucide-react";
 import { ProcessingCircle } from "../../components/ui/ProcessingCircle";
 import {
@@ -195,97 +204,275 @@ export default function LoginScreen({
   const [matchedUser, setMatchedUser] = useState<any>(null);
   const [dbEstudantes, setDbEstudantes] = useState<any[]>([]);
 
+  // Subscrição de Atividades e Eventos da Base de Dados
+  const [dbActivities, setDbActivities] = useState<any[]>([]);
+  const [dbCalendarEvents, setDbCalendarEvents] = useState<any[]>([]);
+  const [selectedEventDetail, setSelectedEventDetail] = useState<any | null>(null);
+
   useEffect(() => {
     let unsub: any;
+    let unsubActs: any;
+    let unsubEvents: any;
+
     const authUnsub = auth.onAuthStateChanged((user) => {
       if (user) {
         unsub = firestoreService.efetivo_escolar.subscribe(setDbEstudantes);
       }
     });
+
+    try {
+      unsubActs = firestoreService.matrixActivities.subscribe((data: any[]) => {
+        if (data && data.length > 0) {
+          setDbActivities(data);
+          try {
+            localStorage.setItem("sigep_matrix_activities_login_cache", JSON.stringify(data));
+          } catch (e) {}
+        }
+      });
+      unsubEvents = firestoreService.events.subscribe((data: any[]) => {
+        if (data && data.length > 0) {
+          setDbCalendarEvents(data);
+        }
+      });
+    } catch (e) {
+      console.warn("Aviso ao subscrever atividades no LoginScreen:", e);
+    }
+
+    try {
+      const cached = localStorage.getItem("sigep_matrix_activities_login_cache") || localStorage.getItem("sigep_matrix_activities");
+      if (cached) {
+        setDbActivities((prev) => (prev.length === 0 ? JSON.parse(cached) : prev));
+      }
+    } catch (e) {}
+
     return () => {
       authUnsub();
       if (unsub) unsub();
+      if (unsubActs) unsubActs();
+      if (unsubEvents) unsubEvents();
     };
   }, []);
 
-  // Auto-seed removed as requested.
-
   const allFutureEvents = React.useMemo(() => {
-    const allEvents = [...events, ...holidays2026];
+    const DEFAULT_SYSTEM_DEADLINES = [
+      {
+        id: "praz-1",
+        title: "Publicação do Plano Institucional Aprovado (PESOE)",
+        date: "2026-09-08",
+        type: "Publicação de Plano",
+        setor: "Conselho de Representantes / DPEP",
+        referencia: "PESOE-2026",
+      },
+      {
+        id: "praz-2",
+        title: "Início do Ciclo de Execução de Atividades do Mês",
+        date: "2026-09-10",
+        type: "Execução Mensal",
+        setor: "Todas as Direções e Setores",
+        referencia: "EXEC-MÊS",
+      },
+      {
+        id: "praz-3",
+        title: "Prazo de Submissão de Ajustamentos ao Plano",
+        date: "2026-09-15",
+        type: "Prazo Definido",
+        setor: "Setores e Unidades Orgânicas",
+        referencia: "PRAZO-AJUSTE",
+      },
+      {
+        id: "praz-4",
+        title: "Prazo de Apresentação de Relatório de Monitoria Mensal",
+        date: "2026-09-30",
+        type: "Prazo Definido",
+        setor: "Setor de Monitoria",
+        referencia: "REL-MONITORIA",
+      },
+    ];
+
+    const mappedActivities = dbActivities
+      .filter((act) => act && (act.title || act.atividade || act.nome))
+      .map((act, index) => ({
+        id: act.id || `act-login-${index}`,
+        title: act.title || act.atividade || act.nome,
+        date: act.dataRealizacao || act.data || act.dataInicio,
+        mes: act.mes || act.dataMes,
+        type: "Atividade a Executar",
+        setor: act.setor || act.departamento || act.unidade || "Setor Responsável",
+        referencia: act.referencia || act.codigo || `ACT-${index + 1}`,
+      }));
+
+    const sanitizedCalendarEvents = dbCalendarEvents.map((evt) => {
+      const isCyclePeriod =
+        evt.isPlanningPeriodEvent ||
+        /período oficial|ciclo|abertura|fechamento|planificação/i.test(evt.title || "");
+      if (isCyclePeriod && (evt.type === "Feriado Institucional" || !evt.type)) {
+        return { ...evt, type: "Início e Fechamento de Atividade" };
+      }
+      return evt;
+    });
+
+    const rawList = [
+      ...events,
+      ...sanitizedCalendarEvents,
+      ...holidays2026,
+      ...DEFAULT_SYSTEM_DEADLINES,
+      ...mappedActivities,
+    ];
+
+    const parseToDate = (dateVal: any, mesVal?: string): Date | null => {
+      if (dateVal) {
+        if (dateVal instanceof Date) return dateVal;
+        if (typeof dateVal === "string" && dateVal.trim() !== "") {
+          const trimmed = dateVal.trim();
+          if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+            const [y, m, d] = trimmed.split("-").map(Number);
+            return new Date(y, m - 1, d);
+          }
+          if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(trimmed)) {
+            const [d, m, y] = trimmed.split("/").map(Number);
+            return new Date(y, m - 1, d);
+          }
+        }
+      }
+      if (mesVal && typeof mesVal === "string") {
+        const monthsPt = [
+          "janeiro", "fevereiro", "março", "marco", "abril", "maio", "junho",
+          "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+        ];
+        const cleanMes = mesVal.toLowerCase().replace(/[^a-z]/g, "");
+        const mIdx = monthsPt.findIndex((m) => cleanMes.includes(m));
+        if (mIdx !== -1) {
+          const currentYear = new Date().getFullYear();
+          return new Date(currentYear, mIdx, 10);
+        }
+      }
+      return null;
+    };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const filterAndFormat = (eventList: any[]) => {
       return eventList
-        .filter((e) => {
-          if (!e.date) return false;
-          const eDate = new Date(e.date);
-          eDate.setHours(0, 0, 0, 0);
-          return eDate >= today;
-        })
         .map((e) => {
-          const eDate = new Date(e.date);
+          const eDate = parseToDate(e.date || e.dataRealizacao, e.mes);
+          if (!eDate) return null;
           eDate.setHours(0, 0, 0, 0);
-          const diffTime = Math.abs(eDate.getTime() - today.getTime());
+
+          const diffTime = eDate.getTime() - today.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           const dateStr = `${String(eDate.getDate()).padStart(2, "0")}/${String(eDate.getMonth() + 1).padStart(2, "0")}/${eDate.getFullYear()}`;
+
           return { ...e, diffDays, displayDate: dateStr, dateObj: eDate };
         })
-        .filter((e) => e.diffDays <= 7)
+        .filter((e): e is NonNullable<typeof e> => {
+          if (!e) return false;
+          // Mostra apenas itens no futuro ou hoje (diffDays >= 0)
+          return e.diffDays >= 0;
+        })
         .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
     };
 
-    const comemorativas = filterAndFormat(
-      allEvents.filter((e) => e.type === "Data Comemorativa"),
+    const formattedAll = filterAndFormat(rawList);
+
+    // Filtrar especificamente para a janela de apresentação de 7 dias (0 a 7 dias antes da execução)
+    const activeIn7Days = formattedAll.filter((e) => e.diffDays <= 7);
+    const targetList = activeIn7Days.length > 0 ? activeIn7Days : formattedAll.slice(0, 10);
+
+    const prazosEPublicacoes = targetList.filter(
+      (e) =>
+        e.type === "Publicação de Plano" ||
+        e.type === "Prazo Definido" ||
+        e.type === "Execução Mensal" ||
+        e.type === "Prazo" ||
+        e.type === "Início e Fechamento de Atividades" ||
+        e.type === "Início e Fechamento de Atividade",
     );
-    const feriadosNacionais = filterAndFormat(
-      allEvents.filter((e) => e.type === "Feriado Nacional"),
+
+    const atividadesAExecutar = targetList.filter(
+      (e) => e.type === "Atividade a Executar" || e.type === "Atividade Aprovada",
     );
-    const feriadosInstitucionais = filterAndFormat(
-      allEvents.filter((e) => e.type === "Feriado Institucional"),
+
+    const comemorativas = targetList.filter(
+      (e) => e.type === "Data Comemorativa",
+    );
+
+    const feriadosNacionais = targetList.filter(
+      (e) => e.type === "Feriado Nacional",
+    );
+
+    const feriadosInstitucionais = targetList.filter(
+      (e) =>
+        e.type === "Feriado Institucional" &&
+        !e.isPlanningPeriodEvent &&
+        !/período oficial|ciclo|abertura|fechamento/i.test(e.title || ""),
     );
 
     return {
+      prazosEPublicacoes,
+      atividadesAExecutar,
       comemorativas,
       feriadosNacionais,
       feriadosInstitucionais,
-      all: [
-        ...comemorativas,
-        ...feriadosNacionais,
-        ...feriadosInstitucionais,
-      ].sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime()),
+      all: targetList,
     };
-  }, [events]);
+  }, [events, dbCalendarEvents, dbActivities]);
 
   const {
+    prazosEPublicacoes,
+    atividadesAExecutar,
     comemorativas,
     feriadosNacionais,
     feriadosInstitucionais,
     all: allFutureEventsList,
   } = allFutureEvents;
+
   const closestEventId =
     allFutureEventsList.length > 0 ? allFutureEventsList[0].id : null;
 
   const renderEvent = (e: any) => {
-    const isClosest = e.id === closestEventId;
+    const isClosest = e.id === closestEventId || e.diffDays <= 7;
+    const isToday = e.diffDays === 0;
+
     return (
       <div
         key={e.id}
-        className={`flex justify-between items-start text-sm py-1 border-b border-white/10 last:border-0 ${isClosest ? "font-black" : "opacity-80"}`}
+        onClick={() => setSelectedEventDetail(e)}
+        className={`flex justify-between items-start text-xs py-2 px-2.5 rounded-xl transition-all cursor-pointer hover:bg-white/20 hover:scale-[1.01] active:scale-[0.99] border-b border-white/10 last:border-0 ${isClosest ? "font-bold bg-white/10 shadow-sm" : "opacity-85 hover:opacity-100"}`}
+        title="Clique para ver todos os detalhes do evento/publicação"
       >
-        <div>
-          <p className={isClosest ? "rgb-blink" : ""}>{e.title}</p>
-          <p
-            className={`text-[10px] tracking-widest ${isClosest ? "text-white font-bold" : "opacity-70"}`}
-          >
-            {e.displayDate}
-          </p>
-        </div>
-        {isClosest && (
-          <div className="text-[10px] font-black tracking-widest bg-white text-[#1e1e96] px-2 py-1 rounded whitespace-nowrap animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]">
-            Faltam {e.diffDays} dia{e.diffDays !== 1 ? "s" : ""}
+        <div className="flex-1 pr-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`font-semibold ${isClosest ? "rgb-blink" : "text-white"}`}>
+              {e.title}
+            </span>
+            {e.referencia && (
+              <span className="text-[9px] font-mono bg-blue-900/80 border border-blue-400/40 px-1.5 py-0.5 rounded text-blue-200">
+                {e.referencia}
+              </span>
+            )}
           </div>
-        )}
+          <div className="flex items-center gap-2 mt-0.5 text-[10px] opacity-80">
+            <span>{e.displayDate}</span>
+            {e.setor && <span className="text-blue-200 font-medium">&bull; {e.setor}</span>}
+          </div>
+        </div>
+
+        <div className="shrink-0 flex flex-col items-end">
+          {isToday ? (
+            <div className="text-[9px] font-black tracking-wider bg-emerald-500 text-white px-2 py-0.5 rounded whitespace-nowrap animate-pulse shadow-md">
+              Hoje em Execução!
+            </div>
+          ) : e.diffDays <= 7 ? (
+            <div className="text-[9px] font-black tracking-wider bg-white text-[#1e1e96] px-2 py-0.5 rounded whitespace-nowrap animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]">
+              Faltam {e.diffDays} dia{e.diffDays !== 1 ? "s" : ""}
+            </div>
+          ) : (
+            <div className="text-[9px] font-medium opacity-70 bg-white/10 px-1.5 py-0.5 rounded">
+              Em breve
+            </div>
+          )}
+        </div>
       </div>
     );
   };
@@ -1093,9 +1280,29 @@ export default function LoginScreen({
                 animation: rgbBlink 1s infinite;
               }
             `}</style>
+            {prazosEPublicacoes.length > 0 && (
+              <div>
+                <h2 className="text-[10px] font-black underline mb-2 tracking-widest text-amber-300 flex items-center gap-1">
+                  <span>📌 Publicação de Planos & Prazos Definidos</span>
+                </h2>
+                <div className="space-y-1">
+                  {prazosEPublicacoes.map((e) => renderEvent(e))}
+                </div>
+              </div>
+            )}
+            {atividadesAExecutar.length > 0 && (
+              <div>
+                <h2 className="text-[10px] font-black underline mt-3 mb-2 tracking-widest text-emerald-300 flex items-center gap-1">
+                  <span>⚡ Atividades a Executar no Mês</span>
+                </h2>
+                <div className="space-y-1">
+                  {atividadesAExecutar.map((e) => renderEvent(e))}
+                </div>
+              </div>
+            )}
             {comemorativas.length > 0 && (
               <div>
-                <h2 className="text-[10px] font-black underline mb-2 tracking-widest text-blue-200">
+                <h2 className="text-[10px] font-black underline mt-3 mb-2 tracking-widest text-blue-200">
                   Datas comemorativas
                 </h2>
                 <div className="space-y-1">
@@ -1105,7 +1312,7 @@ export default function LoginScreen({
             )}
             {feriadosNacionais.length > 0 && (
               <div>
-                <h2 className="text-[10px] font-black underline mt-4 mb-2 tracking-widest text-blue-200">
+                <h2 className="text-[10px] font-black underline mt-3 mb-2 tracking-widest text-blue-200">
                   Feriados nacionais
                 </h2>
                 <div className="space-y-1">
@@ -1115,7 +1322,7 @@ export default function LoginScreen({
             )}
             {feriadosInstitucionais.length > 0 && (
               <div>
-                <h2 className="text-[10px] font-black underline mt-4 mb-2 tracking-widest text-blue-200">
+                <h2 className="text-[10px] font-black underline mt-3 mb-2 tracking-widest text-blue-200">
                   Feriados institucionais
                 </h2>
                 <div className="space-y-1">
@@ -1123,10 +1330,12 @@ export default function LoginScreen({
                 </div>
               </div>
             )}
-            {comemorativas.length === 0 &&
+            {prazosEPublicacoes.length === 0 &&
+              atividadesAExecutar.length === 0 &&
+              comemorativas.length === 0 &&
               feriadosNacionais.length === 0 &&
               feriadosInstitucionais.length === 0 && (
-                <p className="text-sm opacity-80">Nenhum evento agendado.</p>
+                <p className="text-sm opacity-80">Nenhum evento agendado nos próximos dias.</p>
               )}
           </div>
         </div>
@@ -1532,6 +1741,167 @@ export default function LoginScreen({
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes da Publicação / Evento / Atividade */}
+      {selectedEventDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-900 animate-scaleUp">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-blue-600/30 rounded-xl text-blue-400 border border-blue-500/30">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-blue-400 block">
+                    {selectedEventDetail.type || "Publicação / Evento Institucional"}
+                  </span>
+                  <h3 className="text-lg font-black leading-tight text-white">
+                    Detalhes do Evento / Publicação
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedEventDetail(null)}
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-sm">
+              {/* Title and Code */}
+              <div className="bg-blue-50/60 rounded-xl p-4 border border-blue-100 flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <h4 className="text-base font-black text-slate-900 leading-snug">
+                    {selectedEventDetail.title}
+                  </h4>
+                  {selectedEventDetail.referencia && (
+                    <span className="shrink-0 px-2.5 py-1 bg-blue-900 text-blue-100 text-xs font-mono font-bold rounded-md">
+                      {selectedEventDetail.referencia}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 font-medium pt-1">
+                  <span className="flex items-center gap-1 text-blue-800 font-semibold">
+                    <Tag className="w-3.5 h-3.5 text-blue-600" />
+                    {selectedEventDetail.type || "Publicação"}
+                  </span>
+                  <span>&bull;</span>
+                  <span className="flex items-center gap-1 text-slate-700">
+                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                    {selectedEventDetail.setor || selectedEventDetail.departamento || "Serviço de Planificação Institucional"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status and Execution Date Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+                      Data / Período
+                    </span>
+                    <span className="text-sm font-black text-slate-900">
+                      {selectedEventDetail.displayDate || selectedEventDetail.date || selectedEventDetail.mes || "Mês Corrente"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                  <div className="p-2 bg-amber-100 text-amber-700 rounded-lg">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-500 block uppercase tracking-wider">
+                      Contagem Decrescente
+                    </span>
+                    <span className="text-sm font-black text-slate-900">
+                      {selectedEventDetail.diffDays === 0
+                        ? "Hoje em Execução!"
+                        : selectedEventDetail.diffDays !== undefined
+                        ? `Faltam ${selectedEventDetail.diffDays} dia(s)`
+                        : "Ativo no Sistema"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Specs: Budget, Indicators, Responsible */}
+              <div className="space-y-3">
+                {(selectedEventDetail.orcamento !== undefined || selectedEventDetail.valor !== undefined) && (
+                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
+                      <Coins className="w-4 h-4 text-emerald-600" />
+                      Orçamento Cabimentado / Planificado:
+                    </span>
+                    <span className="text-sm font-black text-emerald-950">
+                      {(Number(selectedEventDetail.orcamento || selectedEventDetail.valor) || 0).toLocaleString("pt-MZ", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} MZN
+                    </span>
+                  </div>
+                )}
+
+                {selectedEventDetail.indicadores && (
+                  <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-800 flex items-center gap-1.5">
+                      <Target className="w-4 h-4 text-purple-600" />
+                      Indicadores / Meta:
+                    </span>
+                    <span className="text-xs font-bold text-purple-950">
+                      {selectedEventDetail.indicadores}
+                    </span>
+                  </div>
+                )}
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-xs font-bold text-slate-700 block mb-2 flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-blue-600" />
+                    Descrição & Diretrizes de Execução:
+                  </span>
+                  <p className="text-xs text-slate-600 leading-relaxed italic">
+                    {selectedEventDetail.descricao ||
+                      selectedEventDetail.detalhes ||
+                      selectedEventDetail.justificativa ||
+                      (selectedEventDetail.type === "Publicação de Plano"
+                        ? "Publicação oficial do Plano Económico e Social e Orçamento do Exercício (PESOE). Todos os setores e unidades orgânicas devem consultar o plano aprovado para execução rigorosa das atividades calendarizadas."
+                        : selectedEventDetail.type === "Prazo Definido"
+                        ? "Prazo regulamentar para submissão de relatórios de monitoria, ajustamentos e prestação de contas institucionais."
+                        : "Atividade aprovada do Plano Anual agendada para execução no período de referência sob responsabilidade do setor indicado.")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir Comprovativo
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedEventDetail(null)}
+                className="px-6 py-2 bg-blue-900 hover:bg-blue-950 text-white text-xs font-bold rounded-xl shadow-md transition-colors cursor-pointer"
+              >
+                Fechar
+              </button>
             </div>
           </div>
         </div>
