@@ -7,7 +7,7 @@ import "./index.css";
 // poluam a consola ou disparem erros no ambiente da aplicação
 if (typeof window !== "undefined") {
   const isFirestoreNetworkMsg = (msg: any) => {
-    const m = String(msg?.message || msg?.stack || msg || "").toLowerCase();
+    const m = String(msg?.message || msg?.stack || msg?.reason || msg || "").toLowerCase();
     return (
       m.includes("@firebase/firestore") ||
       m.includes("could not reach cloud firestore backend") ||
@@ -15,7 +15,13 @@ if (typeof window !== "undefined") {
       m.includes("backend didn't respond") ||
       m.includes("internal assertion failed") ||
       m.includes("unexpected state") ||
-      m.includes("client will operate in offline mode")
+      m.includes("client will operate in offline mode") ||
+      m.includes("quota limit exceeded") ||
+      m.includes("free daily read units") ||
+      m.includes("resource-exhausted") ||
+      m.includes("resource_exhausted") ||
+      m.includes("quota exceeded") ||
+      m.includes("firestore (11.")
     );
   };
 
@@ -35,22 +41,30 @@ if (typeof window !== "undefined") {
     originalConsoleWarn.apply(console, args);
   };
 
-  window.addEventListener("error", (event) => {
-    const msg = event?.message || String(event?.error || "");
-    if (isFirestoreNetworkMsg(msg)) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
+  const handleGlobalError = (event: ErrorEvent | any) => {
+    const msg = event?.message || String(event?.error?.message || event?.error || "");
+    if (isFirestoreNetworkMsg(msg) || isFirestoreNetworkMsg(event?.error)) {
+      if (typeof event.preventDefault === "function") event.preventDefault();
+      if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation();
+      return true;
     }
-  });
+  };
 
+  window.addEventListener("error", handleGlobalError, true);
   window.addEventListener("unhandledrejection", (event) => {
     const reason = event?.reason;
     const msg = reason?.message || String(reason || "");
-    if (isFirestoreNetworkMsg(msg)) {
+    if (isFirestoreNetworkMsg(msg) || isFirestoreNetworkMsg(reason)) {
       event.preventDefault();
       event.stopImmediatePropagation();
     }
-  });
+  }, true);
+
+  window.onerror = (message, source, lineno, colno, error) => {
+    if (isFirestoreNetworkMsg(message) || isFirestoreNetworkMsg(error)) {
+      return true;
+    }
+  };
 }
 
 createRoot(document.getElementById("root")!).render(

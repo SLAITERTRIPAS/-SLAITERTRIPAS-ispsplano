@@ -325,40 +325,181 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
     const isCreator = (creator && creator === uEmail) || (a.userId && uId && a.userId === uId);
     if (isCreator) return true;
 
-    // Check if shared with user or their area
+    // Administrador de Sistema tem acesso total para suporte e manutenção
+    if (isSysAdmin) return true;
+
+    // Se a atividade NÃO foi submetida / enviada ainda (rascunho ou pendente de submissão do criador),
+    // apenas o criador pode ver. Ninguém mais tem acesso até que seja enviada/recebida!
+    const isSubmetida = a.submetido === true || (a.status && a.status !== "rascunho" && a.status !== "draft");
+    if (!isSubmetida) {
+      return false;
+    }
+
+    // Verificar se foi expressamente partilhado com o utilizador ou com a sua área
     if (Array.isArray(a.sharedWith)) {
       if (a.sharedWith.includes(uEmail) || (uId && a.sharedWith.includes(uId))) return true;
       const uArea = String(user.setor || user.reparticao || user.departamento || user.direcao || "").toLowerCase().trim();
       if (uArea && a.sharedWith.some((area: any) => String(area).toLowerCase().trim() === uArea)) return true;
     }
 
-    // Administrador de Sistema tem acesso total para fins de suporte e debug
-    if (isSysAdmin) return true;
+    // Verificar se foi enviado / encaminhado / submetido especificamente para o utilizador
+    const sentTo = [
+      a.enviadoPara,
+      a.submetidoPara,
+      a.encaminhadoPara,
+      a.destinatario,
+      a.destinatarioEmail,
+      a.responsavelEmail,
+      a.atribuidoA,
+      a.responsavelId,
+      a.aprovadorAtual,
+    ]
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim());
 
-    // STRICT PRIVACY PER LEVEL (Setor, Repartição, Departamento, Direção)
-    const isDPEP =
-      getUserRequiredStatusLevel(user) === 5 ||
-      isSuperBossUser(user) ||
-      String(user.departamento || "").toLowerCase().includes("planificação") ||
-      String(user.setor || "").toLowerCase().includes("planificação") ||
-      String(user.reparticao || "").toLowerCase().includes("planificação") ||
-      String(user.cargo || "").toLowerCase().includes("planificação") ||
-      String(user.email || "").toLowerCase().includes("planificação") ||
-      uEmail === "slaitertripas@gmail.com";
+    if (
+      sentTo.includes(uEmail) ||
+      (uId && sentTo.includes(String(uId).toLowerCase().trim()))
+    ) {
+      return true;
+    }
 
-    // Se o usuário for DPEP ou Administrador, ele vê tudo (Ação Orçamental Geral)
-    if (isDPEP) return true;
+    // Verificar se foi enviado para o Setor, Repartição, Departamento ou Gabinete do utilizador
+    const sentToSectors = [
+      a.enviadoParaSetor,
+      a.setorDestino,
+      a.departamentoDestino,
+      a.direcaoDestino,
+      a.currentGabinete,
+      a.gabineteDestinatario,
+      a.destinatarioSetor,
+    ]
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim());
 
-    // Se o usuário tem cargo de chefia (Director, Chefe de Departamento, Chefe de Repartição),
-    // ele pode ver as atividades da sua área de alçada de forma estritamente isolada
-    const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
-    if (roles.isDC || roles.isCD || roles.isCR) {
-      if (canAccessArea(user, a.direcao || "", a.departamento || "", a.setor || a.reparticao || "", a)) {
+    // Regra estrita para o Setor de Monitoria:
+    // O Setor de Monitoria NÃO planifica nada. Ele APENAS recebe as atividades APROVADAS / INSTITUCIONAIS
+    // para monitorar o nível de execução.
+    const userTitleCargo = String(user.title || user.cargo || user.cargoChefia || "").toLowerCase();
+    const isMonitoriaUser =
+      uSector.includes("monitoria") ||
+      uDept.includes("monitoria") ||
+      uRole.includes("monitoria") ||
+      userTitleCargo.includes("monitoria") ||
+      String(user.areaDeAfetacao || "").toLowerCase().includes("monitoria");
+
+    if (isMonitoriaUser) {
+      const st = String(a.status || "").toLowerCase();
+      // Não visualiza rascunhos ou propostas pendentes em fase de elaboração
+      if (st === "rascunho" || st === "draft") {
+        return false;
+      }
+
+      const isApprovedOrInstitucional =
+        st === "institucional" ||
+        st === "pendente_monitoria" ||
+        st === "aprovado" ||
+        st === "aprovada" ||
+        st === "homologado" ||
+        st === "publicado" ||
+        st === "em_andamento" ||
+        st === "em_execucao" ||
+        st === "concluido" ||
+        st === "executada" ||
+        st === "realizada" ||
+        st === "agendada" ||
+        a.isAprovada === true ||
+        a.publicado === true ||
+        a.statusPesoe === "publicado";
+
+      const isSentToMonitoria =
+        sentToSectors.some((s) => s.includes("monitoria")) ||
+        sentTo.some((s) => s.includes("monitoria")) ||
+        String(a.setor || "").toLowerCase().includes("monitoria") ||
+        String(a.setorDestino || "").toLowerCase().includes("monitoria");
+
+      if (isApprovedOrInstitucional || isSentToMonitoria) {
         return true;
+      }
+
+      return false;
+    }
+
+    // Regra estrita para o DPEP / Chefe do DPEP:
+    // O Chefe do DPEP e o Setor de Planificação apenas visualizam as suas próprias atividades
+    // ou propostas de outros setores que tenham sido EFETIVAMENTE SUBMETIDAS/ENVIADAS à Planificação/DPEP.
+    const isDPEPUser =
+      !isMonitoriaUser &&
+      (uDept.includes("dpep") ||
+      uDept.includes("planificação") ||
+      uDept.includes("planificacao") ||
+      uRole.includes("dpep") ||
+      uRole.includes("planificação") ||
+      uRole.includes("planificacao") ||
+      userTitleCargo.includes("dpep") ||
+      userTitleCargo.includes("planificação") ||
+      userTitleCargo.includes("planificacao"));
+
+    if (isDPEPUser) {
+      const aDept = String(a.departamento || "").toLowerCase();
+      const aSect = String(a.setor || a.reparticao || "").toLowerCase();
+      const aDir = String(a.direcao || "").toLowerCase();
+
+      const isOwnDPEP =
+        aDept.includes("dpep") ||
+        aDept.includes("planificação") ||
+        aDept.includes("planificacao") ||
+        aSect.includes("dpep") ||
+        aSect.includes("planificação") ||
+        aSect.includes("planificacao") ||
+        aDir.includes("dpep") ||
+        aDir.includes("planificação") ||
+        aDir.includes("planificacao");
+
+      if (isOwnDPEP) return true;
+
+      const isSentToDpep =
+        a.enviadoADPEP === true ||
+        a.submetidoADPEP === true ||
+        a.status === "planificacao" ||
+        a.status === "dpep_chefe" ||
+        a.status === "institucional" ||
+        sentToSectors.some((s) => s.includes("dpep") || s.includes("planifica")) ||
+        sentTo.some((s) => s.includes("dpep") || s.includes("planifica"));
+
+      if (isSentToDpep && (a.submetido === true || (a.status && a.status !== "rascunho" && a.status !== "draft"))) {
+        return true;
+      }
+
+      return false;
+    }
+
+    const userSectorNames = [uSector, uDept, uDir, user.areaDeAfetacao || ""]
+      .filter(Boolean)
+      .map((x) => String(x).toLowerCase().trim());
+
+    const isSectorRecipient = sentToSectors.some((targetSector) =>
+      userSectorNames.some((uSec) => targetSector.includes(uSec) || uSec.includes(targetSector))
+    );
+
+    if (isSectorRecipient) {
+      return true;
+    }
+
+    // Se o utilizador tem cargo de chefia (Director, Chefe de Departamento, Chefe de Repartição),
+    // apenas vê atividades recebidas na hierarquia da sua área que já atingiram o nível de submissão do seu cargo
+    const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
+    if (roles.isDC || roles.isCD || roles.isCR || roles.isDG) {
+      const reqLevel = getUserRequiredStatusLevel(user);
+      const actLevel = getActivityStatusLevel(a.status);
+      if (actLevel >= reqLevel) {
+        if (canAccessArea(user, a.direcao || "", a.departamento || "", a.setor || a.reparticao || "", a)) {
+          return true;
+        }
       }
     }
 
-    // O RESTO DOS USUARIOS NÃO DEVEM TER ACESSO A NADA ALÉM DO QUE PLANIFICARAM (A Ação Orçamental é Individual)
+    // Por padrão estrito: qualquer atividade não criada, não partilhada e não recebida de outro setor permanece invisível
     return false;
   });
 };

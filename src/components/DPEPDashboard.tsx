@@ -158,7 +158,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
             label: "Total no Ciclo", 
             icon: Activity, 
             color: "bg-blue-600",
-            trend: "+12%" 
+            trend: stats.totalActivities > 0 ? `${stats.submetidas} Submetidas` : "0 Submetidas" 
           },
           { 
             title: "Execução Orçamental", 
@@ -166,7 +166,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
             label: `${stats.executadas} de ${stats.totalActivities}`, 
             icon: TrendingUp, 
             color: "bg-emerald-600",
-            trend: "Meta: 85%" 
+            trend: stats.totalActivities > 0 ? "Taxa Real" : "0%" 
           },
           { 
             title: "Volume de Investimento", 
@@ -174,7 +174,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
             label: "MZN Planificados", 
             icon: DollarSign, 
             color: "bg-amber-600",
-            trend: "OE + RP" 
+            trend: "Consolidado" 
           },
           { 
             title: "Sincronização de Setores", 
@@ -182,7 +182,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
             label: "Unidades Orgânicas", 
             icon: Layers, 
             color: "bg-indigo-600",
-            trend: "Consolidado" 
+            trend: stats.sectors > 0 ? `${stats.sectors} Ativos` : "0 Ativos" 
           }
         ].map((card, i) => (
           <motion.div 
@@ -237,47 +237,55 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {sectorData.map((row, i) => (
-                  <tr key={i} className="hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">
-                          {row.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-800 leading-none">{row.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400 mt-1  tracking-tight">ID: {Math.random().toString(36).substring(7).toUpperCase()}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <span className="text-sm font-bold text-slate-700">{row.total}</span>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500" 
-                            style={{ width: `${(row.aprovadas / row.total) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] font-black text-slate-900">{row.aprovadas}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-right font-mono text-xs font-bold text-slate-600">
-                      {row.budget.toLocaleString('pt-PT')}
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black  tracking-widest ${
-                        row.submetidas === row.total 
-                          ? "bg-emerald-100 text-emerald-700" 
-                          : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {row.submetidas === row.total ? "Concluído" : "Em Tramitação"}
-                      </span>
+                {sectorData.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-10 text-center text-xs font-bold text-slate-400">
+                      Nenhum plano setorial submetido ao DPEP até ao momento. Todos os registos estão limpos.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  sectorData.map((row, i) => (
+                    <tr key={i} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">
+                            {row.name.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-800 leading-none">{row.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-1  tracking-tight">Unidade Submetida</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <span className="text-sm font-bold text-slate-700">{row.total}</span>
+                      </td>
+                      <td className="px-6 py-5 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-emerald-500" 
+                              style={{ width: row.total > 0 ? `${(row.aprovadas / row.total) * 100}%` : '0%' }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-black text-slate-900">{row.aprovadas}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-right font-mono text-xs font-bold text-slate-600">
+                        {row.budget.toLocaleString('pt-PT')}
+                      </td>
+                      <td className="px-8 py-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black  tracking-widest ${
+                          row.submetidas === row.total 
+                            ? "bg-emerald-100 text-emerald-700" 
+                            : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {row.submetidas === row.total ? "Concluído" : "Em Tramitação"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

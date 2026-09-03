@@ -109,6 +109,7 @@ export default function App() {
     | "supplier_form"
     | "plano_aquisicao"
     | "plano_contratacao"
+    | "plano_workflow"
     | "monografia"
     | "economato"
     | "gestao_patrimonial"
@@ -116,6 +117,16 @@ export default function App() {
     | "documentos_normativos"
     | "relatorios"
     | "produtos_precos"
+    | "service_requests"
+    | "alocacoes"
+    | "financial"
+    | "efetivo"
+    | "library_management"
+    | "sistema"
+    | "calendar"
+    | "processos"
+    | "suppliers"
+    | "expediente"
   >("login");
   const [statsActiveItem, setStatsActiveItem] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -612,6 +623,16 @@ export default function App() {
         if (colab) setRawColaboradores(JSON.parse(colab));
         const chef = localStorage.getItem("sigep_local_colaboradores_chefia");
         if (chef) setRawChefiaColaboradores(JSON.parse(chef));
+        const supp = localStorage.getItem("sigep_local_suppliers");
+        if (supp) setSuppliers(JSON.parse(supp));
+        const proc = localStorage.getItem("sigep_local_processos_individuais") || localStorage.getItem("sigep_local_processos");
+        if (proc) setProcessos(JSON.parse(proc));
+        const exp = localStorage.getItem("sigep_local_expedientes");
+        if (exp) setExpedientes(JSON.parse(exp));
+        const nots = localStorage.getItem("sigep_local_notes");
+        if (nots) setNotes(JSON.parse(nots));
+        const evts = localStorage.getItem("sigep_local_calendar_events") || localStorage.getItem("sigep_local_events");
+        if (evts) setEvents(JSON.parse(evts));
       } catch (e) {
         console.warn("Aviso ao recarregar dados pós-restauração:", e);
       }
@@ -1569,7 +1590,7 @@ export default function App() {
                 user={extendedUser}
                 colaboradores={colaboradores}
                 onBack={goBack}
-                showBack={historyStack.length > 0 || (view !== "menu" && view !== "login" && view !== "home")}
+                showBack={historyStack.length > 0 || ((view as string) !== "menu" && (view as string) !== "login" && (view as string) !== "home")}
                 onBreadcrumbClick={handleBreadcrumbClick}
                 onLogout={handleLogout}
                 onOpenMessages={() => {

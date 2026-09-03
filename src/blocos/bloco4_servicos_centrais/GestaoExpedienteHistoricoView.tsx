@@ -818,7 +818,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
       if (filterTipo !== "todos") {
         const tp = (doc.tipoDocumento || "").toLowerCase();
         const ass = (doc.assunto || "").toLowerCase();
-        const isViag = doc.isDocumentoViagem || doc.rawExpediente?.isDocumentoViagem || tp.includes("viagem") || ass.includes("viagem") || ass.includes("missão") || ass.includes("missao");
+        const isViag = (doc as any).isDocumentoViagem || doc.rawExpediente?.isDocumentoViagem || tp.includes("viagem") || ass.includes("viagem") || ass.includes("missão") || ass.includes("missao");
         if (filterTipo === "viagem" && !isViag) return false;
         if (filterTipo === "normal" && isViag) return false;
       }
@@ -831,7 +831,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
         const remet = (doc.remetente || "").toLowerCase();
         const encam = (doc.encaminhado || doc.encaminhadoSetor || "").toLowerCase();
         const orig = (doc.rawExpediente?.origem || doc.rawExpediente?.emitidoPor || "").toLowerCase();
-        const dest = (doc.rawExpediente?.destino || doc.rawExpediente?.currentStep || doc.rawExpediente?.nextStepRecipient || "").toLowerCase();
+        const dest = (doc.rawExpediente?.destino || doc.rawExpediente?.currentStep || (doc.rawExpediente as any)?.nextStepRecipient || "").toLowerCase();
         
         // Verificar histórico completo de tramitação (pareceres, despachos e vistos)
         const historicoStr = JSON.stringify(doc.rawExpediente?.historico || []).toLowerCase();
@@ -866,7 +866,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
   }, [allDocuments, selectedDocId]);
 
   // Objeto Expediente formatado para o leitor e módulo de assinaturas
-  const docExpedienteFormatado = useMemo<Expediente | null>(() => {
+  const docExpedienteFormatado = useMemo<any>(() => {
     if (!selectedDoc) return null;
     if (selectedDoc.rawExpediente) return selectedDoc.rawExpediente;
 
@@ -942,8 +942,8 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
     if (!selectedDoc) return;
 
     const isViagemDoc =
-      selectedDoc.isDocumentoViagem ||
-      selectedDoc.rawExpediente?.isDocumentoViagem ||
+      (selectedDoc as any).isDocumentoViagem ||
+      (selectedDoc.rawExpediente as any)?.isDocumentoViagem ||
       (selectedDoc.assunto || "").toLowerCase().includes("viagem") ||
       (selectedDoc.assunto || "").toLowerCase().includes("missao") ||
       (selectedDoc.assunto || "").toLowerCase().includes("missão") ||
@@ -1111,7 +1111,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
 
     const isDespachoFinal = setorAtuante.includes("Diretor-Geral") || setorAtuante.includes("Gabinete");
 
-    const updatedExp: Expediente = {
+    const updatedExp: any = {
       ...currentExp,
       id: selectedDoc.id,
       origem: selectedDoc.remetente || "Remetente",
@@ -1128,9 +1128,9 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
             responsavel: responsavelNome,
             cargo: responsavelCargo,
           }
-        : currentExp.despacho,
+        : (currentExp as any).despacho,
       historico: [
-        ...(currentExp.historico || []),
+        ...((currentExp as any).historico || []),
         {
           data: now,
           setor: setorAtuante,
@@ -2464,7 +2464,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
                   const term = deptSearchTerm.toLowerCase().trim();
                   const raw = d.rawExpediente;
                   return (
-                    (d.beneficiario || "").toLowerCase().includes(term) ||
+                    ((d as any).beneficiario || "").toLowerCase().includes(term) ||
                     d.assunto.toLowerCase().includes(term) ||
                     d.numeroRastreio.toLowerCase().includes(term) ||
                     d.remetente.toLowerCase().includes(term) ||
@@ -2493,7 +2493,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
 
                 return filteredList.map((doc) => {
                   const badge = getStatusBadge(doc.status);
-                  const benName = doc.beneficiario || doc.rawExpediente?.guiaViagem?.beneficiario || doc.rawExpediente?.solicitante || doc.rawExpediente?.interessado;
+                  const benName = (doc as any).beneficiario || (doc.rawExpediente as any)?.guiaViagem?.beneficiario || (doc.rawExpediente as any)?.solicitante || (doc.rawExpediente as any)?.interessado;
                   return (
                     <div
                       key={doc.id}

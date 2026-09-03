@@ -1,4 +1,5 @@
 import { db } from "./firebase";
+import { firestoreService } from "./firestoreService";
 import { getCircularReplacer, safeJSONStringify } from "./utils";
 import {
   collection,
@@ -416,8 +417,10 @@ export function dispatchBackupAlert(detail: {
   organName?: string;
   progressPercent?: number;
   record?: SystemBackupRecord;
+  isManual?: boolean;
 }) {
   try {
+    // Only fire UI toast alert if explicitly manual or on completion/error, to prevent background tasks from disrupting navigation
     window.dispatchEvent(new CustomEvent("sigep_backup_alert", { detail }));
   } catch (e) {
     console.warn("Erro ao emitir evento de alerta de backup:", e);
@@ -1002,8 +1005,9 @@ export async function restoreFullBackup(
   const restoredStats: Record<string, number> = {};
   const organStats: Record<string, number> = {};
 
-  const data = normalizeBackupPayload(rawInputData);
+  if (onProgress) onProgress("A validar e preparar dados de backup...", 5);
 
+  const data = normalizeBackupPayload(rawInputData);
   localStorage.removeItem("sigep_quota_exceeded");
 
   // Proteger chaves de sessão do utilizador
@@ -1046,45 +1050,64 @@ export async function restoreFullBackup(
     localStorage.setItem("sigep_deleted_products", safeJSONStringify(data["_localStorage_sigep_deleted_products"]));
   }
 
-  // Restauração passo a passo pelos 4 Órgãos
-  let organRestoredIndex = 0;
-  const totalOrgans = SYSTEM_ORGAOS.length;
+  // Contabilizar total de coleções para cálculo percentual detalhado
+  const allTargetCollections: { organId: string; organName: string; collName: string }[] = [];
+  SYSTEM_ORGAOS.forEach((organ) => {
+    organ.collections.forEach((collName) => {
+      allTargetCollections.push({ organId: organ.id, organName: organ.name, collName });
+    });
+  });
 
+  const totalSteps = allTargetCollections.length;
+  let currentStep = 0;
+
+  // Restauração passo a passo pelos 4 Órgãos
   for (const organ of SYSTEM_ORGAOS) {
-    organRestoredIndex++;
     organStats[organ.id] = 0;
 
-    const pct = Math.round((organRestoredIndex / totalOrgans) * 90);
-    const msg = `[Órgão ${organRestoredIndex}/${totalOrgans}] ${organ.name}: A restaurar dados...`;
-    if (onProgress) onProgress(msg, pct);
-    dispatchBackupAlert({
-      status: "in_progress",
-      message: msg,
-      organName: organ.name,
-      progressPercent: pct,
-    });
-
     for (const collName of organ.collections) {
+      currentStep++;
+      const currentPercent = Math.min(95, Math.round(5 + (currentStep / totalSteps) * 85));
+
       const docs = extractDocsForCollection(data, collName);
-      if (docs.length === 0) continue;
+      if (docs.length === 0) {
+        if (onProgress) onProgress(`[${organ.shortName}] A verificar ${collName}...`, currentPercent);
+        continue;
+      }
+
+      const msg = `[${organ.shortName}] A restaurar ${collName} (${docs.length} registos)...`;
+      if (onProgress) onProgress(msg, currentPercent);
+      dispatchBackupAlert({
+        status: "in_progress",
+        message: msg,
+        organName: organ.name,
+        progressPercent: currentPercent,
+      });
 
       const collCount = await applyRestoredCollection(collName, docs);
       totalRestored += collCount;
       restoredStats[collName] = (restoredStats[collName] || 0) + collCount;
       organStats[organ.id] += collCount;
 
-      const restoreLiveMsg = `[Órgão ${organRestoredIndex}/${totalOrgans}] ${organ.name} › ${collName}: ${collCount} registos restaurados (Total acumulado: ${totalRestored} registos)`;
-      if (onProgress) onProgress(restoreLiveMsg);
+      const restoreLiveMsg = `[${organ.shortName}] › ${collName}: ${collCount} registos restaurados (Total: ${totalRestored})`;
+      if (onProgress) onProgress(restoreLiveMsg, currentPercent);
     }
   }
 
   // Restaurar quaisquer coleções adicionais no payload que não estejam mapeadas explicitamente nos 4 órgãos
-  for (const [key, value] of Object.entries(data)) {
-    if (key.startsWith("_localStorage_") || key.startsWith("_metadata_")) continue;
+  const extraKeys = Object.entries(data).filter(([key, value]) => {
+    if (key.startsWith("_localStorage_") || key.startsWith("_metadata_")) return false;
     const normalized = COLLECTION_ALIASES[key] || key;
-    if (restoredStats[normalized] !== undefined || !Array.isArray(value) || value.length === 0) continue;
+    return restoredStats[normalized] === undefined && Array.isArray(value) && value.length > 0;
+  });
 
+  for (let idx = 0; idx < extraKeys.length; idx++) {
+    const [key, value] = extraKeys[idx];
+    const normalized = COLLECTION_ALIASES[key] || key;
     const extraDocs: BackupDocument[] = value;
+    const pct = Math.min(98, Math.round(90 + ((idx + 1) / (extraKeys.length || 1)) * 8));
+
+    if (onProgress) onProgress(`A restaurar coleção adicional ${normalized}...`, pct);
     const collCount = await applyRestoredCollection(normalized, extraDocs);
     totalRestored += collCount;
     restoredStats[normalized] = collCount;
@@ -1092,7 +1115,7 @@ export async function restoreFullBackup(
 
   dispatchBackupAlert({
     status: "completed",
-    message: `Restauração concluída com sucesso! ${totalRestored} registos salvos nos 4 Órgãos.`,
+    message: `Restauração concluída com sucesso! ${totalRestored} registos salvos em todos os 4 Órgãos.`,
     progressPercent: 100,
   });
 
@@ -1104,7 +1127,7 @@ export async function restoreFullBackup(
     }
   } catch (_) {}
 
-  if (onProgress) onProgress("Restauração e gravação de dados na base de dados concluída com sucesso!");
+  if (onProgress) onProgress("Restauração de todos os dados e órgãos concluída com sucesso!", 100);
   return { totalRestored, restoredStats, organStats };
 }
 
@@ -1242,10 +1265,36 @@ export async function runAutomaticBackupIfNeeded(): Promise<SystemBackupRecord |
 
 export async function autoRestoreOnStartup(onProgress?: (msg: string) => void): Promise<boolean> {
   try {
-    const latestBackup = localStorage.getItem("sigep_backup_latest");
-    if (latestBackup) {
-      console.log("A executar regra automática de restauração da base de dados após deploy/remix...");
-      await restoreFullBackup(latestBackup, onProgress);
+    // Check if Firestore database already contains users or matrix activities
+    const existingUsers = await firestoreService.users.get().catch(() => []);
+    const existingActivities = await firestoreService.matrixActivities.get().catch(() => []);
+    if ((existingUsers && existingUsers.length > 0) || (existingActivities && existingActivities.length > 0)) {
+      console.log("Base de dados com dados já armazenados. Preservando estado atual do Firestore sem sobravancar.");
+      return true;
+    }
+
+    console.log("Base de dados vazia detetada. A verificar e carregar o último backup para restaurar informações...");
+    
+    // 1. Tentar encontrar o backup mais recente a partir da lista de backups (Firestore + LocalStorage)
+    const backupsList = await getStoredBackupsList();
+    if (backupsList && backupsList.length > 0) {
+      const latestRecord = backupsList[0];
+      console.log(`Último backup encontrado: ${latestRecord.id} (${latestRecord.formattedDate}). A restaurar dados...`);
+      
+      const fullData = await getStoredBackupData(latestRecord);
+      if (fullData && Object.keys(fullData).length > 0) {
+        await restoreFullBackup(fullData, onProgress);
+        console.log("Último backup restaurado com sucesso no arranque do sistema!");
+        return true;
+      }
+    }
+
+    // 2. Tentar pelo cache de último backup no localStorage se a lista do Firestore não retornou dados
+    const latestBackupStr = localStorage.getItem("sigep_backup_latest");
+    if (latestBackupStr) {
+      console.log("A restaurar a partir do cache local do último backup...");
+      const parsed = JSON.parse(latestBackupStr);
+      await restoreFullBackup(parsed, onProgress);
       return true;
     }
   } catch (e) {
@@ -1406,27 +1455,43 @@ export async function getStoredBackupsList(): Promise<SystemBackupRecord[]> {
  * Exclui permanentemente um backup guardado no sistema
  */
 export async function deleteStoredBackup(backupId: string): Promise<boolean> {
-  if (!db) return false;
-  try {
-    // Excluir subcoleções se houver
+  let success = false;
+  if (db) {
     try {
-      const subSnapshot = await getDocs(collection(db, "system_backups", backupId, "collections"));
-      for (const d of subSnapshot.docs) {
-        await deleteDoc(d.ref);
+      // Excluir subcoleções se existirem
+      try {
+        const subSnapshot = await getDocs(collection(db, "system_backups", backupId, "collections"));
+        for (const d of subSnapshot.docs) {
+          await deleteDoc(d.ref);
+        }
+      } catch (subErr) {
+        console.warn("Aviso ao excluir subcoleções de backup:", subErr);
       }
-    } catch (_) {}
 
-    await deleteDoc(doc(db, "system_backups", backupId));
-
-    try {
-      localStorage.removeItem(`sigep_backup_${backupId}`);
-    } catch (_) {}
-
-    return true;
-  } catch (error) {
-    console.error("Erro ao excluir backup:", error);
-    return false;
+      await deleteDoc(doc(db, "system_backups", backupId));
+      success = true;
+    } catch (error) {
+      console.warn("Aviso ao excluir backup do Firestore:", error);
+    }
   }
+
+  try {
+    localStorage.removeItem(`sigep_backup_${backupId}`);
+    localStorage.removeItem(`sigep_auto_backup_${backupId}`);
+
+    const latestStr = localStorage.getItem("sigep_backup_latest");
+    if (latestStr) {
+      try {
+        const parsed = JSON.parse(latestStr);
+        if (parsed.id === backupId) {
+          localStorage.removeItem("sigep_backup_latest");
+        }
+      } catch (_) {}
+    }
+    success = true;
+  } catch (_) {}
+
+  return success;
 }
 
 /**
@@ -1620,17 +1685,11 @@ export async function generateTargetedBackup(
   }
 }
 
-export async function exportDataBackup(onProgress?: (msg: string) => void): Promise<BackupResult> {
-  const dataColls = [
-    "historico_chefias", "colaboradores_chefia", "institucional_plans", "reports", "monografia", "signatures", "accessAlerts",
-    "efetivo_escolar", "alunos", "matriculas", "alocacoes_docentes", "turmas", "disciplinas_academicas", "espacos_fisicos", "exames", "bolsas", "atendimentos_estudantis", "library_books", "library_visits", "colaboradores_formacao",
-    "colaboradores", "processos_individuais", "assiduidade", "financial_data", "suppliers", "materiais_bens", "movimentos_economato", "inventarios_patrimoniais", "requisicoes_internas", "expedientes", "archive_documents", "service_requests",
-    "actividades", "matrix_activities", "plano_actividades", "plan_schedules", "produtosUnificados", "pedidos"
-  ];
-  return generateTargetedBackup(dataColls, "SIGEP_BACKUP_DADOS", "Backup de Dados", onProgress);
+export async function exportDataBackup(onProgress?: (msg: string, percent?: number) => void): Promise<BackupResult> {
+  return generateFullBackup(onProgress);
 }
 
-export async function exportSystemBackup(onProgress?: (msg: string) => void): Promise<BackupResult> {
+export async function exportSystemBackup(onProgress?: (msg: string, percent?: number) => void): Promise<BackupResult> {
   const systemColls = [
     "users", "documentos_normativos", "calendar_events", "notes", "messages", "configuracoes", "config_sistema", "drafts", "system_backups"
   ];
@@ -1641,11 +1700,13 @@ export async function restoreTargetedBackup(
   rawInputData: BackupData | any[] | string,
   allowedCollections: string[],
   backupLabel: string,
-  onProgress?: (msg: string) => void,
+  onProgress?: (msg: string, percent?: number) => void,
 ): Promise<{ totalRestored: number; restoredStats: Record<string, number>; organStats: Record<string, number> }> {
   let totalRestored = 0;
   const restoredStats: Record<string, number> = {};
   const organStats: Record<string, number> = {};
+
+  if (onProgress) onProgress(`A iniciar ${backupLabel}...`, 5);
 
   const data = normalizeBackupPayload(rawInputData);
   localStorage.removeItem("sigep_quota_exceeded");
@@ -1655,15 +1716,20 @@ export async function restoreTargetedBackup(
 
   for (const collName of allowedCollections) {
     collIndex++;
+    const currentPercent = Math.min(95, Math.round(5 + (collIndex / totalColls) * 85));
+
     const docs = extractDocsForCollection(data, collName);
-    if (docs.length === 0) continue;
+    if (docs.length === 0) {
+      if (onProgress) onProgress(`[${backupLabel}] A verificar ${collName}...`, currentPercent);
+      continue;
+    }
 
     const progressMsg = `[${backupLabel}] A restaurar ${collName} (${docs.length} registos)... (${collIndex}/${totalColls})`;
-    if (onProgress) onProgress(progressMsg);
+    if (onProgress) onProgress(progressMsg, currentPercent);
     dispatchBackupAlert({
       status: "in_progress",
       message: progressMsg,
-      progressPercent: Math.round((collIndex / totalColls) * 90),
+      progressPercent: currentPercent,
     });
 
     const collCount = await applyRestoredCollection(collName, docs);
@@ -1675,7 +1741,7 @@ export async function restoreTargetedBackup(
       organStats[activeOrgan.id] = (organStats[activeOrgan.id] || 0) + collCount;
     }
 
-    if (onProgress) onProgress(`[${backupLabel}] ${collName}: ${collCount} registos restaurados com sucesso`);
+    if (onProgress) onProgress(`[${backupLabel}] ${collName}: ${collCount} registos restaurados com sucesso`, currentPercent);
   }
 
   dispatchBackupAlert({
@@ -1692,34 +1758,29 @@ export async function restoreTargetedBackup(
     }
   } catch (_) {}
 
+  if (onProgress) onProgress(`${backupLabel} concluído com sucesso!`, 100);
   return { totalRestored, restoredStats, organStats };
 }
 
-export async function restoreDataBackup(rawInputData: BackupData | any[] | string, onProgress?: (msg: string) => void) {
-  const dataColls = [
-    "historico_chefias", "colaboradores_chefia", "institucional_plans", "reports", "monografia", "signatures", "accessAlerts",
-    "efetivo_escolar", "alunos", "matriculas", "alocacoes_docentes", "turmas", "disciplinas_academicas", "espacos_fisicos", "exames", "bolsas", "atendimentos_estudantis", "library_books", "library_visits", "colaboradores_formacao",
-    "colaboradores", "processos_individuais", "assiduidade", "financial_data", "suppliers", "materiais_bens", "movimentos_economato", "inventarios_patrimoniais", "requisicoes_internas", "expedientes", "archive_documents", "service_requests",
-    "actividades", "matrix_activities", "plano_actividades", "plan_schedules", "produtosUnificados", "pedidos"
-  ];
-  return restoreTargetedBackup(rawInputData, dataColls, "Restauração de Dados", onProgress);
+export async function restoreDataBackup(rawInputData: BackupData | any[] | string, onProgress?: (msg: string, percent?: number) => void) {
+  return restoreFullBackup(rawInputData, onProgress);
 }
 
-export async function restoreSystemBackup(rawInputData: BackupData | any[] | string, onProgress?: (msg: string) => void) {
+export async function restoreSystemBackup(rawInputData: BackupData | any[] | string, onProgress?: (msg: string, percent?: number) => void) {
   const systemColls = [
     "users", "documentos_normativos", "calendar_events", "notes", "messages", "configuracoes", "config_sistema", "drafts", "system_backups"
   ];
   return restoreTargetedBackup(rawInputData, systemColls, "Restauração do Sistema", onProgress);
 }
 
-export async function exportOrganBackup(organId: string, onProgress?: (msg: string) => void): Promise<BackupResult> {
+export async function exportOrganBackup(organId: string, onProgress?: (msg: string, percent?: number) => void): Promise<BackupResult> {
   const organ = SYSTEM_ORGAOS.find((o) => o.id === organId);
   if (!organ) throw new Error("Órgão não encontrado");
   const prefix = `SIGEP_ORGAO_${organ.id.toUpperCase()}`;
   return generateTargetedBackup(organ.collections, prefix, `Backup do Órgão: ${organ.name}`, onProgress);
 }
 
-export async function restoreOrganBackup(organId: string, rawInputData: BackupData | any[] | string, onProgress?: (msg: string) => void) {
+export async function restoreOrganBackup(organId: string, rawInputData: BackupData | any[] | string, onProgress?: (msg: string, percent?: number) => void) {
   const organ = SYSTEM_ORGAOS.find((o) => o.id === organId);
   if (!organ) throw new Error("Órgão não encontrado");
   return restoreTargetedBackup(rawInputData, organ.collections, `Restauração do Órgão: ${organ.name}`, onProgress);

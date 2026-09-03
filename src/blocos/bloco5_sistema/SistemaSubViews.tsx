@@ -644,7 +644,11 @@ export function UserManagementView({
         setUsersLoading(false);
       },
       (err: any) => {
-        console.error("Error fetching users:", err?.message || String(err));
+        console.warn("Aviso ao carregar utilizadores em tempo real:", err?.message || String(err));
+        try {
+          const local = localStorage.getItem("sigep_local_users") || localStorage.getItem("sigep_users");
+          if (local) setAllUsers(JSON.parse(local));
+        } catch (_) {}
         setUsersLoading(false);
       },
     );
@@ -1019,10 +1023,17 @@ export function HistoricoChefiasView() {
 
   useEffect(() => {
     const q = collection(db, "historico_chefias");
-    const unsubscribe = onSnapshot(q, (snap) => {
-      setHistorico(snap.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        setHistorico(snap.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
+        setLoading(false);
+      },
+      (err: any) => {
+        console.warn("Aviso ao carregar histórico de chefias:", err?.message || String(err));
+        setLoading(false);
+      }
+    );
     return () => unsubscribe();
   }, []);
 

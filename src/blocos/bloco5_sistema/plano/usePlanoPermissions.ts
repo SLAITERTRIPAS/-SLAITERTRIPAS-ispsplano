@@ -28,6 +28,13 @@ export function usePlanoPermissions(user: any, title: string) {
     ).toUpperCase();
     const deptUpper = String(user.departamento || "").toUpperCase();
     const roleUpper = String(user.role || "").toUpperCase();
+    const sectUpper = String(user.setor || user.reparticao || "").toUpperCase();
+
+    // Setor de Monitoria não planifica nem atua como DPEP / Planificação
+    if (sectUpper.includes("MONITORIA") || titleUpper.includes("MONITORIA") || roleUpper.includes("MONITORIA")) {
+      return false;
+    }
+
     return (
       titleUpper.includes("DPEP") ||
       deptUpper.includes("DPEP") ||

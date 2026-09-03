@@ -46,6 +46,9 @@ const SystemRegistrationForm = lazy(() => import("../blocos/bloco5_sistema/Syste
 const LibraryVisitForm = lazy(() => import("../blocos/bloco3_unidades_organicas/LibraryVisitForm"));
 const AcaoOrcamentalView = lazy(() => import("./AcaoOrcamentalView"));
 const PlanoWorkflowView = lazy(() => import("../blocos/bloco5_sistema/PlanoWorkflowView"));
+const CalendarView = lazy(() => import("../blocos/bloco5_sistema/CalendarView"));
+const GestaoExpedienteHistoricoView = lazy(() => import("../blocos/bloco4_servicos_centrais/GestaoExpedienteHistoricoView"));
+const LibraryManagementView = lazy(() => import("../blocos/bloco3_unidades_organicas/LibraryManagementView"));
 const SectorSelectionView = lazy(() => import("../blocos/bloco1_apresentacao/SectorSelectionView").then(m => ({ default: m.SectorSelectionView })));
 
 const ViewLoading = () => (
@@ -790,6 +793,93 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
           onUpdateMatrixActivity={(id: string, data: any) => firestoreService.matrixActivities.update(id, data)}
           onShowAlert={onShowAlert}
           onBack={goBack}
+        />
+      );
+
+    case "calendar":
+      return (
+        <div className="flex flex-col h-full bg-slate-950">
+          <MainHeader
+            user={extendedUser}
+            onBack={goBack}
+            showBack={true}
+            title={dashboardTitle || "Calendário de Atividades"}
+            onLogout={onLogout}
+          />
+          <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-6 bg-slate-900">
+            <CalendarView
+              events={events}
+              onAddEvent={(evt) => firestoreService.events.add(evt)}
+              onUpdateEvent={onUpdateEvent}
+              onDeleteEvent={onDeleteEvent}
+              onAgendar={() => onSetView("agendar")}
+              onNota={() => onSetView("nota_form")}
+              title={dashboardTitle || "Calendário de Atividades"}
+              notes={notes}
+              user={extendedUser}
+            />
+          </div>
+        </div>
+      );
+
+    case "expediente":
+    case "processos":
+      return (
+        <GestaoExpedienteHistoricoView
+          onBack={goBack}
+          expedientes={expedientes}
+          onUpdateExpediente={(updated: any) => firestoreService.expedientes.update(updated.id, updated)}
+          user={extendedUser}
+          title={dashboardTitle || "Gestão de Expedientes"}
+          initialTab="Histórico de Documentos"
+          activities={matrixActivities}
+          onNavigate={(item) => onSetView(item)}
+        />
+      );
+
+    case "suppliers":
+      return (
+        <UGEA_SupplierManagementView
+          onBack={goBack}
+          onAddSupplier={() => onSetView("supplier_form")}
+          suppliers={suppliers}
+        />
+      );
+
+    case "efetivo":
+    case "alocacoes":
+      return (
+        <GestaoPessoalView
+          onBack={goBack}
+          title={dashboardTitle || "Gestão de Pessoal"}
+          user={extendedUser}
+          onLogout={onLogout}
+          initialColaboradores={colaboradores}
+          initialProcessos={processos}
+        />
+      );
+
+    case "service_requests":
+      return <TrackingView onBack={goBack} serviceRequests={[]} />;
+
+    case "financial":
+      return (
+        <div className="w-full h-full overflow-y-auto scrollbar bg-slate-50 p-2 md:p-6">
+          <AcaoOrcamentalView
+            user={extendedUser}
+            title={dashboardTitle || "Recursos Financeiros"}
+            activities={matrixActivities}
+            onShowAlert={onShowAlert}
+            onBack={goBack}
+          />
+        </div>
+      );
+
+    case "library_management":
+      return (
+        <LibraryManagementView
+          registrations={libraryRegistrations}
+          bookRegistrations={bookRegistrations}
         />
       );
 

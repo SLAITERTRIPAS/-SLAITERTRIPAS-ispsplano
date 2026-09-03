@@ -1308,10 +1308,10 @@ export default function MatrixView({
             </div>
             <div>
               <h3 className="text-xl font-bold">
-                SUBMETER O PLANO DE ATIVIDADE
+                SUBMETER a ATIVIDADE
               </h3>
               <p className="text-blue-200 text-sm">
-                O plano será submetido para validação do seu superior hierárquico imediato (Direção ou Departamento correspondente).
+                A atividade será submetida para validação do seu superior hierárquico imediato (Direção ou Departamento correspondente).
               </p>
             </div>
           </div>
@@ -1335,13 +1335,13 @@ export default function MatrixView({
                 if (onFinalSubmit) {
                   onFinalSubmit(sortedActivities);
                 } else {
-                  let message = "Plano de Atividade submetido com sucesso!";
+                  let message = "Atividade submetida com sucesso!";
                   alert(message);
                 }
               }}
               className="bg-white text-blue-900 px-10 py-4 rounded-xl font-bold hover:bg-blue-50 transition-all whitespace-nowrap"
             >
-              SUBMETER O PLANO DE ATIVIDADE
+              SUBMETER a ATIVIDADE
             </button>
           </div>
         </div>

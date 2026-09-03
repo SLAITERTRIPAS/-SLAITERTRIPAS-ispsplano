@@ -196,7 +196,7 @@ export default function MonitoriaView({
   React.useEffect(() => {
     // Importação automática simulada para Eventos Agendados (mês seguinte) e Em Realização (mês atual)
     // O sistema importa por si só, e no dia 1 transita de agendados para em realizacao.
-    const autoScheduleActivities = [
+    const autoScheduleActivities: ActivityMonitor[] = [
       {
         id: "auto-plan-agendado",
         referencia: "ACT-AUTO-AGEND",

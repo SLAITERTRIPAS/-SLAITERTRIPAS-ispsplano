@@ -1029,7 +1029,7 @@ export default function LibraryVisitForm({
                           {searchedBooks.length > 0 ? (
                             <div className="space-y-3">
                               {searchedBooks.map((book) => {
-                                const isAvailable = (book.quantidade || 1) > 0;
+                                const isAvailable = ((book as any).quantidade || 1) > 0;
                                 return (
                                   <div
                                     key={book.id}
@@ -1063,7 +1063,7 @@ export default function LibraryVisitForm({
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                                           <Hash size={10} />
                                           <span>
-                                            Stock: {book.quantidade || 0} unid.
+                                            Stock: {(book as any).quantidade || 0} unid.
                                           </span>
                                         </div>
                                       </div>

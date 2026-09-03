@@ -132,7 +132,7 @@ export default function AssistenciaMedicaView({
         (p) =>
           p.nome === newCartao.nome ||
           p.id === newCartao.id ||
-          p.nuit === newCartao.nuit ||
+          p.nuit === (newCartao as any).nuit ||
           p.numeroProcesso === newCartao.numeroRegisto,
       );
       if (matchingProcess && !matchingProcess.individualData?.fotoUrl) {

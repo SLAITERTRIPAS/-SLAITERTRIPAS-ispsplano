@@ -22,6 +22,7 @@ import {
   ArrowRight,
   UserCheck,
   AlertCircle,
+  AlertTriangle,
   Clock,
   BarChart3,
   Info,
@@ -70,6 +71,7 @@ import {
 } from "../../lib/utils";
 import { EFETIVO_GERAL_DATA } from "../../constants/colaboradoresList";
 import { determineSectorAllocation } from "../../lib/allocationUtils";
+import { resolverDestinatarioSetorEResponsavel, DestinatarioInfo, LISTA_SETORES_DESTINATARIOS } from "../../lib/responsaveisService";
 import { printElementById, printActivitiesPlanDocument } from "../../lib/printUtils";
 import {
   getDirectionPriority,
@@ -99,6 +101,8 @@ import {
 import { usePlanoPermissions } from "./plano/usePlanoPermissions";
 import ActivityForm from "../bloco5_sistema/ActivityForm";
 import { DPEPDashboard } from "../../components/DPEPDashboard";
+import { subscribePeriodoPlanificacao, isPlanificacaoAberta } from "../../lib/planningPeriodService";
+import { PeriodoPlanificacao } from "../../types";
 import {
   DEPARTAMENTOS,
   REPARTICOES,
@@ -202,6 +206,15 @@ export default function PlanoWorkflowView({
   }
 
   const [rawActivities, setRawActivities] = useState(initialActivities);
+
+  const [periodoPlanificacao, setPeriodoPlanificacao] = useState<PeriodoPlanificacao | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribePeriodoPlanificacao((p) => {
+      setPeriodoPlanificacao(p);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     setRawActivities(initialActivities);
@@ -2442,6 +2455,15 @@ export default function PlanoWorkflowView({
     destinationLabel: string,
     targetActivities?: any[],
   ) => {
+    let initialDest = "";
+    if (toStatus === "reparticao") initialDest = user?.reparticao || "Chefe da Repartição";
+    else if (toStatus === "departamento") initialDest = user?.departamento || "Chefe do Departamento";
+    else if (toStatus === "direcao") initialDest = user?.direcao || "Diretor da Direção";
+    else if (toStatus === "planificacao" || toStatus === "dpep_chefe") initialDest = "Departamento de Planificação Estudos e Projetos (DPEP)";
+    else if (toStatus === "orgao_colegial" || toStatus === "institucional") initialDest = "Conselho de Direção / Órgão Colegial";
+    else initialDest = destinationLabel || "Gabinete Destinatário";
+
+    setSelectedDestinatario(initialDest);
     setWorkflowToProcess({
       fromStatus,
       toStatus,
@@ -2472,6 +2494,12 @@ export default function PlanoWorkflowView({
       return;
     }
 
+    const resolvedDest = resolverDestinatarioSetorEResponsavel(
+      selectedDestinatario,
+      user,
+      EFETIVO_GERAL_DATA
+    );
+
     try {
       setIsLoading(true);
 
@@ -2481,7 +2509,9 @@ export default function PlanoWorkflowView({
         userRole: user?.cargo || user?.cargoChefia || "Responsável",
         date: new Date().toISOString(),
         action: "Assinado e Tramitado",
-        destination: selectedDestinatario,
+        destination: resolvedDest.setorNome,
+        destinatarioResponsavel: resolvedDest.responsavelNome,
+        destinatarioCargo: resolvedDest.responsavelCargo,
       };
 
       if (toStatus === "institucional") {
@@ -2496,7 +2526,14 @@ export default function PlanoWorkflowView({
           return firestoreService.matrixActivities.update(act.id, {
             status: toStatus,
             submetido: true,
-            currentGabinete: selectedDestinatario,
+            currentGabinete: resolvedDest.setorNome,
+            destinatarioSetor: resolvedDest.setorNome,
+            enviadoParaSetor: resolvedDest.setorNome,
+            destinatario: resolvedDest.responsavelNome,
+            destinatarioCargo: resolvedDest.responsavelCargo,
+            destinatarioEmail: resolvedDest.responsavelEmail,
+            dataEnvio: new Date().toISOString(),
+            enviadoPor: user?.nome || user?.email || "Colaborador",
             workflowHistory: [...existingHistory, signature],
           });
         }),
@@ -2508,12 +2545,13 @@ export default function PlanoWorkflowView({
           atividades: toUpdate,
           author: user?.nome || user?.email,
           origin: originLabel,
-          destinatario: selectedDestinatario,
+          destinatario: resolvedDest.setorNome,
+          destinatarioResponsavel: resolvedDest.responsavelNome,
         }),
       ]);
 
       onShowAlert(
-        `Sucesso! ${toUpdate.length} atividades foram assinadas e enviadas para ${selectedDestinatario}.`,
+        `Sucesso! ${toUpdate.length} atividades foram assinadas e enviadas para o setor ${resolvedDest.setorNome} aos cuidados de ${resolvedDest.responsavelNome} (${resolvedDest.responsavelCargo}).`,
       );
 
       // Limpar rascunhos restantes
@@ -3442,7 +3480,7 @@ export default function PlanoWorkflowView({
         {/* Novo Ecrã de Boas Vindas/Seleção de Fluxo */}
         {workflowMode === "landing" && (
           <DPEPDashboard 
-            activities={rawActivities.filter(a => Number(a.ano) === selectedYear)} 
+            activities={authorizedActivities.filter(a => Number(a.ano) === selectedYear)} 
             onSelectWorkflow={(mode) => {
               if (mode === 'planning') {
                 setSelectedYear(2027);
@@ -3617,6 +3655,23 @@ export default function PlanoWorkflowView({
             {/* Dashboard Workflow Progress Bar - Removido conforme solicitação */}
             {!isFocusMode && (
               <>
+                {!isPlanificacaoAberta(periodoPlanificacao).aberta && (
+                  <div className="mx-8 mt-6 p-4 bg-red-600 text-white rounded-2xl flex items-center justify-between shadow-lg animate-pulse print:hidden">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="text-white shrink-0" size={24} />
+                      <div>
+                        <p className="font-extrabold text-xs uppercase tracking-wider">
+                          O período de planificação encontra-se encerrado
+                        </p>
+                        <p className="text-[11px] font-medium text-red-100">
+                          {isPlanificacaoAberta(periodoPlanificacao).motivo ||
+                            "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {isSuperBossUser(user) &&
                   title &&
                   title !== "Plano Setorial" &&
@@ -3681,6 +3736,14 @@ export default function PlanoWorkflowView({
                               <button
                                 onClick={() => {
                                   setShowFileMenu(false);
+                                  const statusPeriodo = isPlanificacaoAberta(periodoPlanificacao);
+                                  if (!statusPeriodo.aberta) {
+                                    onShowAlert(
+                                      statusPeriodo.motivo ||
+                                        "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."
+                                    );
+                                    return;
+                                  }
                                   setShowAddForm(true);
                                   setEditingActivity(null);
                                 }}
@@ -4334,13 +4397,12 @@ export default function PlanoWorkflowView({
                         {
                           filteredActivities.filter(
                             (a) =>
-                              isDPEP ||
                               isSuperBossUser(user) ||
                               isDepartmentMatch(a.departamento, user?.departamento) ||
                               isDepartmentMatch(a.departamento, title) ||
                               isDepartmentMatch(a.unidadeOrganica, title),
                           ).length
-                        }{" "}
+                        }{ " " }
                         Atividades
                       </span>
                     </div>
@@ -4351,7 +4413,6 @@ export default function PlanoWorkflowView({
                           {filteredActivities
                             .filter(
                               (a) =>
-                                isDPEP ||
                                 isSuperBossUser(user) ||
                                 isDepartmentMatch(a.departamento, user?.departamento) ||
                                 isDepartmentMatch(a.departamento, title) ||
@@ -4429,7 +4490,6 @@ export default function PlanoWorkflowView({
                             ))}
                           {filteredActivities.filter(
                             (a) =>
-                              isDPEP ||
                               isSuperBossUser(user) ||
                               isDepartmentMatch(a.departamento, user?.departamento) ||
                               isDepartmentMatch(a.departamento, title) ||
@@ -5217,7 +5277,6 @@ export default function PlanoWorkflowView({
                               {filteredActivities
                                 .filter(
                                   (a) =>
-                                    isDPEP ||
                                     isSuperBossUser(user) ||
                                     
                                     a.reparticao === user.reparticao ||
@@ -5308,7 +5367,6 @@ export default function PlanoWorkflowView({
                               {filteredActivities
                                 .filter(
                                   (a) =>
-                                    isDPEP ||
                                     isSuperBossUser(user) ||
                                     isDepartmentMatch(a.departamento, user?.departamento) ||
                                     isDepartmentMatch(a.departamento, title) ||
@@ -5352,7 +5410,6 @@ export default function PlanoWorkflowView({
                                 ))}
                               {filteredActivities.filter(
                                 (a) =>
-                                  isDPEP ||
                                   isSuperBossUser(user) ||
                                   isDepartmentMatch(a.departamento, user?.departamento) ||
                                   isDepartmentMatch(a.departamento, title) ||
@@ -6857,7 +6914,9 @@ export default function PlanoWorkflowView({
                     </div>
                     <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Direções Integradas</span>
-                      <span className="text-2xl font-black text-emerald-400 font-mono">5 / 5</span>
+                      <span className="text-2xl font-black text-emerald-400 font-mono">
+                        {new Set(filteredActivities.map((a) => a.direcao).filter(Boolean)).size} / 5
+                      </span>
                     </div>
                     <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
                       <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Destino da Proposta</span>
@@ -6883,34 +6942,42 @@ export default function PlanoWorkflowView({
                     <table className="w-full text-left border-collapse font-sans text-xs print-table-compact">
                       <ActivityTableHeader isDPEP={true} />
                       <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
-                        {filteredActivities.map((act, idx) => (
-                          <ActivityTableRow
-                            key={act.id}
-                            activity={act}
-                            onViewHistory={setActivityForHistory}
-                            index={idx}
-                            isDPEP={true}
-                            user={user}
-                            isBossOrAdmin={true}
-                            getActivityTotal={getActivityTotal}
-                            onUpdateExecution={onUpdateExecution}
-                            onUpdateRelatorio={onUpdateRelatorio}
-                            actions={
-                              <div className="flex justify-center items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    setEditingActivity(act);
-                                    setShowAddForm(true);
-                                  }}
-                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
-                                  title="Visualizar"
-                                >
-                                  <Eye size={13} />
-                                </button>
-                              </div>
-                            }
-                          />
-                        ))}
+                        {filteredActivities.length === 0 ? (
+                          <tr>
+                            <td colSpan={15} className="py-12 text-center text-slate-400 font-medium text-xs">
+                              Nenhum plano ou proposta submetida ao Chefe do DPEP até ao momento. Todos os campos estão totalmente limpos.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredActivities.map((act, idx) => (
+                            <ActivityTableRow
+                              key={act.id}
+                              activity={act}
+                              onViewHistory={setActivityForHistory}
+                              index={idx}
+                              isDPEP={true}
+                              user={user}
+                              isBossOrAdmin={true}
+                              getActivityTotal={getActivityTotal}
+                              onUpdateExecution={onUpdateExecution}
+                              onUpdateRelatorio={onUpdateRelatorio}
+                              actions={
+                                <div className="flex justify-center items-center gap-2">
+                                  <button
+                                    onClick={() => {
+                                      setEditingActivity(act);
+                                      setShowAddForm(true);
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
+                                    title="Visualizar"
+                                  >
+                                    <Eye size={13} />
+                                  </button>
+                                </div>
+                              }
+                            />
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -7794,7 +7861,7 @@ export default function PlanoWorkflowView({
 
                       <div className="space-y-3">
                         <label className="text-[11px] font-black text-slate-500  tracking-widest ml-1">
-                          Destinatário Oficial
+                          Destinatário Oficial (Gabinete / Setor)
                         </label>
                         <select
                           value={selectedDestinatario}
@@ -7810,20 +7877,82 @@ export default function PlanoWorkflowView({
                             if (toStatus === "reparticao") options = [user?.reparticao || "Chefe da Repartição"];
                             else if (toStatus === "departamento") options = [user?.departamento || "Chefe do Departamento"];
                             else if (toStatus === "direcao") options = [user?.direcao || "Diretor da Direção"];
-                            else if (toStatus === "planificacao") options = ["Setor de Planificação (DPEP)"];
-                            else if (toStatus === "dpep_chefe") options = ["Gabinete do Chefe do DPEP", "Chefe do DPEP"];
-                            else if (toStatus === "orgao_colegial") options = ["Conselho de Direção / Órgão Colegial"];
+                            else if (toStatus === "planificacao") options = ["Departamento de Planificação Estudos e Projetos (DPEP)", "Setor de Planificação (DPEP)"];
+                            else if (toStatus === "dpep_chefe") options = ["Gabinete do Chefe do DPEP", "Departamento de Planificação Estudos e Projetos (DPEP)", "Chefe do DPEP"];
+                            else if (toStatus === "orgao_colegial") options = ["Conselho de Direção / Órgão Colegial", "Conselho de Direção"];
                             else if (toStatus === "institucional") options = ["Conselho de Direção", "Gabinete do Diretor Geral", "Arquivo Geral"];
                             
                             const validOptions = options.filter(o => o && o.trim() !== "");
-                            return validOptions.length > 0 ? validOptions.map(g => (
-                              <option key={g} value={g}>{g}</option>
-                            )) : GABINETES_DESTINATARIOS.map(g => (
-                              <option key={g} value={g}>{g}</option>
-                            ));
+                            const fullList = validOptions.length > 0 ? validOptions : GABINETES_DESTINATARIOS;
+                            return (
+                              <>
+                                {fullList.map((g) => (
+                                  <option key={g} value={g}>{g}</option>
+                                ))}
+                                <optgroup label="Todos os Setores do Instituto">
+                                  {LISTA_SETORES_DESTINATARIOS.map((s) => (
+                                    <option key={s.setorNome} value={s.setorNome}>
+                                      {s.setorNome} ({s.responsavelCargo})
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              </>
+                            );
                           })()}
                         </select>
                       </div>
+
+                      {/* CARD VISUAL DESTACADO DO SETOR E RESPONSÁVEL QUE IRÁ RECEBER */}
+                      {selectedDestinatario && (() => {
+                        const info = resolverDestinatarioSetorEResponsavel(selectedDestinatario, user, EFETIVO_GERAL_DATA);
+                        return (
+                          <div className="rounded-2xl border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/70 via-slate-50 to-white p-4 space-y-3 shadow-sm animate-in fade-in">
+                            <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+                              <div className="flex items-center gap-2">
+                                <Building2 size={16} className="text-blue-700" />
+                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-900">
+                                  Setor Destinatário
+                                </span>
+                              </div>
+                              <span className="px-2.5 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider">
+                                {info.siglaSetor || "DESTINO"}
+                              </span>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-black text-slate-900 leading-snug">
+                                {info.setorNome}
+                              </p>
+                              {info.descricao && (
+                                <p className="text-[11px] text-slate-500 mt-0.5">{info.descricao}</p>
+                              )}
+                            </div>
+
+                            {/* Informações do Responsável */}
+                            <div className="p-3 bg-white rounded-xl border border-blue-200/70 shadow-sm flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
+                                <UserCheck size={18} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-blue-700">
+                                  Responsável a Receber:
+                                </span>
+                                <h4 className="text-xs font-black text-slate-900 truncate">
+                                  {info.responsavelNome}
+                                </h4>
+                                <p className="text-[11px] font-bold text-slate-600">
+                                  {info.responsavelCargo}
+                                </p>
+                                {info.responsavelEmail && (
+                                  <p className="text-[10px] text-slate-400 font-medium">
+                                    {info.responsavelEmail}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <div className="flex gap-4 pt-4">
                         <button

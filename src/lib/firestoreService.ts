@@ -163,26 +163,91 @@ export function subscribeToDocument<T>(
   callback: (data: T | null) => void,
   onError?: (error: any) => void,
 ) {
-  const docRef = doc(db, collectionName, docId);
-  return onSnapshot(
-    docRef,
-    (snapshot) => {
-      if (snapshot.exists()) {
-        callback({ ...snapshot.data(), id: snapshot.id } as T);
+  try {
+    const docRef = doc(db, collectionName, docId);
+    return onSnapshot(
+      docRef,
+      (snapshot) => {
+        try {
+          if (snapshot.exists()) {
+            const docData = { ...snapshot.data(), id: snapshot.id } as T;
+            callback(docData);
+            try {
+              localStorage.setItem(`sigep_doc_${collectionName}_${docId}`, safeJSONStringify(docData));
+            } catch (_) {}
+          } else {
+            const localItems = getLocalData(collectionName);
+            const found = localItems.find((it: any) => it.id === docId);
+            callback(found ? (found as T) : null);
+          }
+        } catch (procErr) {
+          console.warn(`Aviso no processamento do documento ${collectionName}/${docId}:`, procErr);
+        }
+      },
+      (error) => {
+        const errStr = (error?.message || String(error)).toLowerCase();
+        const isQuotaOrOffline =
+          error?.code === "resource-exhausted" ||
+          error?.code === "unavailable" ||
+          errStr.includes("quota") ||
+          errStr.includes("resource_exhausted") ||
+          errStr.includes("resource-exhausted") ||
+          errStr.includes("offline") ||
+          errStr.includes("could not reach") ||
+          errStr.includes("free daily read units");
+
+        if (isQuotaOrOffline) {
+          localStorage.setItem("sigep_quota_exceeded", "true");
+          console.warn(
+            `⚠️ Quota / Offline na subscrição do documento ${collectionName}/${docId}. Ativando fallback para armazenamento local.`,
+          );
+        } else if (error?.message !== "Firestore shutting down") {
+          console.warn(
+            `Aviso ao subscrever documento ${collectionName}/${docId}:`,
+            error?.message || error,
+          );
+        }
+
+        try {
+          const directKey = `sigep_doc_${collectionName}_${docId}`;
+          const directItem = localStorage.getItem(directKey);
+          if (directItem) {
+            callback(JSON.parse(directItem) as T);
+          } else {
+            const localItems = getLocalData(collectionName);
+            const found = localItems.find((it: any) => it.id === docId);
+            if (found) {
+              callback(found as T);
+            } else {
+              callback(null);
+            }
+          }
+        } catch (_) {
+          callback(null);
+        }
+
+        if (onError) {
+          try { onError(error); } catch (_) {}
+        }
+      },
+    );
+  } catch (err) {
+    console.warn(`Falha na inicialização do onSnapshot para ${collectionName}/${docId}:`, err);
+    try {
+      const directKey = `sigep_doc_${collectionName}_${docId}`;
+      const directItem = localStorage.getItem(directKey);
+      if (directItem) {
+        callback(JSON.parse(directItem) as T);
       } else {
-        callback(null);
+        const localItems = getLocalData(collectionName);
+        const found = localItems.find((it: any) => it.id === docId);
+        callback(found ? (found as T) : null);
       }
-    },
-    (error) => {
-      if (error.message !== "Firestore shutting down") {
-        console.error(
-          `Erro ao subscrever documento ${collectionName}/${docId}:`,
-          error,
-        );
-      }
-      if (onError) onError(error);
-    },
-  );
+    } catch (_) {
+      callback(null);
+    }
+    return () => {};
+  }
 }
 
 export function isLocalStorageFallbackActive(): boolean {
@@ -304,6 +369,15 @@ export async function addToCollection<T>(collectionName: string, data: T) {
     return null;
   })();
 
+  // Se o modo offline/quota já estiver ativo, salva localmente direto sem chamadas de rede bloqueantes
+  if (isLocalStorageFallbackActive()) {
+    const localId = "local_" + Math.random().toString(36).substring(2, 11);
+    const localList = getLocalData(collectionName);
+    localList.push({ ...cleanData, id: localId, userId, createdAt: now, updatedAt: now, pending_sync: true });
+    saveLocalData(collectionName, localList);
+    return localId;
+  }
+
   try {
     // 0. Verificar e excluir duplicados existentes na base de dados antes de adicionar
     const colRef = collection(db, collectionName);
@@ -365,9 +439,22 @@ export async function addToCollection<T>(collectionName: string, data: T) {
     console.log(`✅ Registro adicionado ao servidor: ${collectionName}/${docRef.id}`);
     return docRef.id;
   } catch (error: any) {
-    console.error(`❌ Falha na gravação direta em ${collectionName}:`, error);
+    const errStr = (error?.message || String(error)).toLowerCase();
+    const isQuota =
+      error?.code === "resource-exhausted" ||
+      errStr.includes("quota") ||
+      errStr.includes("resource_exhausted") ||
+      errStr.includes("resource-exhausted") ||
+      errStr.includes("free daily read units");
+
+    if (isQuota) {
+      localStorage.setItem("sigep_quota_exceeded", "true");
+      console.warn(`⚠️ Quota atingida na gravação em ${collectionName}. Salvo localmente no sistema.`);
+    } else {
+      console.warn(`Aviso na gravação direta em ${collectionName} (salvo em cache local):`, error?.message || error);
+    }
     
-    // Fallback local apenas para modo offline/quota
+    // Fallback local garantido
     const localId = "local_pending_" + Math.random().toString(36).substring(2, 11);
     const localList = getLocalData(collectionName);
     localList.push({ ...cleanData, id: localId, userId, createdAt: now, updatedAt: now, pending_sync: true });
@@ -385,8 +472,19 @@ export async function updateInCollection<T>(
   const cleanData = cleanObject(data);
   const now = new Date().toISOString();
 
+  // Sempre atualizar localmente primeiro
+  const localList = getLocalData(collectionName);
+  const idx = localList.findIndex((item: any) => item.id === id);
+  if (idx !== -1) {
+    localList[idx] = { ...localList[idx], ...cleanData, updatedAt: now };
+    saveLocalData(collectionName, localList);
+  }
+
+  if (isLocalStorageFallbackActive()) {
+    return;
+  }
+
   try {
-    // 1. Prioridade absoluta: Atualização no Servidor
     const docRef = doc(db, collectionName, id);
     await setDoc(
       docRef,
@@ -401,47 +499,47 @@ export async function updateInCollection<T>(
     );
     
     localStorage.removeItem("sigep_quota_exceeded");
-    
-    // 2. Cache local apenas como reflexo do servidor
-    const localList = getLocalData(collectionName);
-    const idx = localList.findIndex((item: any) => item.id === id);
-    if (idx !== -1) {
-      localList[idx] = { ...localList[idx], ...cleanData, updatedAt: now };
-      saveLocalData(collectionName, localList);
-    }
   } catch (error: any) {
-    console.warn(`Aviso na atualização de ${collectionName}/${id} (fallback local ativo):`, error?.message || error);
-    
-    // Fallback local apenas para pendência de sincronização
-    const localList = getLocalData(collectionName);
-    const idx = localList.findIndex((item: any) => item.id === id);
-    if (idx !== -1) {
-      localList[idx] = { ...localList[idx], ...cleanData, updatedAt: now, pending_sync: true };
-      saveLocalData(collectionName, localList);
+    const errStr = (error?.message || String(error)).toLowerCase();
+    const isQuota =
+      error?.code === "resource-exhausted" ||
+      errStr.includes("quota") ||
+      errStr.includes("resource_exhausted") ||
+      errStr.includes("resource-exhausted") ||
+      errStr.includes("free daily read units");
+
+    if (isQuota) {
+      localStorage.setItem("sigep_quota_exceeded", "true");
     }
+    console.warn(`Aviso na atualização de ${collectionName}/${id} (preservado localmente):`, error?.message || error);
   }
 }
 
 export async function deleteFromCollection(collectionName: string, id: string) {
+  // Limpar cache local imediatamente
+  const localList = getLocalData(collectionName);
+  const filtered = localList.filter((item: any) => item.id !== id);
+  saveLocalData(collectionName, filtered);
+
+  if (isLocalStorageFallbackActive()) {
+    return;
+  }
+
   try {
-    // 1. Tentar apagar no Firestore (Prioridade)
     const docRef = doc(db, collectionName, id);
     await deleteDoc(docRef);
     localStorage.removeItem("sigep_quota_exceeded");
-    
-    // 2. Limpar cache local após sucesso
-    const localList = getLocalData(collectionName);
-    const filtered = localList.filter((item: any) => item.id !== id);
-    saveLocalData(collectionName, filtered);
-    
-    console.log(`✅ ${collectionName}/${id} removido do servidor.`);
+    console.log(`✅ ${collectionName}/${id} removido.`);
   } catch (error: any) {
-    console.error(`❌ Erro ao apagar ${collectionName}/${id} no servidor:`, error);
-    
-    // Fallback: remover localmente mesmo se falhar no servidor para UI responder
-    const localList = getLocalData(collectionName);
-    const filtered = localList.filter((item: any) => item.id !== id);
-    saveLocalData(collectionName, filtered);
+    const errStr = (error?.message || String(error)).toLowerCase();
+    const isQuota =
+      error?.code === "resource-exhausted" ||
+      errStr.includes("quota") ||
+      errStr.includes("resource_exhausted");
+    if (isQuota) {
+      localStorage.setItem("sigep_quota_exceeded", "true");
+    }
+    console.warn(`Aviso ao apagar ${collectionName}/${id} no servidor (removido localmente):`, error?.message || error);
   }
 }
 
@@ -634,6 +732,19 @@ function createCollectionService<T>(
       updateInCollection(collectionName, id, data),
     replace: async (id: string, data: any) => {
       try {
+        try {
+          const directKey = `sigep_doc_${collectionName}_${id}`;
+          localStorage.setItem(directKey, safeJSONStringify({ ...data, id }));
+          const local = getLocalData(collectionName);
+          const idx = local.findIndex((it: any) => it.id === id);
+          if (idx >= 0) {
+            local[idx] = { ...data, id };
+          } else {
+            local.push({ ...data, id });
+          }
+          saveLocalData(collectionName, local);
+        } catch (_) {}
+
         const docRef = doc(db, collectionName, id);
         await setDoc(
           docRef,
@@ -655,6 +766,19 @@ function createCollectionService<T>(
     },
     set: async (id: string, data: any) => {
       try {
+        try {
+          const directKey = `sigep_doc_${collectionName}_${id}`;
+          localStorage.setItem(directKey, safeJSONStringify({ ...data, id }));
+          const local = getLocalData(collectionName);
+          const idx = local.findIndex((it: any) => it.id === id);
+          if (idx >= 0) {
+            local[idx] = { ...local[idx], ...data, id };
+          } else {
+            local.push({ ...data, id });
+          }
+          saveLocalData(collectionName, local);
+        } catch (_) {}
+
         const docRef = doc(db, collectionName, id);
         await setDoc(
           docRef,
@@ -1063,66 +1187,106 @@ export const firestoreService = {
     ...createCollectionService<any>("drafts"),
     getByUserAndForm: async (userId: string, formId: string) => {
       if (!userId || !formId) return null;
+      const localDraftKey = `sigep_draft_${userId}_${formId}`;
+      let localDraft = null;
+      try {
+        const stored = localStorage.getItem(localDraftKey);
+        if (stored) localDraft = JSON.parse(stored);
+      } catch (_) {}
+
+      if (isLocalStorageFallbackActive()) {
+        return localDraft;
+      }
+
       try {
         const docId = `${userId}_${formId}`.replace(/[^a-zA-Z0-9_]/g, "_");
         const docRef = doc(db, "drafts", docId);
         const snapshot = await getDoc(docRef);
         if (snapshot.exists()) {
-          return { id: snapshot.id, ...snapshot.data() };
+          const cloudDraft = { id: snapshot.id, ...snapshot.data() };
+          try {
+            localStorage.setItem(localDraftKey, safeJSONStringify(cloudDraft));
+          } catch (_) {}
+          return cloudDraft;
         }
 
-        // Fallback for legacy drafts
-        const q = query(
-          collection(db, "drafts"),
-          where("userId", "==", String(userId)),
-          where("formId", "==", String(formId)),
-        );
-        const qSnapshot = await getDocs(q);
-        return qSnapshot.empty
-          ? null
-          : { id: qSnapshot.docs[0].id, ...qSnapshot.docs[0].data() };
-      } catch (error) {
-        console.error("Erro ao obter rascunho:", error);
-        return null;
+        return localDraft;
+      } catch (error: any) {
+        const errStr = (error?.message || String(error)).toLowerCase();
+        const isQuota =
+          error?.code === "resource-exhausted" ||
+          errStr.includes("quota") ||
+          errStr.includes("resource_exhausted") ||
+          errStr.includes("free daily read units");
+        if (isQuota) {
+          localStorage.setItem("sigep_quota_exceeded", "true");
+        }
+        console.warn("Aviso ao obter rascunho da nuvem (usando local):", error?.message || error);
+        return localDraft;
       }
     },
     save: async (userId: string, formId: string, data: any) => {
       if (!userId || !formId) return null;
+      const docId = `${userId}_${formId}`.replace(/[^a-zA-Z0-9_]/g, "_");
+      const localDraftKey = `sigep_draft_${userId}_${formId}`;
+      const payload = {
+        id: docId,
+        userId: String(userId),
+        formId: String(formId),
+        ...cleanObject(data),
+        updatedAt: new Date().toISOString(),
+      };
+
       try {
-        const docId = `${userId}_${formId}`.replace(/[^a-zA-Z0-9_]/g, "_");
-        const docRef = doc(db, "drafts", docId);
+        localStorage.setItem(localDraftKey, safeJSONStringify(payload));
+      } catch (_) {}
 
-        const payload = {
-          userId: String(userId),
-          formId: String(formId),
-          ...cleanObject(data),
-          updatedAt: serverTimestamp(),
-        };
-
-        await setDoc(docRef, payload, { merge: true });
+      if (isLocalStorageFallbackActive()) {
         return docId;
-      } catch (error) {
-        console.error("Erro ao salvar rascunho:", error);
-        return null;
+      }
+
+      try {
+        const docRef = doc(db, "drafts", docId);
+        await setDoc(docRef, { ...payload, updatedAt: serverTimestamp() }, { merge: true });
+        return docId;
+      } catch (error: any) {
+        const errStr = (error?.message || String(error)).toLowerCase();
+        const isQuota =
+          error?.code === "resource-exhausted" ||
+          errStr.includes("quota") ||
+          errStr.includes("resource_exhausted") ||
+          errStr.includes("free daily read units");
+        if (isQuota) {
+          localStorage.setItem("sigep_quota_exceeded", "true");
+        }
+        console.warn("Aviso ao salvar rascunho na nuvem (preservado localmente):", error?.message || error);
+        return docId;
       }
     },
     deleteByUserAndForm: async (userId: string, formId: string) => {
       if (!userId || !formId) return;
+      const docId = `${userId}_${formId}`.replace(/[^a-zA-Z0-9_]/g, "_");
+      const localDraftKey = `sigep_draft_${userId}_${formId}`;
       try {
-        const docId = `${userId}_${formId}`.replace(/[^a-zA-Z0-9_]/g, "_");
-        await deleteDoc(doc(db, "drafts", docId));
+        localStorage.removeItem(localDraftKey);
+      } catch (_) {}
 
-        // Cleanup legacy
-        const q = query(
-          collection(db, "drafts"),
-          where("userId", "==", String(userId)),
-          where("formId", "==", String(formId)),
-        );
-        const snapshot = await getDocs(q);
-        const promises = snapshot.docs.map((doc) => deleteDoc(doc.ref));
-        await Promise.all(promises);
-      } catch (error) {
-        console.error("Erro ao eliminar rascunho:", error);
+      if (isLocalStorageFallbackActive()) {
+        return;
+      }
+
+      try {
+        await deleteDoc(doc(db, "drafts", docId));
+      } catch (error: any) {
+        const errStr = (error?.message || String(error)).toLowerCase();
+        const isQuota =
+          error?.code === "resource-exhausted" ||
+          errStr.includes("quota") ||
+          errStr.includes("resource_exhausted");
+        if (isQuota) {
+          localStorage.setItem("sigep_quota_exceeded", "true");
+        }
+        console.warn("Aviso ao eliminar rascunho na nuvem:", error?.message || error);
       }
     },
   },

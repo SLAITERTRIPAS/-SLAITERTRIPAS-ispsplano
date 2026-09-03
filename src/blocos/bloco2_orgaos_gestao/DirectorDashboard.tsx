@@ -164,35 +164,38 @@ export default function DirectorDashboard({
   setDashboardTitle: (title: string) => void;
   initialActiveItem?: string;
 }) {
-  const isReparticaoPessoal = title.toUpperCase() === "REPARTIÇÃO DE PESSOAL";
-  const isEstatisticaMain = title.toUpperCase() === "REPARTIÇÃO DE ESTATÍSTICA";
+  const safeTitle = typeof title === "string" ? title : String(title || "Painel de Gestão");
+  const upperTitle = safeTitle.toUpperCase();
+
+  const isReparticaoPessoal = upperTitle === "REPARTIÇÃO DE PESSOAL";
+  const isEstatisticaMain = upperTitle === "REPARTIÇÃO DE ESTATÍSTICA";
   const isUGEA =
-    title === "Unidade Gestora e Executora de Aquisições" ||
-    title.toUpperCase().includes("UGEA") ||
-    title.toUpperCase().includes("AQUISIÇÕES") ||
-    title.toUpperCase().includes("AQUISICOES");
+    safeTitle === "Unidade Gestora e Executora de Aquisições" ||
+    upperTitle.includes("UGEA") ||
+    upperTitle.includes("AQUISIÇÕES") ||
+    upperTitle.includes("AQUISICOES");
 
   const isPatrimonioDept =
-    title.toUpperCase().includes("PATRIM") ||
-    title.toUpperCase().includes("TRANSPOR") ||
-    title.toUpperCase().includes("INFRAESTRUTURA") ||
-    title.toUpperCase().includes("DP") ||
-    title.toUpperCase().includes("ECONOMATO") ||
-    title.toUpperCase().includes("BALANÇO") ||
-    title.toUpperCase().includes("BALANCO") ||
+    upperTitle.includes("PATRIM") ||
+    upperTitle.includes("TRANSPOR") ||
+    upperTitle.includes("INFRAESTRUTURA") ||
+    upperTitle.includes("DP") ||
+    upperTitle.includes("ECONOMATO") ||
+    upperTitle.includes("BALANÇO") ||
+    upperTitle.includes("BALANCO") ||
     isPatrimonioBossOrAdmin(user, colaboradores, processos);
 
   const [activeItem, setActiveItem] = useState(
     initialActiveItem ||
-      (title === "Balanço"
+      (safeTitle === "Balanço"
         ? "Balanço"
-        : title === "Gestão de Frota"
+        : safeTitle === "Gestão de Frota"
           ? "Gestão de Frota"
-          : title === "Gestão de Viatura"
+          : safeTitle === "Gestão de Viatura"
             ? "Gestão de Viatura"
-            : title.toUpperCase().includes("ARQUIVO")
+            : upperTitle.includes("ARQUIVO")
               ? "Repartição de Arquivo"
-              : title.toUpperCase().includes("BOLSA")
+              : upperTitle.includes("BOLSA")
                 ? "Bolsa de Estudos"
                 : isEstatisticaMain
                   ? "Corpo discente"
@@ -265,20 +268,22 @@ export default function DirectorDashboard({
   };
 
   const isDepartment =
-    title.toUpperCase().includes("Departamento") ||
-    title.toUpperCase().includes("Divisão") ||
-    title.toUpperCase().includes("Unidade") ||
-    title.toUpperCase().includes("Secretaria") ||
-    title.toUpperCase().includes("Centro") ||
-    title.toUpperCase().includes("Repartição") ||
-    title.toUpperCase().includes("Setor") ||
-    title.toUpperCase().includes("GDG");
+    upperTitle.includes("DEPARTAMENTO") ||
+    upperTitle.includes("DIVISÃO") ||
+    upperTitle.includes("DIVISAO") ||
+    upperTitle.includes("UNIDADE") ||
+    upperTitle.includes("SECRETARIA") ||
+    upperTitle.includes("CENTRO") ||
+    upperTitle.includes("REPARTIÇÃO") ||
+    upperTitle.includes("REPARTICAO") ||
+    upperTitle.includes("SETOR") ||
+    upperTitle.includes("GDG");
 
   const nextYear = new Date().getFullYear() + 1;
   const planLabel = isDepartment ? "Plano de Actividades" : "Matriz";
 
-  const hasExpediente = ["Secretaria Executiva", "Secretaria Geral"].includes(
-    title.toUpperCase(),
+  const hasExpediente = ["SECRETARIA EXECUTIVA", "SECRETARIA GERAL"].includes(
+    upperTitle,
   );
 
   const estatisticaSectors = [
@@ -294,13 +299,15 @@ export default function DirectorDashboard({
     "ALOJAMENTO",
   ];
   const hasEstatistica = estatisticaSectors.some((s) =>
-    title.toUpperCase().includes(s),
+    upperTitle.includes(s),
   );
 
   const isExcludedFromNewMenu =
-    title.toUpperCase().includes("Estatística") ||
-    title.toUpperCase().includes("Relatório") ||
-    title.toUpperCase().includes("Plano De Actividade");
+    upperTitle.includes("ESTATÍSTICA") ||
+    upperTitle.includes("ESTATISTICA") ||
+    upperTitle.includes("RELATÓRIO") ||
+    upperTitle.includes("RELATORIO") ||
+    upperTitle.includes("PLANO DE ACTIVIDADE");
 
   const {
     isDG,
@@ -313,10 +320,11 @@ export default function DirectorDashboard({
     isConsTec,
     isDICOSAFA_Dept,
     isGDG,
-  } = getRoles(title);
+  } = getRoles(safeTitle);
   const isGestDoc =
-    title.toUpperCase() === "Gestão De Documentos" ||
-    (["Secretaria Executiva"].includes(title.toUpperCase()) &&
+    upperTitle === "GESTÃO DE DOCUMENTOS" ||
+    upperTitle === "GESTÃO DE DOCUMENTOS" ||
+    (["SECRETARIA EXECUTIVA"].includes(upperTitle) &&
       !isDICOSAFA_Dept);
   const isSetor =
     !isDG &&
@@ -335,13 +343,14 @@ export default function DirectorDashboard({
     isDG ||
     isDC ||
     isCD ||
-    (isDICOSAFA_Dept && title.toUpperCase().includes("Departamento")) ||
-    title.toUpperCase() === "CHEFE DO DPEP";
+    (isDICOSAFA_Dept && upperTitle.includes("DEPARTAMENTO")) ||
+    upperTitle === "CHEFE DO DPEP";
 
   const isDPEP =
-    title.toUpperCase().includes("DPEP") ||
-    title.toUpperCase().includes("PLANIFICAÇÃO") ||
-    title.toUpperCase().includes("PLANEAMENTO") ||
+    upperTitle.includes("DPEP") ||
+    upperTitle.includes("PLANIFICAÇÃO") ||
+    upperTitle.includes("PLANIFICACAO") ||
+    upperTitle.includes("PLANEAMENTO") ||
     (user?.departamento || "").toUpperCase().includes("DPEP") ||
     (user?.departamento || "").toUpperCase().includes("PLANIFICAÇÃO") ||
     (user?.departamento || "").toUpperCase().includes("PLANEAMENTO") ||
@@ -351,10 +360,11 @@ export default function DirectorDashboard({
     (user?.reparticao || "").toUpperCase().includes("PLANEAMENTO");
 
   const isDAF =
-    title.toUpperCase().includes("DAF") ||
-    title.toUpperCase() === "CHEFE DO DAF" ||
-    title.toUpperCase().includes("APOIO FINANCEIRO") ||
-    title.toUpperCase().includes("FINANÇAS") ||
+    upperTitle.includes("DAF") ||
+    upperTitle === "CHEFE DO DAF" ||
+    upperTitle.includes("APOIO FINANCEIRO") ||
+    upperTitle.includes("FINANÇAS") ||
+    upperTitle.includes("FINANCAS") ||
     (user?.departamento || "").toUpperCase().includes("DAF") ||
     (user?.departamento || "").toUpperCase().includes("APOIO FINANCEIRO") ||
     (user?.departamento || "").toUpperCase().includes("FINANÇAS");
@@ -572,13 +582,13 @@ export default function DirectorDashboard({
 
   React.useEffect(() => {
     const isPatrimonioDept =
-      title.toUpperCase().includes("PATRIM") ||
-      title.toUpperCase().includes("TRANSPOR") ||
-      title.toUpperCase().includes("INFRAESTRUTURA") ||
-      title.toUpperCase().includes("DP") ||
-      title.toUpperCase().includes("ECONOMATO") ||
-      title.toUpperCase().includes("BALANÇO") ||
-      title.toUpperCase().includes("BALANCO") ||
+      upperTitle.includes("PATRIM") ||
+      upperTitle.includes("TRANSPOR") ||
+      upperTitle.includes("INFRAESTRUTURA") ||
+      upperTitle.includes("DP") ||
+      upperTitle.includes("ECONOMATO") ||
+      upperTitle.includes("BALANÇO") ||
+      upperTitle.includes("BALANCO") ||
       isPatrimonioBossOrAdmin(user, colaboradores, processos);
 
     if (isPatrimonioDept) {
@@ -901,7 +911,7 @@ export default function DirectorDashboard({
               activeItem === "Documentos Normativos" ||
               activeItem === "Relatórios" ||
               activeItem === "Balanço" ||
-              activeItem === "Assinatura Digital" ||
+              (activeItem as string) === "Assinatura Digital" ||
               activeItem === "Histórico de Documentos"
                 ? activeItem
                 : "Histórico de Documentos"
@@ -915,7 +925,14 @@ export default function DirectorDashboard({
       );
     }
 
-    if (activeItem === "Calendário") {
+    if (
+      activeItem === "Calendário" ||
+      activeItem === "Calendario" ||
+      activeItem === "Calendar" ||
+      activeItem === "Agenda" ||
+      activeItem === "Calendário de Atividades" ||
+      activeItem === "Calendario de Atividades"
+    ) {
       return (
         <CalendarView
           events={events}
@@ -926,6 +943,7 @@ export default function DirectorDashboard({
           onNota={onNota}
           title={title}
           notes={notes}
+          user={user}
         />
       );
     }
@@ -970,11 +988,17 @@ export default function DirectorDashboard({
       activeItem === "Plano" ||
       activeItem === "Plano de Actividades" ||
       activeItem === "Planos de Atividades" ||
+      activeItem === "Plano de Atividades" ||
       activeItem === "Plano de Actividade" ||
+      activeItem === "Plano de Atividade" ||
       activeItem === "Plano da Direção" ||
       activeItem === "Meu Plano Individual" ||
       activeItem === "Plano do Gabinete" ||
-      activeItem === "Plano Setorial"
+      activeItem === "Plano Setorial" ||
+      activeItem === "Planos" ||
+      activeItem === "Planificação" ||
+      activeItem === "Planificação de Atividades" ||
+      activeItem === "Matriz de Atividades"
     ) {
       return (
         <PlanoWorkflowView
@@ -1079,12 +1103,12 @@ export default function DirectorDashboard({
 
     if (
       activeItem === "Bolsa de Estudos" ||
-      (title.toUpperCase().includes("BOLSA") &&
+      (upperTitle.includes("BOLSA") &&
         (activeItem === "Visão Geral" || activeItem === "Bolsa de Estudos"))
     ) {
       return (
         <BolsasEstudosView
-          title={title}
+          title={safeTitle}
           user={user}
           viewMode={activeItem === "Visão Geral" ? "summary" : "form"}
           onEstatistica={() => navigateTo("Estatística")}
@@ -1093,7 +1117,7 @@ export default function DirectorDashboard({
     }
 
     if (activeItem === "Estatística") {
-      const titleUpper = title.toUpperCase();
+      const titleUpper = upperTitle;
 
       // If it's the Finance Head, show the specific form
       if (titleUpper.includes("FINANÇAS")) {
@@ -1221,7 +1245,7 @@ export default function DirectorDashboard({
       );
     }
 
-    if (title.toUpperCase() === "Gestão De Biblioteca") {
+    if (upperTitle === "GESTÃO DE BIBLIOTECA" || upperTitle === "GESTÃO DE BIBLIOTECA") {
       return (
         <LibraryManagementView
           registrations={libraryRegistrations || []}

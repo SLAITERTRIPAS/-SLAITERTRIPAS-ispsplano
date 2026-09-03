@@ -60,7 +60,7 @@ export default function GestaoDocumentosView({
       />
     );
   }
-  const [activeTab, setActiveTab] = useState<"entrada" | "saida" | "rastrear">(
+  const [activeTab, setActiveTab] = useState<"entrada" | "saida" | "rastrear" | "gerar-despacho">(
     "entrada",
   );
   const [isProcessing, setIsProcessing] = useState(false);

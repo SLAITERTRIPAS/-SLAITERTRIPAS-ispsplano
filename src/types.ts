@@ -89,6 +89,18 @@ export interface Colaborador {
   };
   status?: string;
   areaDeAfetacao?: string;
+  seccao?: string;
+  naturalidade?: string;
+  estadoCivil?: string;
+  nacionalidade?: string;
+  quarteiraoNo?: string;
+  dataMandato?: string;
+  dataDespromocao?: string;
+  tipoVinculo?: string;
+  nif?: string;
+  mecanografico?: string;
+  banco?: string;
+  nib?: string;
 }
 
 export interface EstudanteDados {
@@ -147,14 +159,14 @@ export interface Event {
 
 export interface Expediente {
   id: string;
-  tipo: "Entrada" | "Saída" | "Sic";
+  tipo: "Entrada" | "Saída" | "Sic" | string;
   numero: string;
   data: string;
   assunto: string;
   origem: string;
   destino: string;
-  status: "Pendente" | "Em andamento" | "Concluído" | "Em Tramitação" | "Entrado";
-  criadoPor: string;
+  status: "Pendente" | "Em andamento" | "Concluído" | "Em Tramitação" | "Entrado" | string;
+  criadoPor?: string;
   userId?: string;
   referenciaExterna?: string;
   urgencia?: string;
@@ -165,6 +177,14 @@ export interface Expediente {
   tipoArquivo?: string;
   tamanhoArquivo?: string;
   conteudoTexto?: string;
+  emitidoPor?: string;
+  currentStep?: string;
+  nextStepRecipient?: string;
+  beneficiario?: string;
+  nomeBeneficiario?: string;
+  solicitante?: string;
+  interessado?: string;
+  funcionario?: string;
   vistoDigital?: {
     assinadoPor: string;
     data: string;
@@ -366,7 +386,7 @@ export interface Supplier {
 export interface Bem {
   id: string;
   nome: string;
-  categoria:
+  categoria?:
     | "Imóveis"
     | "Móveis"
     | "Consumíveis"
@@ -374,10 +394,15 @@ export interface Bem {
     | "Bens Duráveis"
     | "Bens Não Duráveis"
     | string;
-  descricao: string;
-  quantidadeTotal: number;
-  quantidadeDisponivel: number;
-  localizacaoAtual: string;
+  descricao?: string;
+  quantidadeTotal?: number;
+  quantidadeDisponivel?: number;
+  quantidadePlanificada?: number;
+  necessidade?: string;
+  grupo?: string;
+  percentualQuota?: string;
+  distribuicaoAutomatica?: boolean;
+  localizacaoAtual?: string;
   unidade?: string;
   direcao?: string;
   departamento?: string;
@@ -481,3 +506,25 @@ export interface PublishedMatrix {
   activityCount: number;
   status: "published" | "shared";
 }
+
+export interface PeriodoPlanificacao {
+  id?: string;
+  ano: number;
+  dataInicioPlanificacao: string;
+  dataFimPlanificacao: string;
+  dataInicioRelatorioSemestral?: string;
+  dataFimRelatorioSemestral?: string;
+  status: "aberto" | "fechado";
+  statusRelatorio?: "aberto" | "fechado";
+  definidoPor?: string;
+  cargoDefinidor?: string;
+  setorDefinidor?: string;
+  observacoes?: string;
+  extensaoFase1Usada?: boolean;
+  extensaoFase2Usada?: boolean;
+  diasExtensaoTotal?: number;
+  autoSubmetido?: boolean;
+  dataAutoSubmissao?: string;
+  updatedAt?: any;
+}
+

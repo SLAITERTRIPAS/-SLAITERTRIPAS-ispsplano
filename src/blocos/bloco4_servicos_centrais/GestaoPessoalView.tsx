@@ -193,6 +193,8 @@ export default function GestaoPessoalView({
     | "caixa_mensagens"
     | "estatistica_reparticao"
     | "remuneracoes"
+    | "acao_orcamental"
+    | "balanco"
   >("visao_geral");
 
   const [remuneracoesCategory, setRemuneracoesCategory] = useState<string>("todos");
@@ -920,7 +922,7 @@ export default function GestaoPessoalView({
         c.cargoChefia === "Administrador de sistema" ||
         c.categoria?.toLowerCase().includes("proprietario"),
     ).length,
-    emFormacao: colaboradores.filter((c) => c.estado === "Em Formação").length,
+    emFormacao: colaboradores.filter((c) => (c.estado as string) === "Em Formação").length,
   };
 
   const getGenderMetrics = (list: any[]) => {
@@ -1183,7 +1185,7 @@ export default function GestaoPessoalView({
     if (selectedColaborador) {
       setIsProcessing(true);
 
-      const c = selectedColaborador;
+      const c: any = selectedColaborador;
       if (c.nome) c.nome = toTitleCase(c.nome);
       if (c.naturalidade?.pais)
         c.naturalidade.pais = toTitleCase(c.naturalidade.pais);
@@ -2144,8 +2146,8 @@ export default function GestaoPessoalView({
             checkAndFix("estado", c.estado);
             checkAndFix("estadoMandato", c.estadoMandato);
 
-            if (c.naturalidade) {
-              const nat = { ...c.naturalidade };
+            if (c.naturalidade && typeof c.naturalidade === "object") {
+              const nat = { ...(c.naturalidade as Record<string, any>) };
               let natDirty = false;
               const checkNat = (
                 field: keyof typeof nat,
@@ -2952,7 +2954,7 @@ export default function GestaoPessoalView({
       );
     }
 
-    if (view === "acao_orcamental") {
+    if ((view as string) === "acao_orcamental") {
       return (
         <AcaoOrcamentalView
           user={user}
@@ -6656,7 +6658,7 @@ export default function GestaoPessoalView({
                             if (
                               val !== "" &&
                               val !== "Nenhum" &&
-                              (selectedColaborador.estadoMandato === "Nenhum" ||
+                              ((selectedColaborador.estadoMandato as string) === "Nenhum" ||
                                 !selectedColaborador.estadoMandato)
                             ) {
                               updates.estadoMandato = "Em Atividade";
@@ -6744,7 +6746,7 @@ export default function GestaoPessoalView({
                           onChange={(e) =>
                             setSelectedColaborador({
                               ...selectedColaborador,
-                              estado: e.target.value,
+                              estado: e.target.value as any,
                             })
                           }
                         >
@@ -6946,7 +6948,7 @@ export default function GestaoPessoalView({
                 : undefined
             }
             onSubmit={async (data) => {
-              if (view === "processo_form" || view === "novo") {
+              if ((view as string) === "processo_form" || (view as string) === "novo") {
                 const matchedProcess = processos.find((p) => {
                   const nameMatches =
                     p.nome &&

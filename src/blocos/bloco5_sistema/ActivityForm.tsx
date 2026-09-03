@@ -65,6 +65,10 @@ import {
 
 import * as XLSX from "xlsx";
 import SearchableSelect from "../../components/ui/SearchableSelect";
+import ModalEnvioSetorResponsavel from "../../components/ModalEnvioSetorResponsavel";
+import { DestinatarioInfo, resolverDestinatarioSetorEResponsavel } from "../../lib/responsaveisService";
+import { subscribePeriodoPlanificacao, isPlanificacaoAberta } from "../../lib/planningPeriodService";
+import { PeriodoPlanificacao } from "../../types";
 
 interface ActivityFormProps {
   key?: string | number | null;
@@ -407,6 +411,7 @@ export default function ActivityForm({
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [showModalEnvio, setShowModalEnvio] = useState(false);
   const [duplicateAlert, setDuplicateAlert] = useState<{
     isOpen: boolean;
     type: "abort" | "different_months";
@@ -415,6 +420,15 @@ export default function ActivityForm({
     existingActivity?: any;
     months?: string[];
   } | null>(null);
+
+  const [periodoPlanificacao, setPeriodoPlanificacao] = useState<PeriodoPlanificacao | null>(null);
+
+  useEffect(() => {
+    const unsub = subscribePeriodoPlanificacao((p) => {
+      setPeriodoPlanificacao(p);
+    });
+    return () => unsub();
+  }, []);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
 
@@ -6791,266 +6805,86 @@ export default function ActivityForm({
           ) : !initialData?.submetido && !readOnly ? (
             <button
               onClick={async () => {
-                // Check permissions before submitting
-                const userWorkspace = getUserWorkspace();
-                const { mapUserToRole } = await import("../../lib/permissions");
-                const { getPermissions } = await import("../../lib/permissions");
-                const role = mapUserToRole(userWorkspace);
-                const permissions = getPermissions(role);
-                
-                if (!permissions.canEdit) {
-                    setSubmissionError("Você não tem permissão para editar/submeter planos.");
+                try {
+                  // Check permissions before submitting
+                  const userWorkspace = user ? getUserWorkspace(user) : "";
+                  const { mapUserToRole } = await import("../../lib/permissions");
+                  const { getPermissions } = await import("../../lib/permissions");
+                  const role = mapUserToRole(userWorkspace);
+                  const permissions = getPermissions(role);
+                  
+                  // Se o utilizador tiver perfil de consulta estrito e não for admin/proprietário
+                  const isUserAdmin =
+                    user &&
+                    (user.role === "Admin" ||
+                      user.role === "Administrador" ||
+                      user.isOwner === true ||
+                      user.categoria?.toLowerCase()?.includes("proprietário") ||
+                      (user.name || "").toLowerCase().includes("administrador") ||
+                      user.email === "admin@songo.ac.mz" ||
+                      user.email === "slaitertripas@gmail.com" ||
+                      user.email === "fttripas@gmail.com");
+
+                  if (!permissions.canEdit && !isUserAdmin && user?.role === "Consulta") {
+                    setSubmissionError("Você não tem permissão para submeter atividades.");
                     return;
-                }
-                
-                if (validateStep(step) && !isSubmitting) {
-                  setIsSubmitting(true);
-                  setSubmissionError(null);
-                  console.log(
-                    "Iniciando submissão da atividade:",
-                    formData.nomeAtividade,
+                  }
+
+                  const statusPeriodo = isPlanificacaoAberta(periodoPlanificacao);
+                  if (!statusPeriodo.aberta) {
+                    setSubmissionError(
+                      statusPeriodo.motivo ||
+                        "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."
+                    );
+                    return;
+                  }
+                  
+                  const isValid = validateStep(step);
+                  if (!isValid) {
+                    setSubmissionError(error || "Por favor, verifique todos os campos obrigatórios da atividade antes de submeter.");
+                    return;
+                  }
+
+                  // Verificar duplicidade antes de abrir o modal de expedição
+                  const months = formData.mesesRealizacao && formData.mesesRealizacao.length > 0
+                    ? formData.mesesRealizacao
+                    : [formData.mesRealizacao || formData.mes || ""].filter(Boolean);
+
+                  const previewSubData: any = {
+                    ...formData,
+                    title: formData.nomeAtividade,
+                    nAtividade: formData.numeroAtividade,
+                    selectedCategory,
+                    ano: nextYear,
+                    mesesRealizacao: months,
+                  };
+
+                  const dupCheck = checkActivityDuplicates(
+                    previewSubData,
+                    plannedActivitiesProp?.length ? plannedActivitiesProp : plannedActivities,
+                    initialData?.id
                   );
 
-                  try {
-                    {
-                      /* Limpar rascunho em background */
-                    }
-                    if (user?.id) {
-                      firestoreService.drafts
-                        .deleteByUserAndForm(user.id, FORM_ID)
-                        .catch(console.warn);
-                    }
-                    localStorage.removeItem(DRAFT_KEY);
-
-                    const months = formData.mesesRealizacao && formData.mesesRealizacao.length > 0
-                      ? formData.mesesRealizacao
-                      : [formData.mesRealizacao || formData.mes || ""].filter(Boolean);
-
-                    const calculateTotalActivityData = (monthsArr: string[], originalFormData: any) => {
-                      let totalDays = 0;
-                      if (monthsArr.length === 0) {
-                        totalDays = originalFormData.totalDias || 1;
-                      } else {
-                        monthsArr.forEach(m => {
-                          const mDet = originalFormData.mesesDetalhes?.[m] || {};
-                          let mDays = 0;
-                          const dIni = mDet.dataInicio || "";
-                          const dFim = mDet.dataFim || "";
-                          if (dIni && dFim) {
-                            const d1 = new Date(dIni);
-                            const d2 = new Date(dFim);
-                            if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d1 <= d2) {
-                              mDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                            }
-                          }
-                          if (originalFormData.frequencia === "Anual") {
-                            mDays = 1;
-                          }
-                          totalDays += mDays;
-                        });
-                      }
-                      if (totalDays === 0) {
-                        totalDays = originalFormData.totalDias || 1;
-                      }
-
-                      const totalRubricas = (originalFormData.rubricas || []).map((rubrica: any) => {
-                        const isRubricaPessoal =
-                          rubrica.rubrica === "Ajudas de Custo" ||
-                          rubrica.rubrica === "Despesas de Deslocação" ||
-                          rubrica.rubrica === "Ajudas de Custo por Transferência";
-                        const isAjudaCustoDiretorDentro =
-                          isRubricaPessoal &&
-                          (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                            rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                          rubrica.necessidade?.toLowerCase().includes("dentro");
-                        const isAjudaCustoDiretorFora =
-                          isRubricaPessoal &&
-                          (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                            rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                          rubrica.necessidade?.toLowerCase().includes("fora");
-                        const isAjudaCustoCivilDentro =
-                          isRubricaPessoal &&
-                          rubrica.necessidade?.toLowerCase().includes("civil") &&
-                          rubrica.necessidade?.toLowerCase().includes("dentro");
-                        const isAjudaCustoCivilFora =
-                          isRubricaPessoal &&
-                          rubrica.necessidade?.toLowerCase().includes("civil") &&
-                          rubrica.necessidade?.toLowerCase().includes("fora");
-                        const isIdaVoltaGeral =
-                          isRubricaPessoal &&
-                          rubrica.necessidade?.toLowerCase().includes("ida e volta");
-                        const isAjudaCustoMotoristaIdaVolta =
-                          isRubricaPessoal &&
-                          rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                          rubrica.necessidade?.toLowerCase().includes("ida e volta");
-                        const isAjudaCustoMotorista =
-                          isRubricaPessoal &&
-                          rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                          !isAjudaCustoMotoristaIdaVolta &&
-                          !isIdaVoltaGeral;
-
-                        if (isAjudaCustoDiretorDentro) {
-                          const precoUnitario = 9000;
-                          const qtd = rubrica.quantidade || 0;
-                          const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                          return { ...rubrica, precoUnitario, valorTotal };
-                        }
-                        if (isAjudaCustoDiretorFora || isAjudaCustoCivilFora) {
-                          const precoUnitario = rubrica.precoUnitario || 0;
-                          const qtd = rubrica.quantidade || 0;
-                          const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                          return { ...rubrica, valorTotal };
-                        }
-                        if (isAjudaCustoCivilDentro) {
-                          const precoUnitario = 6000;
-                          const qtd = rubrica.quantidade || 0;
-                          const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                          return { ...rubrica, precoUnitario, valorTotal };
-                        }
-                        if (isIdaVoltaGeral) {
-                          const precoUnitario = 1800;
-                          const qtd = rubrica.quantidade || 1;
-                          const d = 1;
-                          const valorTotal = qtd * d * precoUnitario;
-                          return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                        }
-                        if (isAjudaCustoMotoristaIdaVolta) {
-                          const precoUnitario = 1800;
-                          const qtd = 1;
-                          const d = 2;
-                          const valorTotal = qtd * d * precoUnitario;
-                          return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                        }
-                        if (isAjudaCustoMotorista) {
-                          const precoUnitario = 1800;
-                          const qtd = 1;
-                          const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                          return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                        }
-                        if (isRubricaPessoal) {
-                          const precoUnitario = rubrica.precoUnitario || 0;
-                          const qtd = rubrica.quantidade || 1;
-                          const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                          return { ...rubrica, valorTotal };
-                        }
-                        return rubrica;
-                      });
-
-                      const totalOrcamento = totalRubricas.reduce(
-                        (acc: number, r: any) => acc + (r.valorTotal || 0),
-                        0,
-                      );
-
-                      return {
-                        totalDias: totalDays,
-                        rubricas: totalRubricas,
-                        orcamento: totalOrcamento,
-                        valor: totalOrcamento,
-                      };
-                    };
-
-                    const persistDepartmentAndProducts = (data: any) => {
-                      const dept = data.departamento || data.unidadeOrganica || currentSector || selectedCategory;
-                      if (dept) {
-                        saveDepartmentActivity(dept, data);
-                      }
-                      if (data.rubricas && Array.isArray(data.rubricas)) {
-                        data.rubricas.forEach((r: any) => collectProductFromRubric(r));
-                      }
-                    };
-
-                    const userSetor = user?.setor || user?.sector || user?.seccao || "";
-                    const userRep = user?.reparticao || "";
-                    const userDept = user?.departamento || "";
-                    const userDir = user?.direcao || user?.servicoCentral || "";
-                    const userUnidade = user?.unidadeOrganica || user?.unidade || "";
-
-                    const finalSetor = formData.setor || formData.reparticao || userSetor || userRep || sectorName || currentSector || "Setor Geral";
-                    const finalReparticao = formData.reparticao || formData.setor || userRep || userSetor || sectorName || currentSector || "Repartição Geral";
-                    const isUgeaArea = 
-                      String(userDept || "").toLowerCase().includes("ugea") ||
-                      String(userDept || "").toLowerCase().includes("aquisi") ||
-                      String(formData.departamento || "").toLowerCase().includes("ugea") ||
-                      String(formData.departamento || "").toLowerCase().includes("aquisi") ||
-                      String(selectedCategory || "").toLowerCase().includes("ugea") ||
-                      String(sectorName || "").toLowerCase().includes("ugea");
-                    const finalDepartamento = formData.departamento || userDept || (isUgeaArea ? "Unidade Gestora e Executora de Aquisições" : "Departamento Geral");
-                    const finalDirecao = formData.direcao || formData.unidadeSelecionada || userDir || "Direção Geral";
-                    const finalUnidade = formData.unidadeOrganica || formData.unidadeCentral || userUnidade || selectedCategory || "Songo";
-
-                    const submissionData: any = {
-                      ...formData,
-                      ...calculateTotalActivityData(months, formData),
-                      title: formData.nomeAtividade,
-                      nAtividade: formData.numeroAtividade,
-                      selectedCategory,
-                      ano: nextYear,
-                      mesesRealizacao: months,
-                      mesRealizacao: months[0] || formData.mesRealizacao || (formData as any).mes || "",
-                      setor: finalSetor,
-                      reparticao: finalReparticao,
-                      departamento: finalDepartamento,
-                      direcao: finalDirecao,
-                      unidadeOrganica: finalUnidade,
-                      unidadeSelecionada: finalDirecao,
-                    };
-
-                    // Validação Final de Duplicidade (Nome, Código e Mês)
-                    const finalDupCheck = checkActivityDuplicates(
-                      submissionData,
-                      plannedActivitiesProp?.length ? plannedActivitiesProp : plannedActivities,
-                      initialData?.id
-                    );
-
-                    if (finalDupCheck.isDuplicate) {
-                      const dupMsg = `ALERTA: REGISTO ABORTADO!\nJá existe uma atividade registada com o mesmo nome ou código ("${finalDupCheck.candName || formData.nomeAtividade}") no mesmo mês de realização (${finalDupCheck.months?.join(", ") || "idêntico"}). A submissão foi abortada para evitar duplicidade.`;
-                      setSubmissionError(dupMsg);
-                      setDuplicateAlert({
-                        isOpen: true,
-                        type: "abort",
-                        title: "⚠️ REGISTO ABORTADO DEVIDO A DUPLICIDADE",
-                        message: dupMsg,
-                        existingActivity: finalDupCheck.existingActivity,
-                        months: finalDupCheck.months,
-                      });
-                      setIsSubmitting(false);
-                      return; // ABORTA O REGISTO DA ATIVIDADE EM CURSO!
-                    }
-
-                    if (finalDupCheck.isDifferentMonth) {
-                      submissionData.classificacaoRecorrencia = "Atividade decorre em meses diferentes";
-                      submissionData.observacaoDuplicacao = `Atividade com mesmo nome/código registada para mês distinto (${finalDupCheck.candMonths?.join(", ")})`;
-                    }
-
-                    persistDepartmentAndProducts(submissionData);
-                    const submissionPromise = onSubmit(submissionData);
-
-                    await Promise.race([
-                      submissionPromise,
-                      new Promise((_, reject) =>
-                        setTimeout(
-                          () =>
-                            reject(
-                              new Error(
-                                "A submissão está a demorar mais do que o esperado. Verifique a sua ligação à internet.",
-                              ),
-                            ),
-                          25000,
-                        ),
-                      ),
-                    ]);
-
-                    console.log("Submissão concluída com sucesso.");
-                    onClose(); // Fechar o formulário após sucesso
-                  } catch (err: any) {
-                    console.error("Erro detalhado na submissão:", err);
-                    setSubmissionError(
-                      err?.message ||
-                        "Ocorreu um erro ao submeter o registo. Por favor, tente novamente.",
-                    );
-                  } finally {
-                    setIsSubmitting(false);
+                  if (dupCheck.isDuplicate) {
+                    const dupMsg = `ALERTA: REGISTO ABORTADO!\nJá existe uma atividade registada com o mesmo nome ou código ("${dupCheck.candName || formData.nomeAtividade}") no mesmo mês de realização (${dupCheck.months?.join(", ") || "idêntico"}). A submissão foi abortada para evitar duplicidade.`;
+                    setSubmissionError(dupMsg);
+                    setDuplicateAlert({
+                      isOpen: true,
+                      type: "abort",
+                      title: "⚠️ REGISTO ABORTADO DEVIDO A DUPLICIDADE",
+                      message: dupMsg,
+                      existingActivity: dupCheck.existingActivity,
+                      months: dupCheck.months,
+                    });
+                    return;
                   }
+
+                  // Abrir modal com indicação visual do setor e do responsável destinatário
+                  setSubmissionError(null);
+                  setShowModalEnvio(true);
+                } catch (generalErr: any) {
+                  console.error("Erro ao validar atividade para envio:", generalErr);
+                  setSubmissionError(generalErr?.message || "Não foi possível validar a atividade. Verifique os dados inseridos.");
                 }
               }}
               disabled={isSubmitting}
@@ -7063,7 +6897,7 @@ export default function ActivityForm({
                 </>
               ) : (
                 <>
-                  <Save size={18} /> SUBMETER O PLANO DE ATIVIDADE
+                  <Save size={18} /> SUBMETER a ATIVIDADE
                 </>
               )}
             </button>
@@ -7076,6 +6910,253 @@ export default function ActivityForm({
             </button>
           )}
         </div>
+
+        {/* Modal de Confirmação com Setor e Responsável que irá receber */}
+        <ModalEnvioSetorResponsavel
+          isOpen={showModalEnvio}
+          onClose={() => setShowModalEnvio(false)}
+          isLoading={isSubmitting}
+          user={user}
+          colaboradoresList={colaboradores}
+          defaultSetorDestino={
+            formData.departamento ||
+            formData.direcao ||
+            user?.departamento ||
+            user?.direcao ||
+            "Departamento de Planificação Estudos e Projetos (DPEP)"
+          }
+          defaultToStatus="departamento"
+          customTitle="Enviar Atividade para o Setor Hierárquico"
+          itemCount={1}
+          itemDescription="Atividade"
+          onConfirm={async (destinatario: DestinatarioInfo) => {
+            try {
+              setIsSubmitting(true);
+              setSubmissionError(null);
+
+              {
+                /* Limpar rascunho em background */
+              }
+              if (user?.id) {
+                firestoreService.drafts
+                  .deleteByUserAndForm(user.id, FORM_ID)
+                  .catch(console.warn);
+              }
+              localStorage.removeItem(DRAFT_KEY);
+
+              const months = formData.mesesRealizacao && formData.mesesRealizacao.length > 0
+                ? formData.mesesRealizacao
+                : [formData.mesRealizacao || formData.mes || ""].filter(Boolean);
+
+              const calculateTotalActivityData = (monthsArr: string[], originalFormData: any) => {
+                let totalDays = 0;
+                if (monthsArr.length === 0) {
+                  totalDays = originalFormData.totalDias || 1;
+                } else {
+                  monthsArr.forEach(m => {
+                    const mDet = originalFormData.mesesDetalhes?.[m] || {};
+                    let mDays = 0;
+                    const dIni = mDet.dataInicio || "";
+                    const dFim = mDet.dataFim || "";
+                    if (dIni && dFim) {
+                      const d1 = new Date(dIni);
+                      const d2 = new Date(dFim);
+                      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d1 <= d2) {
+                        mDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      }
+                    }
+                    if (originalFormData.frequencia === "Anual") {
+                      mDays = 1;
+                    }
+                    totalDays += mDays;
+                  });
+                }
+                if (totalDays === 0) {
+                  totalDays = originalFormData.totalDias || 1;
+                }
+
+                const totalRubricas = (originalFormData.rubricas || []).map((rubrica: any) => {
+                  const isRubricaPessoal =
+                    rubrica.rubrica === "Ajudas de Custo" ||
+                    rubrica.rubrica === "Despesas de Deslocação" ||
+                    rubrica.rubrica === "Ajudas de Custo por Transferência";
+                  const isAjudaCustoDiretorDentro =
+                    isRubricaPessoal &&
+                    (rubrica.necessidade?.toLowerCase().includes("diretor") ||
+                      rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
+                    rubrica.necessidade?.toLowerCase().includes("dentro");
+                  const isAjudaCustoDiretorFora =
+                    isRubricaPessoal &&
+                    (rubrica.necessidade?.toLowerCase().includes("diretor") ||
+                      rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
+                    rubrica.necessidade?.toLowerCase().includes("fora");
+                  const isAjudaCustoCivilDentro =
+                    isRubricaPessoal &&
+                    rubrica.necessidade?.toLowerCase().includes("civil") &&
+                    rubrica.necessidade?.toLowerCase().includes("dentro");
+                  const isAjudaCustoCivilFora =
+                    isRubricaPessoal &&
+                    rubrica.necessidade?.toLowerCase().includes("civil") &&
+                    rubrica.necessidade?.toLowerCase().includes("fora");
+                  const isIdaVoltaGeral =
+                    isRubricaPessoal &&
+                    rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                  const isAjudaCustoMotoristaIdaVolta =
+                    isRubricaPessoal &&
+                    rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                    rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                  const isAjudaCustoMotorista =
+                    isRubricaPessoal &&
+                    rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                    !isAjudaCustoMotoristaIdaVolta &&
+                    !isIdaVoltaGeral;
+
+                  if (isAjudaCustoDiretorDentro) {
+                    const precoUnitario = 9000;
+                    const qtd = rubrica.quantidade || 0;
+                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                    return { ...rubrica, precoUnitario, valorTotal };
+                  }
+                  if (isAjudaCustoDiretorFora || isAjudaCustoCivilFora) {
+                    const precoUnitario = rubrica.precoUnitario || 0;
+                    const qtd = rubrica.quantidade || 0;
+                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                    return { ...rubrica, valorTotal };
+                  }
+                  if (isAjudaCustoCivilDentro) {
+                    const precoUnitario = 6000;
+                    const qtd = rubrica.quantidade || 0;
+                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                    return { ...rubrica, precoUnitario, valorTotal };
+                  }
+                  if (isIdaVoltaGeral) {
+                    const precoUnitario = 1800;
+                    const qtd = rubrica.quantidade || 1;
+                    const d = 1;
+                    const valorTotal = qtd * d * precoUnitario;
+                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                  }
+                  if (isAjudaCustoMotoristaIdaVolta) {
+                    const precoUnitario = 1800;
+                    const qtd = 1;
+                    const d = 2;
+                    const valorTotal = qtd * d * precoUnitario;
+                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                  }
+                  if (isAjudaCustoMotorista) {
+                    const precoUnitario = 1800;
+                    const qtd = 1;
+                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                  }
+                  if (isRubricaPessoal) {
+                    const precoUnitario = rubrica.precoUnitario || 0;
+                    const qtd = rubrica.quantidade || 1;
+                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                    return { ...rubrica, valorTotal };
+                  }
+                  return rubrica;
+                });
+
+                const totalOrcamento = totalRubricas.reduce(
+                  (acc: number, r: any) => acc + (r.valorTotal || 0),
+                  0,
+                );
+
+                return {
+                  totalDias: totalDays,
+                  rubricas: totalRubricas,
+                  orcamento: totalOrcamento,
+                  valor: totalOrcamento,
+                };
+              };
+
+              const persistDepartmentAndProducts = (data: any) => {
+                const dept = data.departamento || data.unidadeOrganica || currentSector || selectedCategory;
+                if (dept) {
+                  saveDepartmentActivity(dept, data);
+                }
+                if (data.rubricas && Array.isArray(data.rubricas)) {
+                  data.rubricas.forEach((r: any) => collectProductFromRubric(r));
+                }
+              };
+
+              const userSetor = user?.setor || user?.sector || user?.seccao || "";
+              const userRep = user?.reparticao || "";
+              const userDept = user?.departamento || "";
+              const userDir = user?.direcao || user?.servicoCentral || "";
+              const userUnidade = user?.unidadeOrganica || user?.unidade || "";
+
+              const finalSetor = formData.setor || formData.reparticao || userSetor || userRep || sectorName || currentSector || "Setor Geral";
+              const finalReparticao = formData.reparticao || formData.setor || userRep || userSetor || sectorName || currentSector || "Repartição Geral";
+              const isUgeaArea = 
+                String(userDept || "").toLowerCase().includes("ugea") ||
+                String(userDept || "").toLowerCase().includes("aquisi") ||
+                String(formData.departamento || "").toLowerCase().includes("ugea") ||
+                String(formData.departamento || "").toLowerCase().includes("aquisi") ||
+                String(selectedCategory || "").toLowerCase().includes("ugea") ||
+                String(sectorName || "").toLowerCase().includes("ugea");
+              const finalDepartamento = formData.departamento || userDept || (isUgeaArea ? "Unidade Gestora e Executora de Aquisições" : "Departamento Geral");
+              const finalDirecao = formData.direcao || formData.unidadeSelecionada || userDir || "Direção Geral";
+              const finalUnidade = formData.unidadeOrganica || formData.unidadeCentral || userUnidade || selectedCategory || "Songo";
+
+              const submissionData: any = {
+                ...formData,
+                ...calculateTotalActivityData(months, formData),
+                title: formData.nomeAtividade,
+                nAtividade: formData.numeroAtividade,
+                selectedCategory,
+                ano: nextYear,
+                mesesRealizacao: months,
+                mesRealizacao: months[0] || formData.mesRealizacao || (formData as any).mes || "",
+                setor: finalSetor,
+                reparticao: finalReparticao,
+                departamento: finalDepartamento,
+                direcao: finalDirecao,
+                unidadeOrganica: finalUnidade,
+                unidadeSelecionada: finalDirecao,
+                // Dados explícitos de tramitação e envio
+                submetido: true,
+                status: "departamento",
+                enviadoParaSetor: destinatario.setorNome,
+                destinatarioSetor: destinatario.setorNome,
+                destinatario: destinatario.responsavelNome,
+                destinatarioCargo: destinatario.responsavelCargo,
+                destinatarioEmail: destinatario.responsavelEmail,
+                currentGabinete: destinatario.setorNome,
+                dataEnvio: new Date().toISOString(),
+                enviadoPor: user?.nome || user?.name || user?.email || "Colaborador",
+                enviadoPorCargo: user?.cargo || user?.cargoChefia || "Responsável",
+              };
+
+              persistDepartmentAndProducts(submissionData);
+              const submissionPromise = onSubmit(submissionData);
+
+              await Promise.race([
+                submissionPromise,
+                new Promise((_, reject) =>
+                  setTimeout(
+                    () =>
+                      reject(
+                        new Error(
+                          "A submissão está a demorar mais do que o esperado. Verifique a sua ligação à internet.",
+                        ),
+                      ),
+                    25000,
+                  ),
+                ),
+              ]);
+
+              setShowModalEnvio(false);
+              onClose();
+            } catch (err: any) {
+              console.error("Erro na submissão com responsável:", err);
+              setSubmissionError(err?.message || "Ocorreu um erro ao submeter. Tente novamente.");
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
 
         {/* Modal de Alerta de Atividade Duplicada e Ação Abortada */}
         {duplicateAlert?.isOpen && (

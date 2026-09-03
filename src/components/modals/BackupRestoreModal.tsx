@@ -89,14 +89,19 @@ export default function BackupRestoreModal({
   const handleExportData = async () => {
     try {
       setLoading(true);
-      setStatusMessage("A iniciar Backup Independente de DADOS...");
+      setProgressPercent(10);
+      setStatusMessage("A recolher e a consolidar todos os dados dos 4 Órgãos...");
       setErrorMessage("");
       setSuccessMessage("");
-      const res = await exportDataBackup((msg) => setStatusMessage(msg));
+      const res = await exportDataBackup((msg, pct) => {
+        setStatusMessage(msg);
+        if (pct !== undefined) setProgressPercent(pct);
+      });
       if (res.success) {
+        setProgressPercent(100);
         setStats(res.collectionStats || null);
         setOrganStats(res.organStats || null);
-        setSuccessMessage("Backup de Dados exportado com sucesso!");
+        setSuccessMessage("Backup de Dados de todo o sistema e de todos os 4 Órgãos descarregado com sucesso!");
       } else {
         setErrorMessage("Erro ao exportar dados: " + res.error);
       }
@@ -104,17 +109,23 @@ export default function BackupRestoreModal({
       setErrorMessage("Erro: " + err?.message);
     } finally {
       setLoading(false);
+      setProgressPercent(0);
     }
   };
 
   const handleExportSystem = async () => {
     try {
       setLoading(true);
-      setStatusMessage("A iniciar Backup Independente do SISTEMA...");
+      setProgressPercent(10);
+      setStatusMessage("A recolher dados de configuração e sistema...");
       setErrorMessage("");
       setSuccessMessage("");
-      const res = await exportSystemBackup((msg) => setStatusMessage(msg));
+      const res = await exportSystemBackup((msg, pct) => {
+        setStatusMessage(msg);
+        if (pct !== undefined) setProgressPercent(pct);
+      });
       if (res.success) {
+        setProgressPercent(100);
         setStats(res.collectionStats || null);
         setOrganStats(res.organStats || null);
         setSuccessMessage("Backup do Sistema exportado com sucesso!");
@@ -125,18 +136,24 @@ export default function BackupRestoreModal({
       setErrorMessage("Erro: " + err?.message);
     } finally {
       setLoading(false);
+      setProgressPercent(0);
     }
   };
 
   const handleExportOrganClick = async (organId: string, organName: string) => {
     try {
       setLoading(true);
+      setProgressPercent(10);
       setCurrentOrganProcessing(organName);
       setStatusMessage(`A gerar backup exclusivo do órgão ${organName}...`);
       setErrorMessage("");
       setSuccessMessage("");
-      const res = await exportOrganBackup(organId, (msg) => setStatusMessage(msg));
+      const res = await exportOrganBackup(organId, (msg, pct) => {
+        setStatusMessage(msg);
+        if (pct !== undefined) setProgressPercent(pct);
+      });
       if (res.success) {
+        setProgressPercent(100);
         setOrganStats(res.organStats || null);
         setSuccessMessage(`Backup do órgão ${organName} descarregado com sucesso (${res.filename})!`);
       } else {
@@ -146,6 +163,7 @@ export default function BackupRestoreModal({
       setErrorMessage(`Erro ao exportar órgão ${organName}: ${err?.message}`);
     } finally {
       setLoading(false);
+      setProgressPercent(0);
       setCurrentOrganProcessing("");
       setStatusMessage("");
     }
@@ -162,13 +180,18 @@ export default function BackupRestoreModal({
     reader.onload = async (event) => {
       try {
         setLoading(true);
+        setProgressPercent(10);
         setCurrentOrganProcessing(organName);
-        setStatusMessage(`A restaurar dados exclusivos do órgão ${organName}...`);
+        setStatusMessage(`A ler e a restaurar dados exclusivos do órgão ${organName}...`);
         setErrorMessage("");
         setSuccessMessage("");
         const content = event.target?.result as string;
         const parsed = JSON.parse(content);
-        const res = await restoreOrganBackup(organId, parsed, (msg) => setStatusMessage(msg));
+        const res = await restoreOrganBackup(organId, parsed, (msg, pct) => {
+          setStatusMessage(msg);
+          if (pct !== undefined) setProgressPercent(pct);
+        });
+        setProgressPercent(100);
         setSuccessMessage(`Órgão ${organName} restaurado com sucesso! (${res.totalRestored} registos aplicados). A reiniciar sistema...`);
         setTimeout(() => {
           window.location.reload();
@@ -177,6 +200,7 @@ export default function BackupRestoreModal({
         setErrorMessage(`Erro ao restaurar órgão ${organName}: ${err?.message || err}`);
       } finally {
         setLoading(false);
+        setProgressPercent(0);
         setCurrentOrganProcessing("");
         setStatusMessage("");
         if (e.target) e.target.value = "";
@@ -188,7 +212,7 @@ export default function BackupRestoreModal({
   const handleFileUploadData = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!window.confirm("Tem a certeza que deseja restaurar o Backup de DADOS? Esta operação atualizará os registos de dados existentes com segurança e integridade.")) {
+    if (!window.confirm("Tem a certeza que deseja restaurar o Backup de DADOS? Esta operação atualizará e restaurará todos os dados dos 4 Órgãos com segurança e integridade.")) {
       if (e.target) e.target.value = "";
       return;
     }
@@ -196,20 +220,26 @@ export default function BackupRestoreModal({
     reader.onload = async (event) => {
       try {
         setLoading(true);
+        setProgressPercent(5);
         setStatusMessage("A carregar e a validar o ficheiro de Backup de DADOS...");
         setErrorMessage("");
         setSuccessMessage("");
         const content = event.target?.result as string;
-        const res = await restoreDataBackup(content, (msg) => setStatusMessage(msg));
+        const res = await restoreDataBackup(content, (msg, pct) => {
+          setStatusMessage(msg);
+          if (pct !== undefined) setProgressPercent(pct);
+        });
+        setProgressPercent(100);
         setStats(res.restoredStats);
         setOrganStats(res.organStats);
-        setSuccessMessage(`Restauração de Dados concluída com sucesso! ${res.totalRestored} registos restaurados nos 4 Órgãos. O sistema atualizará em instantes...`);
+        setSuccessMessage(`Restauração de Dados concluída com sucesso! ${res.totalRestored} registos restaurados em todos os 4 Órgãos. O sistema atualizará em instantes...`);
         setTimeout(() => window.location.reload(), 2000);
       } catch (err: any) {
         console.error("Erro ao restaurar dados:", err);
         setErrorMessage("Erro ao restaurar dados: " + (err?.message || err));
       } finally {
         setLoading(false);
+        setProgressPercent(0);
         if (e.target) e.target.value = "";
       }
     };
@@ -227,11 +257,16 @@ export default function BackupRestoreModal({
     reader.onload = async (event) => {
       try {
         setLoading(true);
+        setProgressPercent(5);
         setStatusMessage("A carregar e a validar o ficheiro de Backup do SISTEMA...");
         setErrorMessage("");
         setSuccessMessage("");
         const content = event.target?.result as string;
-        const res = await restoreSystemBackup(content, (msg) => setStatusMessage(msg));
+        const res = await restoreSystemBackup(content, (msg, pct) => {
+          setStatusMessage(msg);
+          if (pct !== undefined) setProgressPercent(pct);
+        });
+        setProgressPercent(100);
         setStats(res.restoredStats);
         setOrganStats(res.organStats);
         setSuccessMessage(`Restauração do Sistema concluída com sucesso! ${res.totalRestored} registos restaurados. O sistema atualizará em instantes...`);
@@ -241,6 +276,7 @@ export default function BackupRestoreModal({
         setErrorMessage("Erro ao restaurar sistema: " + (err?.message || err));
       } finally {
         setLoading(false);
+        setProgressPercent(0);
         if (e.target) e.target.value = "";
       }
     };
@@ -356,7 +392,7 @@ export default function BackupRestoreModal({
   const handleDeleteStoredBackup = async (record: SystemBackupRecord) => {
     if (
       !window.confirm(
-        `AVISO: Tem a certeza absoluta que deseja EXCLUIR o backup de ${record.formattedDate} (${record.totalRecords} registos) na nuvem e no sistema?\n\nEsta operação é irreversível.`,
+        `AVISO: Tem a certeza absoluta que deseja EXCLUIR o backup de ${record.formattedDate} (${record.totalRecords} registos)?\n\nEsta operação removerá o backup permanentemente.`,
       )
     ) {
       return;
@@ -365,7 +401,7 @@ export default function BackupRestoreModal({
     try {
       setLoading(true);
       setProgressPercent(30);
-      setStatusMessage(`A excluir backup de ${record.formattedDate} na nuvem...`);
+      setStatusMessage(`A excluir o backup selecionado (${record.formattedDate})...`);
       setErrorMessage("");
       setSuccessMessage("");
 
@@ -373,8 +409,9 @@ export default function BackupRestoreModal({
       setProgressPercent(100);
       
       if (success) {
-        setSuccessMessage(`O backup de ${record.formattedDate} foi excluído da nuvem permanentemente com sucesso.`);
-        loadStoredBackups(); // Refresh the list
+        setSuccessMessage(`O backup de ${record.formattedDate} foi excluído com sucesso.`);
+        setStoredBackups((prev) => prev.filter((b) => b.id !== record.id));
+        await loadStoredBackups();
       } else {
         setErrorMessage(`Falha ao excluir o backup de ${record.formattedDate}.`);
       }
@@ -397,7 +434,8 @@ export default function BackupRestoreModal({
     reader.onload = async (e) => {
       try {
         setLoading(true);
-        setStatusMessage("A ler o ficheiro de backup e a restaurar dados por Órgão no Firestore...");
+        setProgressPercent(5);
+        setStatusMessage("A ler o ficheiro de backup e a restaurar dados nos 4 Órgãos...");
         setErrorMessage("");
         setSuccessMessage("");
         setCurrentOrganProcessing("");
@@ -406,14 +444,16 @@ export default function BackupRestoreModal({
 
         const { totalRestored, restoredStats, organStats: restoredOrgans } = await restoreFullBackup(
           content,
-          (msg) => {
+          (msg, pct) => {
             setStatusMessage(msg);
+            if (pct !== undefined) setProgressPercent(pct);
             if (msg.includes("Órgão")) {
               setCurrentOrganProcessing(msg);
             }
           },
         );
 
+        setProgressPercent(100);
         setStats(restoredStats);
         setOrganStats(restoredOrgans);
         setSuccessMessage(
@@ -430,6 +470,7 @@ export default function BackupRestoreModal({
         );
       } finally {
         setLoading(false);
+        setProgressPercent(0);
         setCurrentOrganProcessing("");
         if (event.target) event.target.value = "";
       }

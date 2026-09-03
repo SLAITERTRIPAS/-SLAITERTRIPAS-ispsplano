@@ -374,7 +374,7 @@ export default function GestaoPatrimonialView({
                   key={tipo.id}
                   whileHover={{
                     y: -5,
-                    shadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)",
+                    boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)",
                   }}
                   onClick={() => setAlocacaoType(tipo.id)}
                   className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 cursor-pointer hover:border-blue-500 transition-all group"

@@ -35,18 +35,12 @@ try {
       dbInstance = initializeFirestore(
         app,
         {
-          experimentalAutoDetectLongPolling: true,
+          experimentalForceLongPolling: true,
         },
         dbIdToUse === "(default)" ? undefined : dbIdToUse,
       );
     } catch (_) {
-      dbInstance = initializeFirestore(
-        app,
-        {
-          experimentalAutoDetectLongPolling: true,
-        },
-        dbIdToUse === "(default)" ? undefined : dbIdToUse,
-      );
+      dbInstance = getFirestore(app, dbIdToUse === "(default)" ? undefined : dbIdToUse);
     }
 
     // @ts-ignore

@@ -628,6 +628,12 @@ export default function AcaoOrcamentalView({
     ).toUpperCase();
     const userRole = String(user?.cargo || user?.role || "").toUpperCase();
     const currentTitle = String(title || "").toUpperCase();
+
+    // Setor de Monitoria não planifica nem altera níveis de planificação
+    if (userDept.includes("MONITORIA") || userRole.includes("MONITORIA") || currentTitle.includes("MONITORIA")) {
+      return false;
+    }
+
     return (
       userDept.includes("PLANIFICAÇÃO") ||
       userDept.includes("PLANIFICACAO") ||
@@ -645,9 +651,9 @@ export default function AcaoOrcamentalView({
   const authorizedActivities = useMemo(() => {
     if (!activities) return [];
     const valid = activities.filter(isValidActivity);
-    if (isPlanificacaoOrDPEP || isSuperBossUser(user)) return valid;
+    if (isSuperBossUser(user)) return valid;
     return getAuthorizedActivities(valid, user);
-  }, [activities, user?.email, user?.role, user?.departamento, user?.setor, user?.reparticao, user?.cargo, user?.title, user?.uid, user?.id, isPlanificacaoOrDPEP]);
+  }, [activities, user?.email, user?.role, user?.departamento, user?.setor, user?.reparticao, user?.cargo, user?.title, user?.uid, user?.id]);
 
   // Extrair unidades organizacionais por nível
   const levelUnits = useMemo(() => {
@@ -766,6 +772,23 @@ export default function AcaoOrcamentalView({
       baseActivities = baseActivities.filter((act) =>
         canAccessArea(user, act.direcao || "", act.departamento || "", act.setor || act.reparticao || "", act)
       );
+    } else if (!isSuperBossUser(user)) {
+      // Para o DPEP/Planificação, apenas visualizar atividades de outros setores que tenham sido EFETIVAMENTE ENVIADAS/SUBMETIDAS pelos setores produtores
+      baseActivities = baseActivities.filter((act) => {
+        const actDept = String(act.departamento || act.setor || act.reparticao || act.direcao || "").toUpperCase();
+        const isOwnDPEP = actDept.includes("DPEP") || actDept.includes("PLANIFICAÇÃO") || actDept.includes("PLANIFICACAO");
+        if (isOwnDPEP) return true;
+
+        const isSent =
+          act.submetido === true ||
+          act.enviadoADPEP === true ||
+          act.submetidoADPEP === true ||
+          act.enviadoPeloSetor === true ||
+          act.enviado === true ||
+          (act.status && act.status !== "rascunho" && act.status !== "draft" && act.status !== "pendente");
+
+        return isSent;
+      });
     }
 
     if (selectedLevel === "institucional") {
