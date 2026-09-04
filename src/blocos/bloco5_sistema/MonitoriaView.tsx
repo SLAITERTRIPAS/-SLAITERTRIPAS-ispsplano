@@ -51,6 +51,8 @@ interface ActivityMonitor {
   dataMes?: string;
   departamento?: string;
   valor?: number;
+  valorTotal?: number;
+  [key: string]: any;
 }
 
 export default function MonitoriaView({

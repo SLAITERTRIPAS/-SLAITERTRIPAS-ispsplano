@@ -1003,16 +1003,24 @@ export default function LoginScreen({
         // Garantir que utilizadores autenticados nunca mais precisem de alterar a senha obrigatoriamente
         user.mustChangePassword = false;
 
+        // Gerar token de sessão único para este dispositivo
+        const sessionToken = "sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12);
+        localStorage.setItem("sigep_session_token", sessionToken);
+        user.currentSessionToken = sessionToken;
+
         if (matchedDoc && !isQuotaError) {
           updateDoc(doc(db, "users", matchedDoc.id), {
             mustChangePassword: false,
             isFirstAccess: false,
+            currentSessionToken: sessionToken,
+            lastLoginAt: new Date().toISOString(),
+            lastSeenAt: new Date().toISOString(),
+            isOnline: true,
           }).catch(console.warn);
         }
-        user.mustChangePassword = false;
 
         // Guardar utilizador no cache local
-        saveUserToCache({ ...user, password: password || user.password });
+        saveUserToCache({ ...user, password: password || user.password, currentSessionToken: sessionToken });
 
         setSuccess(`Bem-vindo à SIGEP`);
         setTimeout(() => {
@@ -1049,14 +1057,19 @@ export default function LoginScreen({
       ) {
         const fallbackUser = findLocalUser(lowerInput, password);
         if (fallbackUser) {
+          const sessionToken = "sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12);
+          localStorage.setItem("sigep_session_token", sessionToken);
+          fallbackUser.currentSessionToken = sessionToken;
           saveUserToCache({
             ...fallbackUser,
             password: password || fallbackUser.password,
+            currentSessionToken: sessionToken,
           });
           setSuccess(`Bem-vindo à SIGEP (Modo Cache Local)`);
           setTimeout(() => {
             onLogin({
               ...fallbackUser,
+              currentSessionToken: sessionToken,
               userArea: {
                 unidade: fallbackUser.unidade,
                 direcao: fallbackUser.direcao,
@@ -1194,10 +1207,17 @@ export default function LoginScreen({
             });
           }
 
+          const sessionToken = "sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12);
+          localStorage.setItem("sigep_session_token", sessionToken);
+
           if (auth.currentUser && docId) {
             // Apenas atualizamos o documento original com o UID, não criamos um espelhado
             await updateDoc(doc(db, "users", docId), {
               authUid: auth.currentUser.uid,
+              currentSessionToken: sessionToken,
+              lastLoginAt: new Date().toISOString(),
+              lastSeenAt: new Date().toISOString(),
+              isOnline: true,
             });
           }
         } catch (fsErr) {
@@ -1207,7 +1227,8 @@ export default function LoginScreen({
           );
         }
 
-        const finalUser = { ...newUser, id: docId || "local_" + Date.now() };
+        const localSessToken = localStorage.getItem("sigep_session_token") || ("sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12));
+        const finalUser = { ...newUser, id: docId || "local_" + Date.now(), currentSessionToken: localSessToken };
         saveUserToCache(finalUser);
 
         setSuccess("Senha criada com sucesso!");

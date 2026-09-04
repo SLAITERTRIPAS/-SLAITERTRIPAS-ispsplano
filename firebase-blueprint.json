@@ -262,6 +262,10 @@
         "status": { "type": "string", "enum": ["Pendente", "Afetado"] },
         "mustChangePassword": { "type": "boolean" },
         "password": { "type": "string", "maxLength": 100 },
+        "currentSessionToken": { "type": "string", "maxLength": 100 },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "lastSeenAt": { "type": "string", "format": "date-time" },
+        "isOnline": { "type": "boolean" },
         "uid": { "type": "string", "maxLength": 128 },
         "tenantId": { "type": "string", "maxLength": 50 },
         "createdAt": { "type": "string", "format": "date-time" }

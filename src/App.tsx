@@ -60,6 +60,8 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
+  onSnapshot,
   setDoc,
   doc,
   updateDoc,
@@ -197,6 +199,7 @@ export default function App() {
   const [showSectorSelector, setShowSectorSelector] = useState(false);
   const [assignedSectorsForLogin, setAssignedSectorsForLogin] = useState<string[]>([]);
   const [selectedSectorForLogin, setSelectedSectorForLogin] = useState<string>("");
+  const [sessionTerminatedNotice, setSessionTerminatedNotice] = useState<string | null>(null);
 
   const handleSelectSector = (sector: string) => {
     if (!sector) return;
@@ -414,6 +417,38 @@ export default function App() {
             if (snap && !snap.empty) {
               const latestData = { ...snap.docs[0].data(), id: snap.docs[0].id } as any;
               const refinedRole = determineUserRole(latestData);
+
+              // Controlo de Sessão Única: Verificar se outro dispositivo assumiu a conta
+              const localSessionToken = localStorage.getItem("sigep_session_token");
+              if (
+                latestData.currentSessionToken &&
+                localSessionToken &&
+                latestData.currentSessionToken !== localSessionToken
+              ) {
+                console.warn("[SIGEP] Sessão terminada: a conta foi aberta noutro dispositivo antes deste arranque.");
+                localStorage.removeItem("sigep_logged_in_user");
+                localStorage.removeItem("sigep_user");
+                localStorage.removeItem("sigep_current_view");
+                localStorage.removeItem("sigep_session_token");
+                sessionStorage.removeItem("session_start");
+                setUser(null);
+                setView("login");
+                setSessionTerminatedNotice(
+                  "A sua conta foi acedida através de outro dispositivo ou navegador. Por motivos de segurança institucional, apenas é permitida uma sessão ativa em simultâneo. A sessão neste dispositivo foi encerrada automaticamente."
+                );
+                clearTimeout(safetyTimer);
+                setAuthReady(true);
+                setBootComplete(true);
+                return;
+              }
+
+              if (!localSessionToken && latestData.currentSessionToken) {
+                localStorage.setItem("sigep_session_token", latestData.currentSessionToken);
+              } else if (!latestData.currentSessionToken) {
+                const freshToken = localSessionToken || ("sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12));
+                localStorage.setItem("sigep_session_token", freshToken);
+                updateDoc(doc(db, "users", latestData.id), { currentSessionToken: freshToken }).catch(() => {});
+              }
               
               const sessionSyncKey = `synced_uid_${latestData.id}_${firebaseUser.uid}`;
               if (!sessionStorage.getItem(sessionSyncKey)) {
@@ -450,6 +485,129 @@ export default function App() {
 
     return () => authUnsub();
   }, []);
+
+  // Controlo de Sessão Única em Tempo Real:
+  // Se o mesmo utilizador iniciar sessão num segundo dispositivo, o primeiro dispositivo fecha a sessão automaticamente
+  useEffect(() => {
+    if (!user || !authReady) return;
+
+    let targetDocId = user.id && !String(user.id).startsWith("local_") ? user.id : null;
+    let unsubSnapshot: (() => void) | null = null;
+    let isTerminating = false;
+
+    const terminateDeviceSession = (remoteToken: string, localToken: string) => {
+      if (isTerminating) return;
+      isTerminating = true;
+
+      console.warn(`[SIGEP] Sessão encerrada: utilizador autenticado noutro dispositivo (remoto: ${remoteToken}, local: ${localToken})`);
+
+      // Limpar todos os dados de autenticação locais deste dispositivo
+      localStorage.removeItem("sigep_logged_in_user");
+      localStorage.removeItem("sigep_user");
+      localStorage.removeItem("sigep_current_view");
+      localStorage.removeItem("sigep_session_token");
+      sessionStorage.removeItem("session_start");
+
+      setUser(null);
+      setView("login");
+      setSubMenuStack([]);
+      setHistoryStack([]);
+      setDashboardTitle("");
+      setDashboardItems([]);
+      setDashboardActiveItem(undefined);
+      setInnerPath([]);
+      setSessionTerminatedNotice(
+        "A sua conta foi acedida através de outro dispositivo ou navegador. Por motivos de segurança institucional da SIGEP-ISPS, apenas é permitida uma sessão ativa em simultâneo. A sessão neste dispositivo foi encerrada automaticamente."
+      );
+    };
+
+    const verifyToken = (remoteToken?: string) => {
+      if (!remoteToken) return;
+      const localToken = localStorage.getItem("sigep_session_token");
+      if (localToken && remoteToken !== localToken) {
+        terminateDeviceSession(remoteToken, localToken);
+      }
+    };
+
+    const setupListener = async () => {
+      try {
+        let docIdToListen = targetDocId;
+        if (!docIdToListen && (user.email || user.nuit)) {
+          const usersRef = collection(db, "users");
+          const q = user.email
+            ? query(usersRef, where("email", "==", String(user.email).toLowerCase().trim()))
+            : query(usersRef, where("nuit", "==", String(user.nuit).trim()));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            docIdToListen = snap.docs[0].id;
+          }
+        }
+
+        if (docIdToListen) {
+          const userDocRef = doc(db, "users", docIdToListen);
+          unsubSnapshot = onSnapshot(
+            userDocRef,
+            (docSnap) => {
+              if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data?.currentSessionToken) {
+                  verifyToken(data.currentSessionToken);
+                }
+              }
+            },
+            (err) => {
+              console.warn("Aviso na escuta de sessão única:", err);
+            }
+          );
+        }
+      } catch (e) {
+        console.warn("Erro ao configurar verificação de sessão única:", e);
+      }
+    };
+
+    setupListener();
+
+    // Verificação adicional no foco da janela ou retorno do segundo plano
+    const checkActiveSession = async () => {
+      if (document.visibilityState === "visible") {
+        try {
+          const localToken = localStorage.getItem("sigep_session_token");
+          if (!localToken) return;
+
+          let docId = targetDocId;
+          if (!docId && (user.email || user.nuit)) {
+            const usersRef = collection(db, "users");
+            const q = user.email
+              ? query(usersRef, where("email", "==", String(user.email).toLowerCase().trim()))
+              : query(usersRef, where("nuit", "==", String(user.nuit).trim()));
+            const snap = await getDocs(q);
+            if (!snap.empty) docId = snap.docs[0].id;
+          }
+
+          if (docId) {
+            const snap = await getDoc(doc(db, "users", docId));
+            if (snap.exists()) {
+              const remoteToken = snap.data()?.currentSessionToken;
+              if (remoteToken && remoteToken !== localToken) {
+                terminateDeviceSession(remoteToken, localToken);
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    };
+
+    window.addEventListener("focus", checkActiveSession);
+    document.addEventListener("visibilitychange", checkActiveSession);
+    const interval = setInterval(checkActiveSession, 10000);
+
+    return () => {
+      if (unsubSnapshot) unsubSnapshot();
+      window.removeEventListener("focus", checkActiveSession);
+      document.removeEventListener("visibilitychange", checkActiveSession);
+      clearInterval(interval);
+    };
+  }, [user?.id, user?.email, user?.nuit, authReady]);
 
   // Garantir que os dados do Administrador estejam na base de dados e que dados de teste sejam limpos
   useEffect(() => {
@@ -761,7 +919,13 @@ export default function App() {
         );
       }
 
-      if (view === "suppliers" || view === "sistema") {
+      if (
+        view === "suppliers" ||
+        view === "supplier_management" ||
+        view === "supplier_form" ||
+        view === "dashboard" ||
+        view === "sistema"
+      ) {
         unsubSuppliers = firestoreService.suppliers.subscribe(
           setSuppliers,
           (err) => handleSubError(err, "suppliers"),
@@ -927,10 +1091,16 @@ export default function App() {
   }, [efetivoEscolar]);
 
   const handleLogin = async (userData: any) => {
-    const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setUser(userData);
-    localStorage.setItem("sigep_logged_in_user", safeJSONStringify(userData));
-    localStorage.setItem("sigep_user", safeJSONStringify(userData));
+    let sessionToken = userData.currentSessionToken || localStorage.getItem("sigep_session_token");
+    if (!sessionToken) {
+      sessionToken = "sigep_sess_" + Date.now() + "_" + Math.random().toString(36).substring(2, 12);
+    }
+    localStorage.setItem("sigep_session_token", sessionToken);
+
+    const userWithToken = { ...userData, currentSessionToken: sessionToken };
+    setUser(userWithToken);
+    localStorage.setItem("sigep_logged_in_user", safeJSONStringify(userWithToken));
+    localStorage.setItem("sigep_user", safeJSONStringify(userWithToken));
 
     // Determinar se é o primeiro login (nesta sessão/navegador)
     const loginCount = parseInt(
@@ -946,21 +1116,33 @@ export default function App() {
       (loginCount + 1).toString(),
     );
 
-    // Track session start time in Firestore if possible (non-blocking in background)
+    // Gravar telemetria de login e novo sessionToken no Firestore
     try {
-      if (userData.id) {
-        firestoreService.users.update(userData.id, {
-          lastLoginAt: new Date().toISOString(),
-          lastSeenAt: new Date().toISOString(),
-          isOnline: true,
-          currentSessionToken: sessionToken,
-        }).catch((err: any) => {
+      const nowIso = new Date().toISOString();
+      const sessionPayload = {
+        lastLoginAt: nowIso,
+        lastSeenAt: nowIso,
+        isOnline: true,
+        currentSessionToken: sessionToken,
+      };
+
+      if (userData.id && !String(userData.id).startsWith("local_")) {
+        firestoreService.users.update(userData.id, sessionPayload).catch((err: any) => {
           console.warn("Aviso silencioso ao gravar telemetria de login:", err);
         });
-
-        // Also store locally for duration calculation
-        sessionStorage.setItem("session_start", new Date().toISOString());
+      } else if (userData.email || userData.nuit) {
+        const usersRef = collection(db, "users");
+        const q = userData.email
+          ? query(usersRef, where("email", "==", String(userData.email).toLowerCase().trim()))
+          : query(usersRef, where("nuit", "==", String(userData.nuit).trim()));
+        getDocs(q).then((snap) => {
+          if (!snap.empty) {
+            updateDoc(doc(db, "users", snap.docs[0].id), sessionPayload).catch(() => {});
+          }
+        }).catch(() => {});
       }
+
+      sessionStorage.setItem("session_start", nowIso);
     } catch (e: any) {
       console.error("Error tracking login:", e?.message || String(e));
     }
@@ -1093,6 +1275,7 @@ export default function App() {
     localStorage.removeItem("sigep_current_view");
     localStorage.removeItem("sigep_logged_in_user");
     localStorage.removeItem("sigep_user");
+    localStorage.removeItem("sigep_session_token");
     setSubMenuStack([]);
     setHistoryStack([]);
     setDashboardTitle("");
@@ -1314,9 +1497,21 @@ export default function App() {
       setView("produtos_precos");
       return;
     }
-    if (title === "Gestão de Fornecedores") {
+    if (title === "Gestão de Fornecedores" || title === "Fornecedores") {
       setDashboardTitle(title);
       setView("supplier_management");
+      return;
+    }
+    if (
+      title === "Registo de Fornecedores" ||
+      title === "Registo de Fornecedor" ||
+      title === "Formulário de Registo de Fornecedores" ||
+      title === "Formulário de Registo de Fornecedor" ||
+      title === "SupplierRegistration" ||
+      title === "UGEA_SupplierForm"
+    ) {
+      setDashboardTitle("Registo de Fornecedor");
+      setView("supplier_form");
       return;
     }
     if (title === "Plano de Aquisição") {
@@ -1678,6 +1873,31 @@ export default function App() {
 
         <Modal isOpen={!!modalMessage} onClose={() => setModalMessage("")} message={modalMessage} />
         <BackupRestoreModal isOpen={showBackupModal} onClose={() => setShowBackupModal(false)} />
+        
+        {sessionTerminatedNotice && (
+          <div className="fixed inset-0 z-[999999] bg-[#0c1236]/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border-2 border-red-500/30 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4 shadow-inner border border-red-100">
+                <ShieldAlert size={36} strokeWidth={2.2} />
+              </div>
+              <span className="px-3 py-1 bg-red-100 text-red-800 font-black text-[10px] uppercase tracking-widest rounded-full mb-3">
+                Sessão Concorrente Detectada
+              </span>
+              <h3 className="text-xl font-black text-slate-900 mb-2">
+                Sessão Encerrada Noutro Dispositivo
+              </h3>
+              <p className="text-sm font-medium text-slate-600 leading-relaxed mb-6">
+                {sessionTerminatedNotice}
+              </p>
+              <button
+                onClick={() => setSessionTerminatedNotice(null)}
+                className="w-full py-3.5 px-6 bg-[#121c60] hover:bg-[#1a298a] active:scale-95 text-[#FFB800] font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all border border-[#FFB800]/40"
+              >
+                Compreendido / Ir para o Login
+              </button>
+            </div>
+          </div>
+        )}
         {backupAlert && (
           <div className="fixed top-5 right-5 z-[99999] bg-[#121c60] text-white border-2 border-[#FFB800] p-4 rounded-2xl shadow-2xl flex items-center gap-3 max-w-md animate-bounce">
             <div className="p-2.5 bg-[#FFB800] text-[#121c60] rounded-xl font-bold shrink-0 shadow-md"><Database size={20} /></div>

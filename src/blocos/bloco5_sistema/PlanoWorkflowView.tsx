@@ -20,6 +20,7 @@ import {
   Edit2,
   Building2,
   ArrowRight,
+  ArrowLeft,
   UserCheck,
   AlertCircle,
   AlertTriangle,
@@ -47,6 +48,7 @@ import {
   Layers,
   Inbox,
   ShieldCheck,
+  RotateCcw,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { motion, AnimatePresence } from "motion/react";
@@ -72,11 +74,13 @@ import {
 import { EFETIVO_GERAL_DATA } from "../../constants/colaboradoresList";
 import { determineSectorAllocation } from "../../lib/allocationUtils";
 import { resolverDestinatarioSetorEResponsavel, DestinatarioInfo, LISTA_SETORES_DESTINATARIOS } from "../../lib/responsaveisService";
+import ModalEnvioSetorResponsavel from "../../components/ModalEnvioSetorResponsavel";
 import { printElementById, printActivitiesPlanDocument } from "../../lib/printUtils";
 import {
   getDirectionPriority,
   compareDirections,
   compareActivitiesStandardOrder,
+  compareActivitiesNumericOrder,
   renderActivityRubricas,
   normalizeHeaderString,
   getExcelRowValue,
@@ -97,6 +101,7 @@ import {
   getIsUserHR as isUserHRFunc,
   getDirectionKeysMatched,
   isDepartmentMatch,
+  isSectorMatch,
 } from "./plano/PlanoLogic";
 import { usePlanoPermissions } from "./plano/usePlanoPermissions";
 import ActivityForm from "../bloco5_sistema/ActivityForm";
@@ -229,6 +234,15 @@ export default function PlanoWorkflowView({
     originLabel: string;
     destinationLabel: string;
     targetActivities?: any[];
+  } | null>(null);
+  const [modalEnvioPlanoState, setModalEnvioPlanoState] = useState<{
+    isOpen: boolean;
+    fromStatus: string;
+    toStatus: string;
+    originLabel: string;
+    destinationLabel: string;
+    defaultSetorDestino: string;
+    targetActivities: any[];
   } | null>(null);
   const [activityForHistory, setActivityForHistory] = useState<any | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -428,20 +442,23 @@ export default function PlanoWorkflowView({
   const authorizedActivities = useMemo(() => {
     if (!rawActivities) return [];
 
-    // Filtrar apenas atividades válidas e depois por ano
+    // Filtrar apenas atividades válidas
     const validActs = rawActivities.filter(isValidActivity);
 
-    let yearFiltered = validActs.filter((a) => {
+    // Primeiro obter todas as atividades autorizadas e planificadas pelo utilizador
+    const allAuthorized = getAuthorizedActivities(validActs, user);
+
+    let yearFiltered = allAuthorized.filter((a) => {
       if (!a) return false;
       if (!a.ano) return true;
       return Number(a.ano) === Number(selectedYear);
     });
 
-    if (yearFiltered.length === 0 && validActs.length > 0) {
-      yearFiltered = validActs;
+    if (yearFiltered.length === 0 && allAuthorized.length > 0) {
+      yearFiltered = allAuthorized;
     }
 
-    return getAuthorizedActivities(yearFiltered, user);
+    return yearFiltered;
   }, [rawActivities, selectedYear, user]);
 
   const filteredActivities = useMemo(() => {
@@ -498,16 +515,21 @@ export default function PlanoWorkflowView({
     }
 
     const uniqueMap = new Map<string, any>();
-    authorized.forEach((a) => {
+    authorized.forEach((a, idx) => {
       if (!a || !isValidActivity(a)) return;
-      const key = a.id ? `id-${a.id}` : `${a.codigoAtividade || a.referencia || ""}-${a.designacao || a.title || ""}-${a.direcao || ""}-${a.setor || ""}`;
+      const key = a.id ? `id-${a.id}` : `act-${idx}-${a.codigoAtividade || a.referencia || ""}-${a.designacao || a.title || ""}-${a.direcao || ""}-${a.setor || ""}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, a);
       }
     });
 
     const sortedList = Array.from(uniqueMap.values())
-      .sort((a, b) => compareActivitiesStandardOrder(a, b, getActMonthIndex));
+      .sort((a, b) => {
+        if (selectedRoleMode === "Setor") {
+          return compareActivitiesNumericOrder(a, b);
+        }
+        return compareActivitiesStandardOrder(a, b, getActMonthIndex);
+      });
 
     const yearMatches = sortedList.filter((a) => Number(a?.ano || selectedYear) === Number(selectedYear));
     return yearMatches.length > 0 ? yearMatches : sortedList;
@@ -694,11 +716,6 @@ export default function PlanoWorkflowView({
         selectedActivityIds.includes(a.id)
       );
 
-      // Reordenar e renumerar cronologicamente por mês de realização antes de submeter à monitoria
-      if (toUpdate.length > 0) {
-        await reorderAndRenumber(toUpdate);
-      }
-
       for (const id of selectedActivityIds) {
         await firestoreService.matrixActivities.update(id, {
           statusAprovacao: approvalStatus,
@@ -716,7 +733,7 @@ export default function PlanoWorkflowView({
                 ...a,
                 statusAprovacao: approvalStatus,
                 aprovada: approvalStatus === "aprovada",
-                status: approvalStatus === "aprovada" ? "institucional" : approvalStatus,
+                status: (approvalStatus === "aprovada" ? "institucional" : approvalStatus) as any,
                 submetidoMonitoria: approvalStatus === "aprovada",
                 submetido: true,
                 dataAprovacao: new Date().toISOString(),
@@ -994,7 +1011,8 @@ export default function PlanoWorkflowView({
       setProcessingStatus(`A preparar base de dados para o ciclo ${selectedYear}...`);
       setImportProgress(5);
 
-      // 1. Limpeza do Ciclo de Planificação Atual
+      // 1. Limpeza do Ciclo de Planificação Atual - Removida para evitar perda de dados
+      /*
       const existingActivities = await firestoreService.matrixActivities.get();
       const toDelete = existingActivities.filter(
         (act) =>
@@ -1007,8 +1025,7 @@ export default function PlanoWorkflowView({
         const delProgress = 5 + Math.floor((i / toDelete.length) * 15);
         setImportProgress(delProgress);
       }
-
-      setProcessingStatus("A guardar cópia no arquivo morto...");
+      */
       setImportProgress(25);
 
       // 2. Salvar no Arquivo Morto
@@ -1636,8 +1653,6 @@ export default function PlanoWorkflowView({
   const groupedNecessidadesPlanificadas = useMemo(() => {
     const planActivities = filteredActivities.filter(
       (a) =>
-        (a.status as any) === "planificacao" &&
-        !a.isPESOE &&
         (isSuperBossUser(user) || a.direcao === user?.direcao)
     );
 
@@ -2048,7 +2063,8 @@ export default function PlanoWorkflowView({
           });
         }
         
-        // Limpeza Global de Rascunhos: Eliminar todas as atividades que não foram homologadas nem submetidas ao PESOE final
+        /*
+        // Limpeza Global de Rascunhos: Removida para evitar perda de atividades planificadas em curso
         const globalDrafts = rawActivities.filter(
           (a) => (a.status as string) !== "institucional" && (a.status as string) !== "pendente_monitoria" && (a.status as string) !== "em_andamento" && (a.status as string) !== "concluido"
         );
@@ -2057,6 +2073,7 @@ export default function PlanoWorkflowView({
             globalDrafts.map((act) => firestoreService.matrixActivities.delete(act.id))
           );
         }
+        */
 
         onShowAlert(
           `DE publicado com sucesso! Atividades para ${nextMonthName} transferidas para Monitoria.`
@@ -2494,7 +2511,7 @@ export default function PlanoWorkflowView({
     }
   };
 
-  const handleWorkflowTransition = (
+  const handleWorkflowTransition = async (
     fromStatus: string,
     toStatus: string,
     originLabel: string,
@@ -2508,7 +2525,7 @@ export default function PlanoWorkflowView({
       fromStatus === "direcao" ||
       toStatus === "planificacao"
     ) {
-      initialDest = "Repartição de Planificação (DPEP)";
+      initialDest = "Departamento de Planificação Estudos e Projetos (DPEP)";
     } else if (
       selectedRoleMode === "Planificação" ||
       fromStatus === "planificacao" ||
@@ -2522,24 +2539,127 @@ export default function PlanoWorkflowView({
     ) {
       initialDest = "Conselho de Representantes (CR, CAS e DG)";
     } else if (toStatus === "reparticao") {
-      initialDest = user?.reparticao || "Chefe da Repartição";
+      initialDest = user?.reparticao || "Repartição";
     } else if (toStatus === "departamento") {
-      initialDest = user?.departamento || "Chefe do Departamento";
+      initialDest = user?.departamento || "Departamento";
     } else if (toStatus === "direcao") {
-      initialDest = user?.direcao || "Diretor da Direção";
+      initialDest = user?.direcao || "Direção";
     } else {
       initialDest = destinationLabel || "Gabinete Destinatário";
     }
 
-    setSelectedDestinatario(initialDest);
-    setWorkflowToProcess({
+    const toUpdate = (targetActivities && targetActivities.length > 0)
+      ? targetActivities
+      : (selectedActivityIds.length > 0
+          ? filteredActivities.filter((a) => selectedActivityIds.includes(a.id))
+          : filteredActivities.filter((a) => {
+              if (fromStatus === "setorial") {
+                return !a.submetido || (a.status as any) === "setorial" || !a.status;
+              }
+              return (a.status as any) === fromStatus && !a.submetido;
+            })
+        );
+
+    if (toUpdate.length === 0) {
+      alert(`Nenhuma atividade no Plano de ${originLabel} aguardando envio para o Superior.`);
+      return;
+    }
+
+    // Abre o Modal com indicação visual oficial do setor e do responsável destinatário que irá receber
+    setModalEnvioPlanoState({
+      isOpen: true,
       fromStatus,
       toStatus,
       originLabel,
       destinationLabel,
-      targetActivities,
+      defaultSetorDestino: initialDest,
+      targetActivities: toUpdate,
     });
-    setShowTramitacaoModal(true);
+  };
+
+  const handleConfirmEnvioPlanoAoSuperior = async (destinatario: DestinatarioInfo) => {
+    if (!modalEnvioPlanoState) return;
+    const { fromStatus, toStatus, originLabel, targetActivities } = modalEnvioPlanoState;
+
+    try {
+      setIsLoading(true);
+
+      const signature = {
+        userId: user?.id || user?.uid,
+        userName: user?.nome || user?.email,
+        userRole: user?.cargo || user?.cargoChefia || "Responsável",
+        date: new Date().toISOString(),
+        action: `Plano de ${originLabel} Submetido ao Superior Hierárquico`,
+        destination: destinatario.setorNome,
+        destinatarioResponsavel: destinatario.responsavelNome,
+        destinatarioCargo: destinatario.responsavelCargo,
+      };
+
+      await Promise.all([
+        ...targetActivities.map((act) => {
+          const existingHistory = Array.isArray(act.workflowHistory)
+            ? act.workflowHistory
+            : [];
+          return firestoreService.matrixActivities.update(act.id, {
+            status: toStatus,
+            submetido: true,
+            currentGabinete: destinatario.setorNome,
+            destinatarioSetor: destinatario.setorNome,
+            enviadoParaSetor: destinatario.setorNome,
+            destinatario: destinatario.responsavelNome,
+            destinatarioCargo: destinatario.responsavelCargo,
+            destinatarioEmail: destinatario.responsavelEmail,
+            dataEnvio: new Date().toISOString(),
+            enviadoPor: user?.nome || user?.email || "Colaborador",
+            enviadoPorCargo: user?.cargo || user?.cargoChefia || "Responsável",
+            workflowHistory: [...existingHistory, signature],
+          });
+        }),
+        firestoreService.archive_documents.add({
+          title: `Plano de Atividades e Orçamento de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
+          year: selectedYear,
+          type: "Planos de Atividades e Orçamentos",
+          date: new Date().toISOString().split("T")[0],
+          atividades: targetActivities,
+          author: user?.nome || user?.email,
+          origin: originLabel,
+          destinatario: destinatario.setorNome,
+          destinatarioResponsavel: destinatario.responsavelNome,
+        }),
+      ]);
+
+      const updatedIds = new Set(targetActivities.map((a) => a.id));
+      setRawActivities((prev) =>
+        prev.map((a) => {
+          if (updatedIds.has(a.id)) {
+            return {
+              ...a,
+              status: toStatus as any,
+              submetido: true,
+              currentGabinete: destinatario.setorNome,
+              destinatarioSetor: destinatario.setorNome,
+              enviadoParaSetor: destinatario.setorNome,
+              destinatario: destinatario.responsavelNome,
+              destinatarioCargo: destinatario.responsavelCargo,
+              destinatarioEmail: destinatario.responsavelEmail,
+            };
+          }
+          return a;
+        }),
+      );
+
+      setSelectedActivityIds([]);
+      setModalEnvioPlanoState(null);
+
+      onShowAlert(
+        `Sucesso! O Plano de ${originLabel} (${targetActivities.length} atividades) foi enviado com sucesso para o Superior Hierárquico (${destinatario.responsavelNome} - ${destinatario.setorNome}).`,
+      );
+    } catch (err: any) {
+      console.error("Erro ao submeter plano ao superior:", err);
+      alert("Ocorreu um erro ao enviar o plano ao superior: " + (err?.message || "Tente novamente."));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const confirmWorkflowTransition = async () => {
@@ -2582,9 +2702,6 @@ export default function PlanoWorkflowView({
         destinatarioCargo: resolvedDest.responsavelCargo,
       };
 
-      // Reorganizar e renumerar atividades cronologicamente por Mês de Realização em todas as tramitações
-      await reorderAndRenumber(toUpdate);
-
       await Promise.all([
         ...toUpdate.map((act) => {
           const existingHistory = Array.isArray(act.workflowHistory)
@@ -2617,21 +2734,31 @@ export default function PlanoWorkflowView({
         }),
       ]);
 
+      const updatedIds = new Set(toUpdate.map((a) => a.id));
+      setRawActivities((prev) =>
+        prev.map((a) => {
+          if (updatedIds.has(a.id)) {
+            return {
+              ...a,
+              status: toStatus as any,
+              submetido: true,
+              currentGabinete: resolvedDest.setorNome,
+              destinatarioSetor: resolvedDest.setorNome,
+              enviadoParaSetor: resolvedDest.setorNome,
+              destinatario: resolvedDest.responsavelNome,
+              destinatarioCargo: resolvedDest.responsavelCargo,
+              destinatarioEmail: resolvedDest.responsavelEmail,
+            };
+          }
+          return a;
+        }),
+      );
+
       setSelectedActivityIds([]);
 
       onShowAlert(
         `Sucesso! ${toUpdate.length} atividades foram assinadas e enviadas para o setor ${resolvedDest.setorNome} aos cuidados de ${resolvedDest.responsavelNome} (${resolvedDest.responsavelCargo}).`,
       );
-
-      // Limpar rascunhos restantes
-      const draftsToDelete = filteredActivities.filter(
-        (a) => (a.status as any) === fromStatus && !a.submetido && !toUpdate.some((u) => u.id === a.id)
-      );
-      if (draftsToDelete.length > 0) {
-        await Promise.all(
-          draftsToDelete.map((act) => firestoreService.matrixActivities.delete(act.id))
-        );
-      }
 
       setShowTramitacaoModal(false);
       setSelectedDestinatario("");
@@ -2987,25 +3114,32 @@ export default function PlanoWorkflowView({
   const reorderAndRenumber = async (activitiesToProcess: any[]) => {
     if (!activitiesToProcess.length) return;
 
-    // Sort activities according to standard 5-tier order: Direção -> N/O -> Código -> Mês -> Valor Total
+    // Sort activities according to standard order: Direção -> Departamento -> Setor -> Ordem Numérica -> Mês
     const sorted = [...activitiesToProcess].sort((a, b) =>
       compareActivitiesStandardOrder(a, b, getActMonthIndex),
     );
 
-    // Group by department so numbering starts from 001 per department
-    const deptGroups: Record<string, any[]> = {};
+    // Group by sector so each sector has its own independent numbering starting from 001
+    const sectorGroups: Record<string, any[]> = {};
     sorted.forEach((act) => {
-      const deptKey = (act.departamento || act.unidadeOrganica || "").trim();
-      if (!deptGroups[deptKey]) deptGroups[deptKey] = [];
-      deptGroups[deptKey].push(act);
+      const sectorKey = (
+        act.setor ||
+        act.sector ||
+        act.reparticao ||
+        act.departamento ||
+        act.unidadeOrganica ||
+        "Geral"
+      ).trim();
+      if (!sectorGroups[sectorKey]) sectorGroups[sectorKey] = [];
+      sectorGroups[sectorKey].push(act);
     });
 
     // Direction counters for numeroDirecao
     const directionCounters: Record<string, number> = {};
     const updates: Promise<any>[] = [];
 
-    Object.values(deptGroups).forEach((deptActs) => {
-      deptActs.forEach((act, idx) => {
+    Object.values(sectorGroups).forEach((sectorActs) => {
+      sectorActs.forEach((act, idx) => {
         const newNo = String(idx + 1).padStart(3, "0");
 
         // Calculate numeroDirecao (chronological within direction)
@@ -3017,12 +3151,13 @@ export default function PlanoWorkflowView({
           "0",
         );
 
-        // Re-generate code for consistency
+        // Re-generate code for consistency using sector/department
         const dirInitials = getDirectionAbbreviation(
           act.direcao || act.unidadeOrganica || "Songo",
         ).toUpperCase();
+        const sectorOrDept = act.setor || act.reparticao || act.departamento || "Geral";
         const deptInitials = getDepartmentAbbreviation(
-          act.departamento,
+          sectorOrDept,
         ).toUpperCase();
         const actInitials = getActivityInitials(
           act.nomeAtividade || act.title || act.designacao || "",
@@ -3058,32 +3193,36 @@ export default function PlanoWorkflowView({
 
     setIsProcessing(true);
     onShowAlert(
-      "A reordenar atividades por cronograma e a corrigir a numeração sequencial por departamento...",
+      "A organizar a ordem numérica das atividades por setor (a começar de 001 para a frente)...",
     );
 
-    // Função auxiliar para obter o índice do primeiro mês de realização (1-12)
-    const getFirstMonthIndex = getActMonthIndex;
-
     try {
-      // 1. Sort activities according to standard 5-tier order
+      // 1. Sort activities according to standard order
       const sorted = [...filteredActivities].sort((a, b) =>
         compareActivitiesStandardOrder(a, b, getActMonthIndex),
       );
 
-      // Group by department
-      const deptGroups: Record<string, any[]> = {};
+      // Group by sector so each sector has its own count starting from 001
+      const sectorGroups: Record<string, any[]> = {};
       sorted.forEach((act) => {
-        const deptKey = (act.departamento || act.unidadeOrganica || "").trim();
-        if (!deptGroups[deptKey]) deptGroups[deptKey] = [];
-        deptGroups[deptKey].push(act);
+        const sectorKey = (
+          act.setor ||
+          act.sector ||
+          act.reparticao ||
+          act.departamento ||
+          act.unidadeOrganica ||
+          "Geral"
+        ).trim();
+        if (!sectorGroups[sectorKey]) sectorGroups[sectorKey] = [];
+        sectorGroups[sectorKey].push(act);
       });
 
       // Direction counters for numeroDirecao
       const directionCounters: Record<string, number> = {};
       const updates: Promise<any>[] = [];
 
-      Object.values(deptGroups).forEach((deptActs) => {
-        deptActs.forEach((act, idx) => {
+      Object.values(sectorGroups).forEach((sectorActs) => {
+        sectorActs.forEach((act, idx) => {
           const newNo = String(idx + 1).padStart(3, "0");
 
           // Calculate numeroDirecao
@@ -3095,12 +3234,13 @@ export default function PlanoWorkflowView({
             "0",
           );
 
-          // Re-generate code for consistency
+          // Re-generate code for consistency using sector/department
           const dirInitials = getDirectionAbbreviation(
             act.direcao || act.unidadeOrganica || "Songo",
           ).toUpperCase();
+          const sectorOrDept = act.setor || act.reparticao || act.departamento || "Geral";
           const deptInitials = getDepartmentAbbreviation(
-            act.departamento,
+            sectorOrDept,
           ).toUpperCase();
           const actInitials = getActivityInitials(
             act.nomeAtividade || act.title || act.designacao || "",
@@ -3130,11 +3270,11 @@ export default function PlanoWorkflowView({
 
       await Promise.all(updates);
       onShowAlert(
-        "Numeração corrigida com sucesso! As atividades foram numeradas sequencialmente por departamento (a começar em 001).",
+        "Ordem numérica organizada com sucesso! Cada setor possui a sua contagem independente começando de 001 para a frente.",
       );
     } catch (err) {
       console.error(err);
-      onShowAlert("Ocorreu um erro ao tentar corrigir a numeração.");
+      onShowAlert("Ocorreu um erro ao tentar organizar a numeração.");
     } finally {
       setIsProcessing(false);
     }
@@ -3549,10 +3689,11 @@ export default function PlanoWorkflowView({
         {/* Novo Ecrã de Boas Vindas/Seleção de Fluxo */}
         {workflowMode === "landing" && (
           <DPEPDashboard 
-            activities={authorizedActivities.filter(a => Number(a.ano) === selectedYear)} 
+            activities={authorizedActivities} 
             onSelectWorkflow={(mode) => {
               if (mode === 'planning') {
                 setSelectedYear(2027);
+                setEditingActivity(null);
                 setShowAddForm(true);
               }
               setWorkflowMode(mode);
@@ -3568,13 +3709,22 @@ export default function PlanoWorkflowView({
             {!isFocusMode && (
               <div className="bg-[#0f172a] text-white p-6 md:px-10 border-b border-slate-800 print:hidden">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight mb-1">
-                      Plano Geral de Atividades
-                    </h1>
-                    <p className="text-slate-400 text-[10px] font-medium  tracking-widest">
-                      Gestão Institucional de Atividades Songo
-                    </p>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setWorkflowMode("landing")}
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border border-slate-700 shadow-sm"
+                      title="Voltar ao Painel DPEP"
+                    >
+                      <ArrowLeft size={15} /> Voltar ao Painel
+                    </button>
+                    <div>
+                      <h1 className="text-2xl font-black text-white tracking-tight mb-1">
+                        {workflowMode === "consulting" ? "Consulta de Atividades Planificadas" : "Plano Geral de Atividades"}
+                      </h1>
+                      <p className="text-slate-400 text-[10px] font-medium tracking-widest">
+                        {workflowMode === "consulting" ? "Atividades Pessoais e Setoriais Registadas no Sistema" : "Gestão Institucional de Atividades Songo"}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center justify-center relative">
                     <div className="relative">
@@ -3607,6 +3757,7 @@ export default function PlanoWorkflowView({
                                     y === 2027 &&
                                     selectedRoleMode === "Setor"
                                   ) {
+                                    setEditingActivity(null);
                                     setShowAddForm(true);
                                   }
                                 }}
@@ -4012,17 +4163,24 @@ export default function PlanoWorkflowView({
                               else if (selectedRoleMode === "Órgão Colegial")
                                 handleOrgaoColegialAprovar();
                             }}
+                            title={
+                              selectedRoleMode === "Setor"
+                                ? "Enviar todo o plano do setor para o seu Superior Hierárquico"
+                                : selectedRoleMode === "Repartição"
+                                  ? "Enviar todo o plano da repartição para o Chefe de Departamento"
+                                  : "Submeter plano consolidado para o nível superior"
+                            }
                             className={`${selectedRoleMode === "Órgão Colegial" ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : "bg-[#2563eb] hover:bg-[#1d4ed8] shadow-blue-100"} text-white font-black tracking-widest text-[9px]  px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shadow-lg h-[40px]`}
                           >
                             <Send size={14} strokeWidth={3} /> {
                               selectedRoleMode === "Setor"
-                                ? "SUBMETER PLANO DO SETOR"
+                                ? "SUBMETER PLANO DO SETOR AO SUPERIOR"
                                 : selectedRoleMode === "Repartição"
-                                  ? "SUBMETER PLANO DA REPARTIÇÃO"
+                                  ? "SUBMETER PLANO DA REPARTIÇÃO AO SUPERIOR"
                                   : selectedRoleMode === "Departamento"
-                                    ? "SUBMETER PLANO DO DEPARTAMENTO"
+                                    ? "SUBMETER PLANO DO DEPARTAMENTO AO SUPERIOR"
                                     : selectedRoleMode === "Direção"
-                                      ? "SUBMETER PLANO DA DIREÇÃO"
+                                      ? "SUBMETER PLANO DA DIREÇÃO À PLANIFICAÇÃO"
                                       : selectedRoleMode === "Planificação"
                                         ? "ENVIAR AO CHEFE DO DPEP"
                                         : selectedRoleMode === "Chefe DPEP"
@@ -4069,202 +4227,176 @@ export default function PlanoWorkflowView({
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b-2 border-slate-100 pb-3">
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight ">
-                      Resumo do Setor
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                      Plano de Atividades do Setor
                     </h3>
                     <p className="text-sm font-bold text-slate-500 mt-1">
-                      Total de {filteredActivities.length} Atividades
-                      Planificadas
+                      Total de {filteredActivities.length} Atividades Planificadas
                     </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleFixNumbering}
+                      disabled={isProcessing || filteredActivities.length === 0}
+                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-indigo-200"
+                      title="Organizar a numeração das atividades do setor a partir de 001"
+                    >
+                      <RotateCcw size={14} /> Organizar Ordem Numérica (001...)
+                    </button>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => {
+                          setEditingActivity(null);
+                          setShowAddForm(true);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-black tracking-widest text-[9px] px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shadow-lg shadow-blue-100"
+                      >
+                        <Plus size={14} strokeWidth={3} /> Nova Atividade
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* List of Setorial Activities with grouping like Planificação */}
-                <div className="space-y-3">
-                  {Object.entries(filteredActivitiesGrouped.byDirecao).map(
-                    ([direcao, activities]) => {
-                      const groupedByDept =
-                        filteredActivitiesGrouped.byDirecaoAndDept[direcao];
+                {/* Lista única de todas as atividades do setor em ordem numérica */}
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full">
+                  <div className="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-blue-600 tracking-widest uppercase">
+                      Lista Única de Atividades — {user?.setor || user?.reparticao || title || "Setor"}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-500 tracking-wider">
+                      {filteredActivities.length} Atividades em Ordem Numérica
+                    </span>
+                  </div>
 
-                      return (
-                        <div
-                          key={direcao}
-                          className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full"
-                        >
-                          <div className="flex items-center gap-4 group px-4">
-                            <div className="h-10 w-2 bg-blue-600 rounded-full group-hover:h-12 transition-all"></div>
-                            <h3 className="text-xl font-black text-slate-900 tracking-tight ">
-                              {direcao}
-                              <span className="ml-3 text-sm font-medium text-slate-400 normal-case tracking-normal">
-                                ({(activities as any[]).length}{" "}
-                                {(activities as any[]).length === 1
-                                  ? "Atividade"
-                                  : "Atividades"}
-                                )
-                              </span>
-                            </h3>
-                          </div>
-
-                          <div className="flex flex-col">
-                            {Object.entries(groupedByDept).map(
-                              ([dept, deptActivities]) => (
-                                <div
-                                  key={dept}
-                                  className="bg-slate-50/50 rounded-2xl p-3 sm:p-4 border border-slate-100 w-full m-[2px]"
+                  <div className="overflow-x-auto print:overflow-visible border border-slate-200 rounded-2xl shadow-sm mb-3 w-full" data-print-type="plano">
+                    <table className="w-full text-left border-collapse print:min-w-full font-sans text-xs print-table-compact">
+                      <ActivityTableHeader isDPEP={isDPEP} />
+                      <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                        {filteredActivities.map((activity, idx) => (
+                          <ActivityTableRow
+                            key={activity.id || idx}
+                            activity={activity}
+                            onViewHistory={setActivityForHistory}
+                            getActivityTotal={getActivityTotal}
+                            index={idx}
+                            isDPEP={isDPEP}
+                            user={user}
+                            isBossOrAdmin={isBossOrAdmin}
+                            onUpdateExecution={onUpdateExecution}
+                            onUpdateRelatorio={onUpdateRelatorio}
+                            onUpdateApproval={onUpdateApproval}
+                            onRolloverYear={onRolloverYear}
+                            rawActivities={rawActivities}
+                            selectedActivityIds={selectedActivityIds}
+                            onToggleSelect={handleToggleSelectActivity}
+                            actions={
+                              <div className="flex items-center justify-center gap-2">
+                                {canEdit(activity) ? (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setEditingActivity(activity);
+                                        setShowAddForm(true);
+                                      }}
+                                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                      title="Editar"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(activity.id)}
+                                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                      title="Eliminar"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setEditingActivity(activity);
+                                      setShowAddForm(true);
+                                    }}
+                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="Visualizar"
+                                  >
+                                    <Eye size={14} />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    const currentStatus = activity.status || "draft";
+                                    const nextStatus = (currentStatus === "draft" || currentStatus === "setorial") ? "reparticao" :
+                                                     currentStatus === "reparticao" ? "departamento" :
+                                                     currentStatus === "departamento" ? "direcao" :
+                                                     currentStatus === "direcao" ? "planificacao" :
+                                                     currentStatus === "planificacao" ? "dpep_chefe" : "institucional";
+                                    const originLabel = currentStatus === "reparticao" ? "Repartição" :
+                                                        currentStatus === "departamento" ? "Departamento" :
+                                                        currentStatus === "direcao" ? "Direção" :
+                                                        currentStatus === "planificacao" ? "Setor de Planificação" : "Chefe do DPEP";
+                                    const destLabel = nextStatus === "departamento" ? "Departamento" :
+                                                      nextStatus === "direcao" ? "Direção" :
+                                                      nextStatus === "planificacao" ? "Setor de Planificação" :
+                                                      nextStatus === "dpep_chefe" ? "Chefe do DPEP" : "Plano Institucional";
+                                    handleWorkflowTransition(currentStatus, nextStatus, originLabel, destLabel, [activity]);
+                                  }}
+                                  className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                  title="Tramitar / Assinar Documento"
                                 >
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <div className="h-2 w-2 rounded-full bg-blue-400"></div>
-                                    <h4 className="text-sm font-bold text-slate-700  tracking-wider">
-                                      {dept}
-                                    </h4>
-                                  </div>
+                                  <Send size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleExportPDF([activity])}
+                                  className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                  title="Exportar PDF"
+                                >
+                                  <FileText size={14} />
+                                </button>
+                              </div>
+                            }
+                          />
+                        ))}
 
-                                  <div className="overflow-x-auto print:overflow-visible border border-slate-200 rounded-2xl shadow-sm mb-3 w-full" data-print-type="plano">
-                                    <table className="w-full border-collapse print:min-w-full print-table-compact">
-                                      <ActivityTableHeader isDPEP={isDPEP} />
-                                      <tbody className="divide-y divide-slate-200">
-                                        {(deptActivities as any[]).map(
-                                          (activity, idx) => (
-                                            <ActivityTableRow
-                                              key={activity.id || idx}
-                                              activity={activity}
-                                              onViewHistory={setActivityForHistory}
-                                              getActivityTotal={
-                                                getActivityTotal
-                                              }
-                                              index={idx}
-                                              isDPEP={isDPEP}
-                                              user={user}
-                                              isBossOrAdmin={isBossOrAdmin}
-                                              onUpdateExecution={
-                                                onUpdateExecution
-                                              }
-                                              onUpdateRelatorio={
-                                                onUpdateRelatorio
-                                              }
-                                              rawActivities={rawActivities}
-                                              selectedActivityIds={
-                                                selectedActivityIds
-                                              }
-                                              onToggleSelect={
-                                                handleToggleSelectActivity
-                                              }
-                                              actions={
-                                                <div className="flex items-center justify-center gap-2">
-                                                  {canEdit(activity) ? (
-                                                    <>
-                                                      <button
-                                                        onClick={() => {
-                                                          setEditingActivity(
-                                                            activity,
-                                                          );
-                                                          setShowAddForm(true);
-                                                        }}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Editar"
-                                                      >
-                                                        <Edit2 size={14} />
-                                                      </button>
-                                                      <button
-                                                        onClick={() =>
-                                                          handleDelete(
-                                                            activity.id,
-                                                          )
-                                                        }
-                                                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                                        title="Eliminar"
-                                                      >
-                                                        <Trash2 size={14} />
-                                                      </button>
-                                                    </>
-                                                  ) : (
-                                                    <button
-                                                      onClick={() => {
-                                                        setEditingActivity(
-                                                          activity,
-                                                        );
-                                                        setShowAddForm(true);
-                                                      }}
-                                                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                      title="Visualizar"
-                                                    >
-                                                      <Eye size={14} />
-                                                    </button>
-                                                  )}
-                                                  <button
-                                                    onClick={() => {
-                                                      const currentStatus = activity.status || "draft";
-                                                      const nextStatus = (currentStatus === "draft" || currentStatus === "setorial") ? "reparticao" :
-                                                                       currentStatus === "reparticao" ? "departamento" :
-                                                                       currentStatus === "departamento" ? "direcao" :
-                                                                       currentStatus === "direcao" ? "planificacao" :
-                                                                       currentStatus === "planificacao" ? "dpep_chefe" : "institucional";
-                                                      const originLabel = currentStatus === "reparticao" ? "Repartição" :
-                                                                          currentStatus === "departamento" ? "Departamento" :
-                                                                          currentStatus === "direcao" ? "Direção" :
-                                                                          currentStatus === "planificacao" ? "Setor de Planificação" : "Chefe do DPEP";
-                                                      const destLabel = nextStatus === "departamento" ? "Departamento" :
-                                                                        nextStatus === "direcao" ? "Direção" :
-                                                                        nextStatus === "planificacao" ? "Setor de Planificação" :
-                                                                        nextStatus === "dpep_chefe" ? "Chefe do DPEP" : "Plano Institucional";
-                                                      handleWorkflowTransition(currentStatus, nextStatus, originLabel, destLabel, [activity]);
-                                                    }}
-                                                    className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                                    title="Tramitar / Assinar Documento"
-                                                  >
-                                                    <Send size={14} />
-                                                  </button>
-                                                  <button
-                                                    onClick={() =>
-                                                      handleExportPDF([
-                                                        activity,
-                                                      ])
-                                                    }
-                                                    className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                                                    title="Exportar PDF"
-                                                  >
-                                                    <FileText size={14} />
-                                                  </button>
-                                                </div>
-                                              }
-                                            />
-                                          ),
-                                        )}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </div>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      );
-                    },
-                  )}
-
-                  {filteredActivities.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in duration-1000 mx-8">
-                      <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-6">
-                        <Plus className="text-slate-300 w-10 h-10" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">
-                        Plano de Atividades Vazio
-                      </h3>
-                      <p className="text-slate-500 text-sm max-w-xs text-center leading-relaxed">
-                        Ainda não existem atividades planificadas por si para o
-                        exercício de {selectedYear}.
-                      </p>
-                      {!isReadOnly && (
-                        <button
-                          onClick={() => setShowAddForm(true)}
-                          className="mt-8 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-                        >
-                          Criar Primeira Atividade
-                        </button>
-                      )}
-                    </div>
-                  )}
+                        {filteredActivities.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={37}
+                              className="p-12 text-center text-slate-400 italic font-medium"
+                            >
+                              Nenhuma atividade planificada para este setor no exercício de {selectedYear}.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
+
+                {filteredActivities.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-24 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in duration-1000 mx-8">
+                    <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mb-6">
+                      <Plus className="text-slate-300 w-10 h-10" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">
+                      Plano de Atividades Vazio
+                    </h3>
+                    <p className="text-slate-500 text-sm max-w-xs text-center leading-relaxed">
+                      Ainda não existem atividades planificadas por si para o exercício de {selectedYear}.
+                    </p>
+                    {!isReadOnly && (
+                      <button
+                        onClick={() => {
+                          setEditingActivity(null);
+                          setShowAddForm(true);
+                        }}
+                        className="mt-8 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                      >
+                        Criar Primeira Atividade
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -5731,11 +5863,12 @@ export default function PlanoWorkflowView({
                             {
                               filteredActivities.filter(
                                 (a) =>
-                                  (a.status as any) === "planificacao" &&
-                                  !a.isPESOE &&
                                   (
                                     isSuperBossUser(user) ||
-                                    a.direcao === user.direcao),
+                                    !a.direcao ||
+                                    a.direcao === user.direcao ||
+                                    isSectorMatch(a.setor, user.setor) ||
+                                    isDepartmentMatch(a.departamento, user.departamento)),
                               ).length
                             }{" "}
                             Atividades
@@ -5752,11 +5885,12 @@ export default function PlanoWorkflowView({
                                 filteredActivities
                                   .filter(
                                     (a) =>
-                                      (a.status as any) === "planificacao" &&
-                                      !a.isPESOE &&
                                       (
                                         isSuperBossUser(user) ||
-                                        a.direcao === user.direcao),
+                                        !a.direcao ||
+                                        a.direcao === user.direcao ||
+                                        isSectorMatch(a.setor, user.setor) ||
+                                        isDepartmentMatch(a.departamento, user.departamento)),
                                   )
                                   .sort((a, b) =>
                                     compareActivitiesStandardOrder(
@@ -5767,7 +5901,7 @@ export default function PlanoWorkflowView({
                                   )
                                   .reduce(
                                     (acc, act) => {
-                                      const dir = act.direcao || "SEM DIREÇÃO";
+                                      const dir = act.direcao || user?.direcao || "GERAL";
                                       if (!acc[dir]) acc[dir] = [];
                                       acc[dir].push(act);
                                       return acc;
@@ -5875,11 +6009,12 @@ export default function PlanoWorkflowView({
                               {filteredActivities
                                 .filter(
                                   (a) =>
-                                    (a.status as any) === "planificacao" &&
-                                    !a.isPESOE &&
                                     (
                                       isSuperBossUser(user) ||
-                                      a.direcao === user.direcao),
+                                      !a.direcao ||
+                                      a.direcao === user.direcao ||
+                                      isSectorMatch(a.setor, user.setor) ||
+                                      isDepartmentMatch(a.departamento, user.departamento)),
                                 )
                                 .reduce(
                                   (sum, act) => sum + getActivityTotal(act),
@@ -5919,11 +6054,12 @@ export default function PlanoWorkflowView({
                               {filteredActivities
                                 .filter(
                                   (a) =>
-                                    (a.status as any) === "planificacao" &&
-                                    !a.isPESOE &&
                                     (
                                       isSuperBossUser(user) ||
-                                      a.direcao === user.direcao),
+                                      !a.direcao ||
+                                      a.direcao === user.direcao ||
+                                      isSectorMatch(a.setor, user.setor) ||
+                                      isDepartmentMatch(a.departamento, user.departamento)),
                                 )
                                 .filter(Boolean).map((activity, idx) => {
                                   const totalVal = getActivityTotal(activity);
@@ -5976,11 +6112,12 @@ export default function PlanoWorkflowView({
                                 })}
                               {filteredActivities.filter(
                                 (a) =>
-                                  (a.status as any) === "planificacao" &&
-                                  !a.isPESOE &&
                                   (
                                     isSuperBossUser(user) ||
-                                    a.direcao === user.direcao),
+                                    !a.direcao ||
+                                    a.direcao === user.direcao ||
+                                    isSectorMatch(a.setor, user.setor) ||
+                                    isDepartmentMatch(a.departamento, user.departamento)),
                               ).length === 0 && (
                                 <tr>
                                   <td
@@ -6132,8 +6269,6 @@ export default function PlanoWorkflowView({
                       const planificacaoDirActivities = filteredActivities
                         .filter(
                           (a) =>
-                            (a.status as any) === "planificacao" &&
-                            !a.isPESOE &&
                             (a.direcao || "")
                               .toLowerCase()
                               .includes(planificacaoDirName.toLowerCase()),
@@ -7245,6 +7380,78 @@ export default function PlanoWorkflowView({
                         ) || 0;
                       const mainRubric = data.rubricas?.[0]?.rubrica || "";
 
+                      const resolvedSector = (
+                        data.setor ||
+                        data.reparticao ||
+                        editingActivity?.setor ||
+                        user?.setor ||
+                        user?.sector ||
+                        user?.seccao ||
+                        user?.reparticao ||
+                        title ||
+                        "Setor Geral"
+                      ).trim();
+
+                      // Resolve sequential number per sector starting from 001
+                      const resolvedNo = (() => {
+                        if (!data._forceNewRecord && editingActivity?.no) {
+                          const p = parseInt(String(editingActivity.no).replace(/\D/g, ""), 10);
+                          if (!isNaN(p) && p > 0) return String(p).padStart(3, "0");
+                          return editingActivity.no;
+                        }
+
+                        const cleanSector = resolvedSector.toLowerCase();
+                        const sectorActs = rawActivities.filter((a: any) => {
+                          const aSector = String(a.setor || a.sector || a.reparticao || a.departamento || "").trim().toLowerCase();
+                          return (aSector === cleanSector || aSector.includes(cleanSector) || cleanSector.includes(aSector)) &&
+                            (Number(a.ano) || new Date().getFullYear()) === Number(data.ano || selectedYear);
+                        });
+
+                        const maxNumber = sectorActs.reduce((max: number, a: any) => {
+                          const numStr = a.numeroAtividade || a.nAtividade || a.no;
+                          const parsedNum = numStr ? parseInt(String(numStr).replace(/\D/g, ""), 10) : NaN;
+                          if (!isNaN(parsedNum) && parsedNum > max) return parsedNum;
+
+                          const ref = String(a.referencia || a.codigoAtividade || "");
+                          const match = ref.match(/\/(\d+)(\/|$)/);
+                          const num = match ? parseInt(match[1], 10) : 0;
+                          return num > max ? num : max;
+                        }, 0);
+
+                        const directVal = data.numeroAtividade || data.nAtividade || data.no;
+                        if (directVal) {
+                          const parsed = parseInt(String(directVal).replace(/\D/g, ""), 10);
+                          const isColliding = sectorActs.some((a: any) => {
+                            const aNum = parseInt(String(a.numeroAtividade || a.nAtividade || a.no).replace(/\D/g, ""), 10);
+                            return aNum === parsed;
+                          });
+                          if (!isNaN(parsed) && parsed > 0 && !isColliding) {
+                            return String(parsed).padStart(3, "0");
+                          }
+                        }
+
+                        return String(maxNumber + 1).padStart(3, "0");
+                      })();
+
+                      const dirInitials = getDirectionAbbreviation(
+                        data.unidadeSelecionada || data.direcao || editingActivity?.direcao || user?.direcao || "Songo"
+                      ).toUpperCase();
+                      const sectorOrDept = resolvedSector || data.departamento || "Geral";
+                      const deptInitials = getDepartmentAbbreviation(sectorOrDept).toUpperCase();
+                      const actTitle = data.nomeAtividade || data.title || "ACT";
+                      const actInitials = getActivityInitials(actTitle);
+
+                      const resolvedCode = (data.codigoAtividade && !data.codigoAtividade.includes("/000/"))
+                        ? data.codigoAtividade.toUpperCase()
+                        : (!data._forceNewRecord && editingActivity?.referencia)
+                          ? editingActivity.referencia
+                          : [
+                              dirInitials !== "-" ? dirInitials : "Songo",
+                              deptInitials !== "-" ? deptInitials : "Geral",
+                              resolvedNo,
+                              actInitials,
+                            ].filter(Boolean).join("/");
+
                       const activity: any = {
                         ...data,
                         id:
@@ -7266,97 +7473,41 @@ export default function PlanoWorkflowView({
                           (data._forceNewRecord ? undefined : editingActivity?.createdAt) ||
                           new Date().toISOString(),
                         createdBy:
-                          (data._forceNewRecord ? undefined : editingActivity?.createdBy) || user?.email || "",
+                          (data._forceNewRecord ? undefined : editingActivity?.createdBy) || user?.email || user?.nome || "",
+                        emailCriador:
+                          (data._forceNewRecord ? undefined : editingActivity?.emailCriador) || user?.email || "",
                         createdByName:
                           (data._forceNewRecord ? undefined : editingActivity?.createdByName) ||
                           user?.nome ||
                           user?.name ||
                           user?.displayName ||
                           "",
+                        autor:
+                          (data._forceNewRecord ? undefined : editingActivity?.autor) ||
+                          user?.nome ||
+                          user?.name ||
+                          user?.displayName ||
+                          "",
+                        autorEmail:
+                          (data._forceNewRecord ? undefined : editingActivity?.autorEmail) || user?.email || "",
+                        planificadoPor:
+                          (data._forceNewRecord ? undefined : editingActivity?.planificadoPor) ||
+                          user?.nome ||
+                          user?.name ||
+                          user?.displayName ||
+                          user?.email ||
+                          "",
+                        userId:
+                          (data._forceNewRecord ? undefined : editingActivity?.userId) || user?.uid || user?.id || "",
+                        userUid:
+                          (data._forceNewRecord ? undefined : editingActivity?.userUid) || user?.uid || user?.id || "",
                         nuit: (data._forceNewRecord ? undefined : editingActivity?.nuit) || user?.nuit || "",
-                        no: (() => {
-                          if (data.nAtividade || data.no) return String(data.nAtividade || data.no).padStart(3, "0");
-                          if (!data._forceNewRecord && editingActivity?.no) return editingActivity.no;
-
-                          const specificArea = 
-                            data.setor || 
-                            data.reparticao || 
-                            data.departamento || 
-                            data.direcao || 
-                            data.selectedCategory || 
-                            title ||
-                            "Songo";
-
-                          const areaActivities = rawActivities.filter(
-                            (a: any) => {
-                              const actArea = `${a.direcao} ${a.departamento} ${a.reparticao} ${a.setor}`.toLowerCase();
-                              return actArea.includes(specificArea.toLowerCase()) && 
-                                (a.ano || new Date().getFullYear()) === selectedYear;
-                            }
-                          );
-
-                          const maxNumber = areaActivities.reduce(
-                            (max: number, a: any) => {
-                              const numStr = a.numeroAtividade || a.nAtividade || a.no;
-                              const parsedNum = numStr ? parseInt(String(numStr).replace(/\D/g, ""), 10) : NaN;
-                              if (!isNaN(parsedNum)) return parsedNum > max ? parsedNum : max;
-
-                              const ref = String(a.referencia || a.codigoAtividade || "");
-                              const match = ref.match(/\/(\d{3})\//) || ref.match(/\/(\d+)\//);
-                              const num = match ? parseInt(match[1], 10) : 0;
-                              return num > max ? num : max;
-                            },
-                            0,
-                          );
-
-                          return String(maxNumber + 1).padStart(3, "0");
-                        })(),
-                        referencia: (() => {
-                          if (data.codigoAtividade && !data.codigoAtividade.includes("/000/"))
-                            return data.codigoAtividade.toUpperCase();
-                          if (!data._forceNewRecord && editingActivity?.referencia)
-                            return editingActivity.referencia;
-                          
-                          const specificArea = 
-                            data.setor || 
-                            data.reparticao || 
-                            data.departamento || 
-                            data.direcao || 
-                            data.selectedCategory || 
-                            title ||
-                            "Songo";
-
-                          const areaActivities = rawActivities.filter(
-                            (a: any) => {
-                              const actArea = `${a.direcao} ${a.departamento} ${a.reparticao} ${a.setor}`.toLowerCase();
-                              return actArea.includes(specificArea.toLowerCase()) && 
-                                (a.ano || new Date().getFullYear()) === selectedYear;
-                            }
-                          );
-
-                          const maxNumber = areaActivities.reduce(
-                            (max: number, a: any) => {
-                              const numStr = a.numeroAtividade || a.nAtividade || a.no;
-                              const parsedNum = numStr ? parseInt(String(numStr).replace(/\D/g, ""), 10) : NaN;
-                              if (!isNaN(parsedNum)) return parsedNum > max ? parsedNum : max;
-
-                              const ref = String(a.referencia || a.codigoAtividade || "");
-                              const match = ref.match(/\/(\d{3})\//) || ref.match(/\/(\d+)\//);
-                              const num = match ? parseInt(match[1], 10) : 0;
-                              return num > max ? num : max;
-                            },
-                            0,
-                          );
-
-                          const nextNumber = String(maxNumber + 1).padStart(3, "0");
-
-                          const dirInitials = (data.unidadeSelecionada || data.direcao || "Songo").substring(0, 3).toUpperCase();
-                          const deptInitials = specificArea.substring(0, 4).toUpperCase();
-                          const actTitle = data.nomeAtividade || data.title || "ACT";
-                          const actInitials = actTitle.replace(/[^a-zA-Z]/g, "").substring(0, 3).toUpperCase() || "ACT";
-
-                          return `${dirInitials}/${deptInitials}/${nextNumber}/${actInitials}`;
-                        })(),
+                        no: resolvedNo,
+                        numeroAtividade: resolvedNo,
+                        nAtividade: resolvedNo,
+                        referencia: resolvedCode,
+                        codigoAtividade: resolvedCode,
+                        setor: resolvedSector,
                         title:
                           data.nomeAtividade || data.title || "Nova Atividade",
                         direcao:
@@ -7458,17 +7609,6 @@ export default function PlanoWorkflowView({
                         precoLitro: Number(data.precoLitro || 0),
                         valorTotalGasoleo: Number(data.valorTotalGasoleo || 0),
                         prioridadeProposta: data.prioridadeProposta || "",
-                        codigoAtividade: data.codigoAtividade || "",
-                        setor:
-                          data.setor ||
-                          data.reparticao ||
-                          editingActivity?.setor ||
-                          user?.setor ||
-                          user?.sector ||
-                          user?.seccao ||
-                          user?.reparticao ||
-                          title ||
-                          "Setor Geral",
                         curso: data.curso || "",
                         requiresUpdate: false,
                         ano: (editingActivity && editingActivity.id && !data._forceNewRecord)
@@ -7485,7 +7625,7 @@ export default function PlanoWorkflowView({
                           "PlanoWorkflowView: Processando atividade:",
                           activity.title,
                         );
-                        if (editingActivity && editingActivity.id && !data._forceNewRecord) {
+                        if (editingActivity && editingActivity.id && !data._forceNewRecord && !initialData?._forceNewRecord) {
                           console.log(
                             "PlanoWorkflowView: Atualizando atividade existente ID:",
                             editingActivity.id,
@@ -7498,101 +7638,7 @@ export default function PlanoWorkflowView({
                             "PlanoWorkflowView: Atividade atualizada no Firestore.",
                           );
 
-                          // Sincronizar atualizações com outras cópias da mesma atividade nas diferentes etapas do fluxo
-                          try {
-                            console.log(
-                              "PlanoWorkflowView: Iniciando sincronização de cópias...",
-                            );
-                            const {
-                              id,
-                              status,
-                              submetido,
-                              createdAt,
-                              ...fieldsToUpdate
-                            } = activity;
-                            const relatedCopies = rawActivities.filter((a) => {
-                              if (a.id === editingActivity.id) return false;
-                              if ((a.ano || 2026) !== (activity.ano || 2026))
-                                return false;
-
-                              const sameRef =
-                                activity.referencia &&
-                                a.referencia &&
-                                activity.referencia === a.referencia;
-                              const sameCode =
-                                activity.codigoAtividade &&
-                                a.codigoAtividade &&
-                                activity.codigoAtividade === a.codigoAtividade;
-                              const sameNumAndSector =
-                                activity.no === a.no &&
-                                (activity.setor ||
-                                  activity.reparticao ||
-                                  "") === (a.setor || a.reparticao || "") &&
-                                (activity.departamento || "") ===
-                                  (a.departamento || "");
-                              const sameTitleAndSector =
-                                activity.title &&
-                                a.title &&
-                                activity.title === a.title &&
-                                (activity.setor ||
-                                  activity.reparticao ||
-                                  "") === (a.setor || a.reparticao || "") &&
-                                (activity.departamento || "") ===
-                                  (a.departamento || "");
-
-                              return (
-                                sameRef ||
-                                sameCode ||
-                                sameNumAndSector ||
-                                sameTitleAndSector
-                              );
-                            });
-
-                            if (relatedCopies.length > 0) {
-                              console.log(
-                                `PlanoWorkflowView: Sincronizando ${relatedCopies.length} cópias em background.`,
-                              );
-                              // Sincronização em background para não bloquear a UI
-                              Promise.all(
-                                relatedCopies.map((copy) =>
-                                  firestoreService.matrixActivities.update(
-                                    copy.id,
-                                    fieldsToUpdate,
-                                  ),
-                                ),
-                              )
-                                .then(() => {
-                                  console.log(
-                                    `Sincronizadas ${relatedCopies.length} cópias da atividade.`,
-                                  );
-                                })
-                                .catch((syncErr) => {
-                                  console.error(
-                                    "Erro ao sincronizar cópias em background:",
-                                    syncErr,
-                                  );
-                                });
-
-                              // Atualizar imediatamente o estado local para as cópias
-                              setRawActivities((prev) =>
-                                prev.map((a) => {
-                                  const isCopy = relatedCopies.some(
-                                    (c) => c.id === a.id,
-                                  );
-                                  if (isCopy)
-                                    return { ...a, ...fieldsToUpdate };
-                                  return a;
-                                }),
-                              );
-                            }
-                          } catch (syncErr) {
-                            console.error(
-                              "Erro ao sincronizar cópias:",
-                              syncErr,
-                            );
-                          }
-
-                          // Atualizar estado local da atividade principal APÓS sincronização
+                          // Atualizar estado local da atividade principal
                           setRawActivities((prev) =>
                             prev.map((a) =>
                               a.id === editingActivity.id ? activity : a,
@@ -7624,7 +7670,12 @@ export default function PlanoWorkflowView({
                             ...activity,
                             id: newId || activity.id,
                           };
-                          setRawActivities((prev) => { if (prev.some(a => a.id === savedActivity.id)) { return prev.map(a => a.id === savedActivity.id ? savedActivity : a); } return [savedActivity, ...prev]; });
+                          setRawActivities((prev) => {
+                            if (prev.some((a) => a.id === savedActivity.id)) {
+                              return prev.map((a) => (a.id === savedActivity.id ? savedActivity : a));
+                            }
+                            return [savedActivity, ...prev];
+                          });
 
                           console.log(
                             "PlanoWorkflowView: Fechando formulário.",
@@ -7948,207 +7999,22 @@ export default function PlanoWorkflowView({
               </div>
             )}
 
-            {/* MODAL DE TRAMITAÇÃO E ASSINATURA */}
-            <AnimatePresence>
-              {showTramitacaoModal && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[110] flex items-center justify-center p-4"
-                >
-                  <motion.div
-                    initial={{ scale: 0.95, y: 20 }}
-                    animate={{ scale: 1, y: 0 }}
-                    exit={{ scale: 0.95, y: 20 }}
-                    className="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] border border-slate-100 flex flex-col"
-                  >
-                    <div className="p-8 border-b border-slate-100 bg-gradient-to-br from-slate-50 to-white">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-200">
-                          <Send size={20} />
-                        </div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                          Submeter o Plano de Atividade
-                        </h3>
-                      </div>
-                      <p className="text-sm font-bold text-slate-500">
-                        O plano será submetido automaticamente para o seu superior hierárquico conforme o enquadramento.
-                      </p>
-                    </div>
-
-                    <div className="p-8 space-y-6">
-                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-                        <div className="p-1.5 bg-amber-500 text-white rounded-lg shrink-0 mt-0.5">
-                          <Info size={14} />
-                        </div>
-                        <p className="text-[11px] text-amber-900 font-bold leading-relaxed">
-                          Ao confirmar, o sistema registrará sua assinatura digital
-                          (<strong>{user?.nome || user?.email}</strong>) e enviará o 
-                          plano para o gabinete selecionado.
-                        </p>
-                      </div>
-
-                      <div className="space-y-3">
-                        <label className="text-[11px] font-black text-slate-500  tracking-widest ml-1">
-                          Destinatário Oficial (Gabinete / Setor)
-                        </label>
-                        <select
-                          value={selectedDestinatario}
-                          onChange={(e) => setSelectedDestinatario(e.target.value)}
-                          className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 focus:border-blue-500 focus:ring-0 outline-none text-sm font-bold transition-all bg-slate-50 hover:bg-white"
-                        >
-                          <option value="">Selecione o Gabinete / Setor</option>
-                          {(() => {
-                            let options: string[] = [];
-
-                            const fromSt = workflowToProcess?.fromStatus;
-                            const toSt = workflowToProcess?.toStatus;
-
-                            // 1. Se for o setor ao escolher submeter -> Lista dos setores da sua Direção
-                            if (selectedRoleMode === "Setor" || fromSt === "setorial" || fromSt === "reparticao") {
-                              const userDir = (user?.direcao || user?.departamento || "").toLowerCase().trim();
-                              const setoresDaDirecao = LISTA_SETORES_DESTINATARIOS
-                                .filter((s) => {
-                                  if (!userDir) return true;
-                                  return (
-                                    s.setorNome.toLowerCase().includes(userDir) ||
-                                    s.descricao?.toLowerCase().includes(userDir) ||
-                                    s.responsavelCargo.toLowerCase().includes("repartição") ||
-                                    s.responsavelCargo.toLowerCase().includes("departamento") ||
-                                    s.responsavelCargo.toLowerCase().includes("direção")
-                                  );
-                                })
-                                .map((s) => s.setorNome);
-
-                              options = [
-                                user?.reparticao || "Chefe da Repartição",
-                                user?.departamento || "Chefe do Departamento",
-                                user?.direcao || "Diretor da Direção",
-                                ...setoresDaDirecao
-                              ];
-                            }
-                            // 2. Se for diretor central -> Só pode submeter à Repartição de Planificação
-                            else if (selectedRoleMode === "Direção" || selectedRoleMode === "Departamento" || fromSt === "direcao" || fromSt === "departamento" || toSt === "planificacao") {
-                              options = [
-                                "Repartição de Planificação (DPEP)",
-                                "Setor de Planificação (DPEP)",
-                                "Departamento de Planificação Estudos e Projetos (DPEP)"
-                              ];
-                            }
-                            // 3. Se for o setor de planificação -> Só submete ao Chefe do DPEP
-                            else if (selectedRoleMode === "Planificação" || fromSt === "planificacao" || toSt === "dpep_chefe") {
-                              options = [
-                                "Gabinete do Chefe do DPEP",
-                                "Chefe do Departamento de Planificação Estudos e Projetos (DPEP)"
-                              ];
-                            }
-                            // 4. Se for o chefe de DPEP -> Ao submeter, só vem Conselho de Representantes (CR, CAS e DG)
-                            else if (selectedRoleMode === "Chefe DPEP" || fromSt === "dpep_chefe" || toSt === "orgao_colegial") {
-                              options = [
-                                "Conselho de Representantes (CR, CAS e DG)",
-                                "Conselho de Direção / Órgão Colegial",
-                                "Conselho Científico e Académico (CAS)",
-                                "Gabinete do Diretor Geral (DG)"
-                              ];
-                            } else {
-                              options = GABINETES_DESTINATARIOS;
-                            }
-
-                            const validOptions = Array.from(new Set(options)).filter((o) => o && o.trim() !== "");
-                            return (
-                              <>
-                                {validOptions.map((g) => (
-                                  <option key={g} value={g}>{g}</option>
-                                ))}
-                              </>
-                            );
-                          })()}
-                        </select>
-                      </div>
-
-                      {/* CARD VISUAL DESTACADO DO SETOR E RESPONSÁVEL QUE IRÁ RECEBER */}
-                      {selectedDestinatario && (() => {
-                        const info = resolverDestinatarioSetorEResponsavel(selectedDestinatario, user, EFETIVO_GERAL_DATA);
-                        return (
-                          <div className="rounded-2xl border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/70 via-slate-50 to-white p-4 space-y-3 shadow-sm animate-in fade-in">
-                            <div className="flex items-center justify-between border-b border-blue-100 pb-2">
-                              <div className="flex items-center gap-2">
-                                <Building2 size={16} className="text-blue-700" />
-                                <span className="text-[10px] font-black uppercase tracking-wider text-blue-900">
-                                  Setor Destinatário
-                                </span>
-                              </div>
-                              <span className="px-2.5 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-md uppercase tracking-wider">
-                                {info.siglaSetor || "DESTINO"}
-                              </span>
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-black text-slate-900 leading-snug">
-                                {info.setorNome}
-                              </p>
-                              {info.descricao && (
-                                <p className="text-[11px] text-slate-500 mt-0.5">{info.descricao}</p>
-                              )}
-                            </div>
-
-                            {/* Informações do Responsável */}
-                            <div className="p-3 bg-white rounded-xl border border-blue-200/70 shadow-sm flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-                                <UserCheck size={18} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-blue-700">
-                                  Responsável a Receber:
-                                </span>
-                                <h4 className="text-xs font-black text-slate-900 truncate">
-                                  {info.responsavelNome}
-                                </h4>
-                                <p className="text-[11px] font-bold text-slate-600">
-                                  {info.responsavelCargo}
-                                </p>
-                                {info.responsavelEmail && (
-                                  <p className="text-[10px] text-slate-400 font-medium">
-                                    {info.responsavelEmail}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="flex gap-4 pt-4">
-                        <button
-                          onClick={() => {
-                            setShowTramitacaoModal(false);
-                            setSelectedDestinatario("");
-                            setWorkflowToProcess(null);
-                          }}
-                          className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 font-black text-xs  tracking-widest rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          onClick={confirmWorkflowTransition}
-                          disabled={isLoading || !selectedDestinatario}
-                          className="flex-1 px-6 py-4 bg-blue-600 text-white font-black text-xs  tracking-widest rounded-2xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-200 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-2 active:scale-95"
-                        >
-                          {isLoading ? (
-                            <RefreshCw size={16} strokeWidth={1.5} className="animate-spin" />
-                          ) : (
-                            <>
-                              <Save size={16} /> Submeter
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* MODAL OFICIAL DE ENVIO DO PLANO AO SUPERIOR HIERÁRQUICO */}
+            {modalEnvioPlanoState?.isOpen && (
+              <ModalEnvioSetorResponsavel
+                isOpen={modalEnvioPlanoState.isOpen}
+                onClose={() => setModalEnvioPlanoState(null)}
+                isLoading={isLoading}
+                user={user}
+                colaboradoresList={colaboradores}
+                defaultSetorDestino={modalEnvioPlanoState.defaultSetorDestino}
+                defaultToStatus={modalEnvioPlanoState.toStatus}
+                customTitle={`Enviar Plano do ${modalEnvioPlanoState.originLabel} para o Superior Hierárquico`}
+                itemCount={modalEnvioPlanoState.targetActivities.length}
+                itemDescription="Atividade do Plano"
+                onConfirm={handleConfirmEnvioPlanoAoSuperior}
+              />
+            )}
 
             {/* MODAL DE HISTÓRICO DE TRAMITAÇÃO / ASSINATURAS */}
             <AnimatePresence>

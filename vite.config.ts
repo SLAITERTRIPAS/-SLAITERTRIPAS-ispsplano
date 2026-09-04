@@ -19,16 +19,20 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       emptyOutDir: true,
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
-          manualChunks: {
-            "firebase-vendor": [
-              "firebase/app",
-              "firebase/firestore",
-              "firebase/auth",
-            ],
-            "ui-vendor": ["react", "react-dom", "lucide-react", "motion"],
-          },
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) {
+                return 'firebase-vendor';
+              }
+              if (id.includes('react') || id.includes('lucide') || id.includes('motion')) {
+                return 'ui-vendor';
+              }
+              return 'vendor';
+            }
+          }
         },
       },
     },

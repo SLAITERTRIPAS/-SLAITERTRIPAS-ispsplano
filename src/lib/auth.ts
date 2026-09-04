@@ -320,9 +320,26 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
   return validActivities.filter((a) => {
     if (!a) return false;
 
-    // As atividades sempre devem estar visíveis para o próprio criador
-    const creator = String(a.createdBy || a.emailCriador || "").toLowerCase().trim();
-    const isCreator = (creator && creator === uEmail) || (a.userId && uId && a.userId === uId);
+    // As atividades sempre devem estar visíveis para o próprio criador / autor / responsável
+    const creatorEmail = String(a.createdBy || a.emailCriador || a.autorEmail || a.responsavelEmail || a.publicadoPorEmail || "").toLowerCase().trim();
+    const creatorName = String(a.createdByName || a.autor || a.autorNome || a.planificadoPor || a.criadoPor || a.publicadoPorNome || "").toLowerCase().trim();
+    const actResponsavel = String(a.responsavel || "").toLowerCase().trim();
+    const creatorNuit = String(a.nuit || a.nuitCriador || "").trim();
+    const actUserId = String(a.userId || a.userUid || a.uid || "").trim();
+    
+    const uName = String(user.nome || user.name || user.displayName || "").toLowerCase().trim();
+    const uNuit = String(user.nuit || "").trim();
+    const uIdStr = String(uId || "").trim();
+    
+    const isCreator =
+      (creatorEmail && uEmail && (creatorEmail === uEmail || creatorEmail.includes(uEmail) || uEmail.includes(creatorEmail))) ||
+      (actUserId && uIdStr && actUserId === uIdStr) ||
+      (creatorNuit && uNuit && creatorNuit === uNuit) ||
+      (creatorName && uName && (creatorName === uName || creatorName.includes(uName) || uName.includes(creatorName))) ||
+      (actResponsavel && uName && (actResponsavel === uName || actResponsavel.includes(uName) || uName.includes(actResponsavel))) ||
+      (String(a.createdBy || "").toLowerCase().trim() === uName) ||
+      (String(a.createdBy || "").toLowerCase().trim() === uEmail);
+
     if (isCreator) return true;
 
     // Administrador de Sistema tem acesso total para suporte e manutenção
@@ -498,15 +515,12 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
     }
 
     // Se o utilizador tem cargo de chefia (Director, Chefe de Departamento, Chefe de Repartição),
-    // apenas vê atividades recebidas na hierarquia da sua área que já atingiram o nível de submissão do seu cargo
+    // ele deve poder visualizar TODAS as atividades da sua hierarquia para monitoria,
+    // independentemente do nível de submissão (status), conforme solicitado pelo utilizador ("não devem estar ocultas").
     const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
-    if (roles.isDC || roles.isCD || roles.isCR || roles.isDG) {
-      const reqLevel = getUserRequiredStatusLevel(user);
-      const actLevel = getActivityStatusLevel(a.status);
-      if (actLevel >= reqLevel) {
-        if (canAccessArea(user, a.direcao || "", a.departamento || "", a.setor || a.reparticao || "", a)) {
-          return true;
-        }
+    if (roles.isDC || roles.isCD || roles.isCR || roles.isDG || isDPEPUser || isMonitoriaUser) {
+      if (canAccessArea(user, a.direcao || "", a.departamento || "", a.setor || a.reparticao || "", a)) {
+        return true;
       }
     }
 

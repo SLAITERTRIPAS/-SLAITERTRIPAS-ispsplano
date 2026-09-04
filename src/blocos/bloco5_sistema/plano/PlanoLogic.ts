@@ -54,6 +54,21 @@ export const isDepartmentMatch = (deptA?: any, deptB?: any): boolean => {
   return a === b;
 };
 
+export const isSectorMatch = (secA?: any, secB?: any): boolean => {
+  if (!secA || !secB) return false;
+  const norm = (s: any) =>
+    String(s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/^(setor|reparticao)\s+(de\s+|da\s+|dos\s+|do\s+)?/i, "")
+      .trim();
+  const a = norm(secA);
+  const b = norm(secB);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+};
+
 export const getDirectionKeysMatched = (
   dirTitle: string = "",
   userDept: string = "",

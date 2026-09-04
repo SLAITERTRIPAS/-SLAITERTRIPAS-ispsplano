@@ -137,20 +137,22 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                   type="text"
                   defaultValue={
                     getActivityDisplayNo(activity) ??
-                    (index !== undefined ? index + 1 : "-")
+                    (index !== undefined ? String(index + 1).padStart(3, "0") : "001")
                   }
-                  className="w-8 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-500 rounded font-bold cursor-text p-0 text-xs"
+                  className="w-10 text-center bg-transparent border-none focus:ring-2 focus:ring-blue-500 rounded font-bold cursor-text p-0 text-xs font-mono"
                   onClick={(e) => e.stopPropagation()}
                   onBlur={async (e) => {
                     const newVal = e.target.value.trim();
                     if (newVal && newVal !== getActivityDisplayNo(activity)) {
-                      const newNo = newVal.padStart(3, "0");
+                      const parsed = parseInt(newVal.replace(/[^\d]/g, ""), 10);
+                      const newNo = !isNaN(parsed) && parsed > 0 ? String(parsed).padStart(3, "0") : newVal;
 
                       const dirInitials = getDirectionAbbreviation(
                         activity.direcao || activity.unidadeOrganica || "Songo",
                       ).toUpperCase();
+                      const sectorOrDept = activity.setor || activity.reparticao || activity.departamento || "Geral";
                       const deptInitials = getDepartmentAbbreviation(
-                        activity.departamento,
+                        sectorOrDept,
                       ).toUpperCase();
                       const actInitials = getActivityInitials(
                         activity.nomeAtividade ||
@@ -187,8 +189,10 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                   }}
                 />
               ) : (
-                (getActivityDisplayNo(activity) ??
-                (index !== undefined ? index + 1 : "-"))
+                <span className="font-mono font-bold">
+                  {getActivityDisplayNo(activity) ??
+                    (index !== undefined ? String(index + 1).padStart(3, "0") : "001")}
+                </span>
               )}
             </td>
             {/* Nº Direção */}

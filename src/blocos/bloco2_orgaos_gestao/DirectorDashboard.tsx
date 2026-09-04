@@ -1204,7 +1204,7 @@ export default function DirectorDashboard({
 
     if (
       activeItem === "Gestão de Fornecedores" ||
-      activeItem === "Registo de Fornecedores"
+      activeItem === "Fornecedores"
     ) {
       return (
         <div className="absolute inset-0 bg-white z-50 flex flex-col">
@@ -1212,12 +1212,17 @@ export default function DirectorDashboard({
             onBack={handleBack}
             suppliers={suppliers || []}
             onAddSupplier={() => navigateTo("SupplierRegistration")}
+            onShowAlert={onShowAlert}
           />
         </div>
       );
     }
 
     if (
+      activeItem === "Registo de Fornecedores" ||
+      activeItem === "Registo de Fornecedor" ||
+      activeItem === "Formulário de Registo de Fornecedores" ||
+      activeItem === "Formulário de Registo de Fornecedor" ||
       activeItem === "SupplierRegistration" ||
       activeItem === "UGEA_SupplierForm"
     ) {
@@ -1225,8 +1230,8 @@ export default function DirectorDashboard({
         <div className="absolute inset-0 bg-white z-50 flex flex-col">
           <UGEA_SupplierRegistrationForm
             onBack={handleBack}
-            onSubmit={(supplierData) => {
-              firestoreService.suppliers.add(supplierData);
+            onSubmit={async (supplierData) => {
+              await firestoreService.suppliers.add(supplierData);
               onShowAlert("Fornecedor registado com sucesso!");
               handleBack();
             }}

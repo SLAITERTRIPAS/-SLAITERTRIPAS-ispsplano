@@ -15,7 +15,7 @@ import { isSuperBossUser, getUserWorkspace } from "../lib/auth";
 
 // Lazy loading heavy views
 const SistemaView = lazy(() => import("../blocos/bloco5_sistema/SistemaView"));
-const DirectorDashboard = lazy(() => import("../blocos/bloco2_orgaos_gestao/DirectorDashboard"));
+import DirectorDashboard from "../blocos/bloco2_orgaos_gestao/DirectorDashboard";
 const ReposicaoTesteView = lazy(() => import("../blocos/bloco3_unidades_organicas/ReposicaoTesteView"));
 const WorkflowRequisicaoView = lazy(() => import("../blocos/bloco5_sistema/WorkflowRequisicaoView"));
 const MatrixView = lazy(() => import("../blocos/bloco5_sistema/MatrixView"));
@@ -622,21 +622,31 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
       );
 
     case "supplier_management":
+    case "suppliers":
       return (
         <UGEA_SupplierManagementView
           onBack={goBack}
-          onAddSupplier={() => onSetView("supplier_form")}
-          suppliers={suppliers}
+          onAddSupplier={() => (onSetView ? onSetView("supplier_form") : undefined)}
+          suppliers={suppliers || []}
+          onShowAlert={onShowAlert}
         />
       );
 
     case "supplier_form":
+    case "ugea_supplier_form":
       return (
         <UGEA_SupplierRegistrationForm
-          onBack={() => onSetView("supplier_management")}
+          onBack={() => (onSetView ? onSetView("supplier_management") : goBack())}
           onSubmit={async (s) => {
             await firestoreService.suppliers.add(s);
-            onSetView("supplier_management");
+            if (onShowAlert) {
+              onShowAlert("Fornecedor registado com sucesso!", "success");
+            }
+            if (onSetView) {
+              onSetView("supplier_management");
+            } else {
+              goBack();
+            }
           }}
         />
       );
@@ -834,15 +844,6 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
           initialTab="Histórico de Documentos"
           activities={matrixActivities}
           onNavigate={(item) => onSetView(item)}
-        />
-      );
-
-    case "suppliers":
-      return (
-        <UGEA_SupplierManagementView
-          onBack={goBack}
-          onAddSupplier={() => onSetView("supplier_form")}
-          suppliers={suppliers}
         />
       );
 

@@ -45,6 +45,14 @@ import * as XLSX from "xlsx";
 import MonografiaView from "../bloco3_unidades_organicas/MonografiaView";
 import ReportsView from "../bloco7_relatorios/ReportsView";
 import SystemRegistrationForm from "../bloco5_sistema/SystemRegistrationForm";
+import UniversalRegistrationPicker from "./UniversalRegistrationPicker";
+import RegistarGraduadoForm from "../bloco8_gerais/RegistarGraduadoForm";
+import RegistarMateriaisBensForm from "../bloco8_gerais/RegistarMateriaisBensForm";
+import RegistarEspacoFisicoForm from "../bloco8_gerais/RegistarEspacoFisicoForm";
+import RegistarEfetivoEscolarForm from "../bloco8_gerais/RegistarEfetivoEscolarForm";
+import RegistarFuncionarioForm from "../bloco8_gerais/RegistarFuncionarioForm";
+import RegistarDisciplinaForm from "../bloco8_gerais/RegistarDisciplinaForm";
+import RegistarFornecedorForm from "../bloco8_gerais/RegistarFornecedorForm";
 import { firestoreService } from "../../lib/firestoreService";
 import { EFETIVO_GERAL_DATA } from "../../constants/colaboradoresList";
 import MainHeader from "../bloco1_apresentacao/MainHeader";
@@ -112,6 +120,7 @@ export default function SistemaView({
   const [isMenuOpen, setIsMenuOpen] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeItem, setActiveItem] = useState("Sobre o Sistema");
+  const [registrationFormType, setRegistrationFormType] = useState<string | null>(null);
 
   const canManageUsers =
     isSuperBossUser(user) ||
@@ -666,6 +675,12 @@ export default function SistemaView({
     }
   };
  
+  useEffect(() => {
+    if (activeItem !== "Registar") {
+      localStorage.setItem("sigep_last_active_item", activeItem);
+    }
+  }, [activeItem]);
+
   const handleClearData = async (categoriesToClear?: any[]) => {
     const confirmMessage =
       "⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL. Todos os dados das categorias selecionadas serão permanentemente excluídos da base de dados sem possibilidade de recuperação. Deseja continuar?";
@@ -843,6 +858,11 @@ export default function SistemaView({
     }
   };
 
+  const handleOpenRegistration = (type: string | null = null) => {
+    setRegistrationFormType(type);
+    setActiveItem("Registar");
+  };
+
   const renderContent = () => {
     switch (activeItem) {
       case "Diagnóstico & Autocura":
@@ -859,7 +879,7 @@ export default function SistemaView({
         return (
           <UserManagementView
             currentUser={user}
-            onRegistarClick={() => setActiveItem("Registar")}
+            onRegistarClick={() => handleOpenRegistration("user")}
           />
         );
       case "Base de Dados":
@@ -878,7 +898,7 @@ export default function SistemaView({
         return (
           <UserManagementView
             currentUser={user}
-            onRegistarClick={() => setActiveItem("Registar")}
+            onRegistarClick={() => handleOpenRegistration("user")}
           />
         );
       case "Gestão de Produtos e Preços":
@@ -886,14 +906,124 @@ export default function SistemaView({
       case "Histórico de Chefias":
         return <HistoricoChefiasView />;
       case "Registar":
+        if (registrationFormType === "user") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <SystemRegistrationForm
+                currentUser={user}
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  setActiveItem("Gestão de Utilizadores");
+                }}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "graduado") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarGraduadoForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Graduado registado com sucesso!");
+                }}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "material") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarMateriaisBensForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Material/Bem registado com sucesso!");
+                }}
+                user={user}
+                local={user?.unidadeOrganica || "ISPS"}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "espaco") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarEspacoFisicoForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Espaço físico registado com sucesso!");
+                }}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "efetivo") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarEfetivoEscolarForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Efetivo escolar registado com sucesso!");
+                }}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "disciplina") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarDisciplinaForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Disciplina registada com sucesso!");
+                }}
+                user={user}
+                onShowAlert={onShowAlert}
+              />
+            </div>
+          );
+        }
+        if (registrationFormType === "produto") {
+          return (
+             <GestaoProdutosPrecosView isAddingModeOnStart={true} />
+          );
+        }
+        if (registrationFormType === "fornecedor") {
+          return (
+            <div className="max-w-5xl mx-auto pt-8">
+              <RegistarFornecedorForm
+                onCancel={() => setRegistrationFormType(null)}
+                onSubmit={() => {
+                  setRegistrationFormType(null);
+                  onShowAlert("Fornecedor registado com sucesso!");
+                }}
+                user={user}
+                onShowAlert={onShowAlert}
+              />
+            </div>
+          );
+        }
+
+        // Determinar sugestão baseada no contexto anterior se possível
+        let contextHint = "";
+        const prevItem = localStorage.getItem("sigep_last_active_item") || "";
+        if (prevItem.includes("Utilizador")) contextHint = "user";
+        if (prevItem.includes("Produtos")) contextHint = "produto";
+        if (prevItem.includes("Património")) contextHint = "material";
+        if (prevItem.includes("Graduados")) contextHint = "graduado";
+        if (prevItem.includes("Estrutura")) contextHint = "espaco";
+
         return (
-          <div className="max-w-5xl mx-auto pt-8">
-            <SystemRegistrationForm
-              currentUser={user}
-              onCancel={() => setActiveItem("Gestão de Utilizadores")}
-              onSubmit={() => setActiveItem("Gestão de Utilizadores")}
-            />
-          </div>
+          <UniversalRegistrationPicker 
+            onSelect={(type) => setRegistrationFormType(type)}
+            contextHint={contextHint}
+          />
         );
       case "Sobre o Sistema":
         return (
@@ -1830,7 +1960,13 @@ export default function SistemaView({
                 .map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => setActiveItem(item.title)}
+                    onClick={() => {
+                      if (item.title === "Registar") {
+                        handleOpenRegistration(null);
+                      } else {
+                        setActiveItem(item.title);
+                      }
+                    }}
                     title={item.title}
                     className={`w-full flex items-center gap-4 py-4 rounded-2xl text-[11px] font-black tracking-widest transition-all ${
                       isSidebarCollapsed ? "justify-center px-2" : "px-6"

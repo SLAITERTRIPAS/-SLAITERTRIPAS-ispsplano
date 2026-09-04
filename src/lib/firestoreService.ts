@@ -1,6 +1,7 @@
 export async function wipeAllTestData() {
   const collectionsToWipe = [
     "matrix_activities",
+    "matrixActivities",
     "actividades",
     "plano_actividades",
     "plan_schedules",
@@ -9,6 +10,7 @@ export async function wipeAllTestData() {
     "notes",
     "service_requests",
     "archive_documents",
+    "archiveDocuments",
     "bolsas",
     "financial_data",
     "materiais_bens",
@@ -379,47 +381,7 @@ export async function addToCollection<T>(collectionName: string, data: T) {
   }
 
   try {
-    // 0. Verificar e excluir duplicados existentes na base de dados antes de adicionar
-    const colRef = collection(db, collectionName);
-    const existingSnap = await getDocs(colRef);
-    if (!existingSnap.empty) {
-      const nuit = String((cleanData as any).nuit || (cleanData as any).nif || "").trim();
-      const numProc = String((cleanData as any).numeroProcesso || (cleanData as any).processoNo || "").trim().toLowerCase();
-      const email = String((cleanData as any).email || "").trim().toLowerCase();
-      const codigo = String((cleanData as any).codigo || (cleanData as any).cod || "").trim().toLowerCase();
-      const nome = String((cleanData as any).nome || (cleanData as any).designacao || (cleanData as any).title || "").trim().toLowerCase();
-
-      for (const docSnap of existingSnap.docs) {
-        const existingData = docSnap.data() as any;
-        const exNuit = String(existingData.nuit || existingData.nif || "").trim();
-        const exNumProc = String(existingData.numeroProcesso || existingData.processoNo || "").trim().toLowerCase();
-        const exEmail = String(existingData.email || "").trim().toLowerCase();
-        const exCodigo = String(existingData.codigo || existingData.cod || "").trim().toLowerCase();
-        const exNome = String(existingData.nome || existingData.designacao || existingData.title || "").trim().toLowerCase();
-
-        const isDuplicate =
-          (nuit && nuit !== "---" && exNuit === nuit) ||
-          (numProc && exNumProc === numProc) ||
-          (email && exEmail === email) ||
-          (codigo && exCodigo === codigo) ||
-          (nome && exNome === nome && (collectionName === "colaboradores" || collectionName === "users"));
-
-        if (isDuplicate) {
-          // Atualizar o registo existente e remover eventuais duplicados adicionais
-          const existingId = docSnap.id;
-          const docRef = doc(db, collectionName, existingId);
-          await setDoc(docRef, {
-            ...existingData,
-            ...cleanData,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-          console.log(`⚠️ Registo duplicado evitado em ${collectionName}. Atualizado e preservado: ${existingId}`);
-          return existingId;
-        }
-      }
-    }
-
-    // 1. Gravação direta no Firestore com userId conforme solicitado
+    // Gravação direta no Firestore garantindo novo registo sempre que solicitado
     const docRef = await addDoc(collection(db, collectionName), {
       ...cleanData,
       userId,

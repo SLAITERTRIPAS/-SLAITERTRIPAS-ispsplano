@@ -53,6 +53,71 @@ export const compareDirections = (a: string, b: string): number => {
   return String(a || "").localeCompare(String(b || ""));
 };
 
+/**
+ * Ordenação estritamente numérica para planos de setor e listas de atividades.
+ * Ordena por: N/O -> Código Numérico -> Data de Criação -> Título
+ */
+export const compareActivitiesNumericOrder = (a: any, b: any): number => {
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+
+  const getNumericSeq = (x: any): number => {
+    // 1. Tentar campos diretos de número sequencial (no, numeroAtividade, nAtividade, ordem)
+    const directVals = [x.no, x.numeroAtividade, x.nAtividade, x.ordem, x.numeroDirecao];
+    for (const v of directVals) {
+      if (v !== undefined && v !== null && String(v).trim() !== "") {
+        const parsed = parseInt(String(v).replace(/[^\d]/g, ""), 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    }
+
+    // 2. Tentar extrair do código da atividade ou referência (ex: DPEP/PLAN/001/..., SDG/UGEA/1/...)
+    const ref = String(x.codigoAtividade || x.referencia || "");
+    const matchSlash = ref.match(/\/(\d+)(\/|$)/);
+    if (matchSlash) {
+      const parsed = parseInt(matchSlash[1], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    const matchN = ref.match(/N(\d+)/i);
+    if (matchN) {
+      const parsed = parseInt(matchN[1], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    const matchEnd = ref.match(/(\d+)$/);
+    if (matchEnd) {
+      const parsed = parseInt(matchEnd[1], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+
+    return 999999;
+  };
+
+  const numA = getNumericSeq(a);
+  const numB = getNumericSeq(b);
+
+  if (numA !== numB) {
+    return numA - numB;
+  }
+
+  // Desempate por texto de N/O (ex: 1A vs 1B)
+  const strNoA = String(a.no ?? a.numeroAtividade ?? a.nAtividade ?? a.numeroDirecao ?? "");
+  const strNoB = String(b.no ?? b.numeroAtividade ?? b.nAtividade ?? b.numeroDirecao ?? "");
+  if (strNoA && strNoB && strNoA !== strNoB) {
+    const compNo = strNoA.localeCompare(strNoB, undefined, { numeric: true });
+    if (compNo !== 0) return compNo;
+  }
+
+  // Desempate por data de criação / envio
+  const dateA = new Date(a.createdAt || a.dataEnvio || 0).getTime();
+  const dateB = new Date(b.createdAt || b.dataEnvio || 0).getTime();
+  if (dateA !== dateB) return dateA - dateB;
+
+  return String(a.designacao || a.title || a.nomeAtividade || "").localeCompare(
+    String(b.designacao || b.title || b.nomeAtividade || ""),
+  );
+};
+
 export const compareActivitiesStandardOrder = (
   a: any,
   b: any,
@@ -68,7 +133,23 @@ export const compareActivitiesStandardOrder = (
   const compDir = compareDirections(dirA, dirB);
   if (compDir !== 0) return compDir;
 
-  // 2. Ordem Numérica / N/O (Número de Ordem - N.º Sequencial da Atividade: 1, 2, 3...)
+  // 2. Por Departamento
+  const deptA = String(a.departamento || a.unidadeOrganica || "").trim();
+  const deptB = String(b.departamento || b.unidadeOrganica || "").trim();
+  if (deptA !== deptB) {
+    const compDept = deptA.localeCompare(deptB);
+    if (compDept !== 0) return compDept;
+  }
+
+  // 3. Por Setor / Repartição (cada setor tem a sua própria contagem sequencial isolada)
+  const sectorA = String(a.setor || a.sector || a.reparticao || "").trim();
+  const sectorB = String(b.setor || b.sector || b.reparticao || "").trim();
+  if (sectorA !== sectorB) {
+    const compSector = sectorA.localeCompare(sectorB);
+    if (compSector !== 0) return compSector;
+  }
+
+  // 4. Ordem Numérica / N/O (Número de Ordem - N.º Sequencial da Atividade: 001, 002, 003...)
   const getNoNum = (x: any) => {
     const val = x.no ?? x.numeroAtividade ?? x.nAtividade ?? x.numeroDirecao;
     if (val !== undefined && val !== null && val !== "") {
@@ -366,37 +447,57 @@ export const getLatestWorkflowActivities = (activities: any[]) => {
   return Object.values(groups);
 };
 
-export const getActivityDisplayNo = (activity: any) => {
+export const getActivityDisplayNo = (activity: any): string | null => {
   if (!activity) return null;
+
+  // 1. Procurar por campos numéricos diretos (no, numeroAtividade, nAtividade)
+  const directVals = [activity.no, activity.numeroAtividade, activity.nAtividade];
+  for (const v of directVals) {
+    if (v !== undefined && v !== null && String(v).trim() !== "") {
+      const parsed = parseInt(String(v).replace(/[^\d]/g, ""), 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        return String(parsed).padStart(3, "0");
+      }
+    }
+  }
+
   const code = String(
     activity.codigoAtividade ||
       activity.referencia ||
-      activity.nAtividade ||
       "",
   );
 
-  // 1. Procurar por padrões como /N(\d+)/ (ex: SDG/UGEA//N1/IPC)
+  // 2. Procurar por padrões como /N(\d+)/ (ex: SDG/UGEA//N1/IPC)
   const matchN = code.match(/N(\d+)/i);
   if (matchN) {
-    return parseInt(matchN[1], 10);
+    const parsed = parseInt(matchN[1], 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      return String(parsed).padStart(3, "0");
+    }
   }
 
-  // 2. Procurar por padrões como /UGEA/1/ ou números rodeados por barras (ex: SDG/UGEA/1/U1/IPC)
-  const matchSlash = code.match(/\/(\d+)\//);
+  // 3. Procurar por padrões como /UGEA/1/ ou números rodeados por barras (ex: SDG/UGEA/1/U1/IPC)
+  const matchSlash = code.match(/\/(\d+)(\/|$)/);
   if (matchSlash) {
-    return parseInt(matchSlash[1], 10);
+    const parsed = parseInt(matchSlash[1], 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      return String(parsed).padStart(3, "0");
+    }
   }
 
-  // 3. Procurar por dígitos no fim
+  // 4. Procurar por dígitos no fim
   const matchEnd = code.match(/(\d+)$/);
   if (matchEnd) {
-    return parseInt(matchEnd[1], 10);
+    const parsed = parseInt(matchEnd[1], 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      return String(parsed).padStart(3, "0");
+    }
   }
 
-  // 4. Fallback para activity.no
-  if (activity.no) {
-    const parsedNo = parseInt(activity.no, 10);
-    if (!isNaN(parsedNo)) return parsedNo;
+  // 5. Fallback para activity.no
+  if (activity.no && String(activity.no).trim() !== "") {
+    const parsedNo = parseInt(String(activity.no).replace(/[^\d]/g, ""), 10);
+    if (!isNaN(parsedNo) && parsedNo > 0) return String(parsedNo).padStart(3, "0");
     return String(activity.no).trim();
   }
 

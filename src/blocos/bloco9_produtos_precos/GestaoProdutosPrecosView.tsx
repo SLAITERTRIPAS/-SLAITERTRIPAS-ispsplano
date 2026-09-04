@@ -44,7 +44,7 @@ const CATEGORIAS_LIST = [
   "12 - Exercícios Findos",
 ];
 
-export default function GestaoProdutosPrecosView() {
+export default function GestaoProdutosPrecosView({ isAddingModeOnStart = false }: { isAddingModeOnStart?: boolean }) {
   const [products, setProducts] = useState<UnifiedProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeduplicating, setIsDeduplicating] = useState(false);
@@ -58,7 +58,7 @@ export default function GestaoProdutosPrecosView() {
 
   // Modals & Forms
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
-  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isAddingNew, setIsAddingNew] = useState(isAddingModeOnStart);
   const [newProduct, setNewProduct] = useState({
     nome: "",
     preco: 0,

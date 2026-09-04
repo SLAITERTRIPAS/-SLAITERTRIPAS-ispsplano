@@ -944,9 +944,18 @@ export default function AcaoOrcamentalView({
     sectorActivities.forEach((act) => {
       let hasProcessedRubrica = false;
 
-      // 1. Array de rúbricas cadastrado (Apenas produtos/itens expressamente planificados no plano de atividade)
+      // 1. Array de rúbricas cadastrado (Apenas produtos/itens expressamente planificados com valor monetário)
       if (Array.isArray(act.rubricas) && act.rubricas.length > 0) {
         act.rubricas.forEach((r: any) => {
+          const val = Number(
+            r.valorTotal || r.total || r.valor || r.precoTotal || r.custo || 0
+          );
+          const qty = Number(r.quantidade || r.qtd || 1);
+
+          // Excluir necessidades e itens sem valor monetário
+          if (val <= 0) return;
+
+          hasProcessedRubrica = true;
           const rawRub = (
             r.rubrica ||
             r.nomeRubrica ||
@@ -970,39 +979,31 @@ export default function AcaoOrcamentalView({
           // Normalização e Agrupamento Único de Rúbricas e Produtos/Necessidades
           const rubricaKey = rubricaStr.toUpperCase();
           const { canonicalKey, displayName, productName } = getCanonicalItemName(necessidadeStr, prodName);
-  
-  const qty = Number(r.quantidade || r.qtd || 1);
-  const val = Number(
-    r.valorTotal || r.total || r.valor || r.precoTotal || r.custo || 0
-  );
-  const pUnit = Number(r.precoUnitario || r.preco || (qty > 0 ? val / qty : 0));
+          const pUnit = Number(r.precoUnitario || r.preco || (qty > 0 ? val / qty : 0));
 
-  if (val >= 0 || qty >= 0) {
-    hasProcessedRubrica = true;
-    if (!rubricaMap[rubricaKey]) {
-      rubricaMap[rubricaKey] = {
-        rubricaName: rubricaStr,
-        totalValorRubrica: 0,
-        necessidadesMap: {},
-      };
-    }
-    rubricaMap[rubricaKey].totalValorRubrica += val;
-
-    if (!rubricaMap[rubricaKey].necessidadesMap[canonicalKey]) {
-      rubricaMap[rubricaKey].necessidadesMap[canonicalKey] = {
-        necessidadeName: displayName,
-        nomeProduto: productName,
-        quantidadeTotal: 0,
-        valorTotalNecessidade: 0,
-        atividadesCount: 0,
-        precoUnitario: pUnit,
-        especificacao: String(r.especificacao || ""),
-      };
-    }
-            rubricaMap[rubricaKey].necessidadesMap[canonicalKey].quantidadeTotal += qty;
-            rubricaMap[rubricaKey].necessidadesMap[canonicalKey].valorTotalNecessidade += val;
-            rubricaMap[rubricaKey].necessidadesMap[canonicalKey].atividadesCount += 1;
+          if (!rubricaMap[rubricaKey]) {
+            rubricaMap[rubricaKey] = {
+              rubricaName: rubricaStr,
+              totalValorRubrica: 0,
+              necessidadesMap: {},
+            };
           }
+          rubricaMap[rubricaKey].totalValorRubrica += val;
+
+          if (!rubricaMap[rubricaKey].necessidadesMap[canonicalKey]) {
+            rubricaMap[rubricaKey].necessidadesMap[canonicalKey] = {
+              necessidadeName: displayName,
+              nomeProduto: productName,
+              quantidadeTotal: 0,
+              valorTotalNecessidade: 0,
+              atividadesCount: 0,
+              precoUnitario: pUnit,
+              especificacao: String(r.especificacao || ""),
+            };
+          }
+          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].quantidadeTotal += qty;
+          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].valorTotalNecessidade += val;
+          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].atividadesCount += 1;
         });
       }
 
@@ -1059,12 +1060,16 @@ export default function AcaoOrcamentalView({
     });
 
     return Object.values(rubricaMap)
+      .filter((rub) => rub.totalValorRubrica > 0)
       .map((rub) => ({
         ...rub,
-        necessidadesList: Object.values(rub.necessidadesMap).sort(
-          (a, b) => b.valorTotalNecessidade - a.valorTotalNecessidade
-        ),
+        necessidadesList: Object.values(rub.necessidadesMap)
+          .filter((nec) => nec.valorTotalNecessidade > 0)
+          .sort(
+            (a, b) => b.valorTotalNecessidade - a.valorTotalNecessidade
+          ),
       }))
+      .filter((rub) => rub.necessidadesList.length > 0)
       .sort((a, b) => b.totalValorRubrica - a.totalValorRubrica);
   }, [sectorActivities]);
 
@@ -1584,7 +1589,7 @@ export default function AcaoOrcamentalView({
       }
     > = {};
 
-    // Se o utilizador desativar o filtro "Apenas Utilizadas", mostra todas as 36 rúbricas oficiais
+    // Se o utilizador desativar o filtro "Apenas Utilizadas", mostra todas as 36 rúbricas oficiais como cabeçalho
     if (!showOnlyNonZeroPivot) {
       OFFICIAL_SISTAFE_RUBRICAS.forEach((item) => {
         const fullLabel = `${item.code} - ${item.name}`;
@@ -1597,94 +1602,90 @@ export default function AcaoOrcamentalView({
           necessidadesList: [],
         };
       });
-
-      map["(em branco)"] = {
-        code: "999999",
-        label: "(em branco)",
-        totalQuant: 0,
-        totalValor: 0,
-        necessidadesMap: {},
-        necessidadesList: [],
-      };
     }
 
     sectorActivities.forEach((act) => {
       let hasRubrica = false;
 
+      // 1. Array de rúbricas cadastrado (Apenas itens expressamente planificados com valor monetário > 0)
       if (Array.isArray(act.rubricas) && act.rubricas.length > 0) {
         act.rubricas.forEach((r: any) => {
+          const val = Number(r.valorTotal || r.total || r.valor || r.precoTotal || 0);
+          const qty = Number(r.quantidade || r.qtd || 1);
+
+          // REQUISITO ESTRITO: Apenas necessidades com valor monetário positivo
+          if (val <= 0) return;
+
+          hasRubrica = true;
           const rubStr = String(r.rubrica || r.nomeRubrica || r.code || "").trim();
           const necStr = String(
             r.necessidade || r.descricao || r.nomeProduto || r.item || act.designacao || act.title || ""
           ).trim();
           const prodName = String(r.nomeProduto || r.especificacao || r.produto || r.item || "").trim();
-          const qty = Number(r.quantidade || r.qtd || 1);
-          const val = Number(r.valorTotal || r.total || r.valor || r.precoTotal || 0);
           const pUnit = Number(r.precoUnitario || r.preco || (qty > 0 ? val / qty : 0));
 
-          if (val >= 0 || qty >= 0) {
-            hasRubrica = true;
-            const targetLabel = getOfficialRubricaLabel(rubStr, necStr);
-            const rubKey = targetLabel.toUpperCase();
-            const { groupKey, groupName, productKey, productName } = getCanonicalGroupAndProduct(necStr, prodName);
+          const targetLabel = getOfficialRubricaLabel(rubStr, necStr);
+          const rubKey = targetLabel.toUpperCase();
+          const { groupKey, groupName, productKey, productName } = getCanonicalGroupAndProduct(necStr, prodName);
 
-            if (!map[rubKey]) {
-              map[rubKey] = {
-                code: targetLabel.substring(0, 6),
-                label: targetLabel,
-                totalQuant: 0,
-                totalValor: 0,
-                necessidadesMap: {},
-                necessidadesList: [],
-              };
-            }
-
-            map[rubKey].totalQuant += qty;
-            map[rubKey].totalValor += val;
-
-            if (!map[rubKey].necessidadesMap[groupKey]) {
-              map[rubKey].necessidadesMap[groupKey] = {
-                groupKey,
-                groupName,
-                totalQuant: 0,
-                totalValor: 0,
-                productsMap: {},
-                productsList: [],
-              };
-            }
-
-            const group = map[rubKey].necessidadesMap[groupKey];
-            group.totalQuant += qty;
-            group.totalValor += val;
-
-            if (!group.productsMap[productKey]) {
-              group.productsMap[productKey] = {
-                productKey,
-                productName,
-                quant: 0,
-                valor: 0,
-                precoUnitario: pUnit,
-                especificacao: r.especificacao || "",
-                count: 0,
-              };
-            }
-            group.productsMap[productKey].quant += qty;
-            group.productsMap[productKey].valor += val;
-            group.productsMap[productKey].count += 1;
-            if (pUnit > 0) group.productsMap[productKey].precoUnitario = pUnit;
+          if (!map[rubKey]) {
+            map[rubKey] = {
+              code: targetLabel.substring(0, 6),
+              label: targetLabel,
+              totalQuant: 0,
+              totalValor: 0,
+              necessidadesMap: {},
+              necessidadesList: [],
+            };
           }
+
+          map[rubKey].totalQuant += qty;
+          map[rubKey].totalValor += val;
+
+          if (!map[rubKey].necessidadesMap[groupKey]) {
+            map[rubKey].necessidadesMap[groupKey] = {
+              groupKey,
+              groupName,
+              totalQuant: 0,
+              totalValor: 0,
+              productsMap: {},
+              productsList: [],
+            };
+          }
+
+          const group = map[rubKey].necessidadesMap[groupKey];
+          group.totalQuant += qty;
+          group.totalValor += val;
+
+          if (!group.productsMap[productKey]) {
+            group.productsMap[productKey] = {
+              productKey,
+              productName,
+              quant: 0,
+              valor: 0,
+              precoUnitario: pUnit,
+              especificacao: r.especificacao || "",
+              count: 0,
+            };
+          }
+          group.productsMap[productKey].quant += qty;
+          group.productsMap[productKey].valor += val;
+          group.productsMap[productKey].count += 1;
+          if (pUnit > 0) group.productsMap[productKey].precoUnitario = pUnit;
         });
       }
 
+      // 2. Fallback para atividades que têm orçamento geral sem array de rúbricas detalhado
       if (!hasRubrica) {
         const val = Number(
           act.valor || act.orcamentoTotal || act.valorTotal || act.orcamento || act.custoTotal || 0
         );
         const qty = Number(act.quantidade || act.qtd || 1);
-        const rubStr = String(act.rubrica || act.categoria || "").trim();
-        const necStr = String(act.necessidade || act.designacao || act.title || "").trim();
 
-        if (val >= 0 || qty >= 0) {
+        // REQUISITO ESTRITO: Apenas se tiver valor monetário positivo
+        if (val > 0) {
+          const rubStr = String(act.rubrica || act.categoria || "").trim();
+          const necStr = String(act.necessidade || act.designacao || act.title || "").trim();
           const targetLabel = getOfficialRubricaLabel(rubStr, necStr);
           const rubKey = targetLabel.toUpperCase();
           const { groupKey, groupName, productKey, productName } = getCanonicalGroupAndProduct(necStr, "");
@@ -1735,13 +1736,17 @@ export default function AcaoOrcamentalView({
     });
 
     return Object.values(map)
-      .filter((row) => !showOnlyNonZeroPivot || row.totalValor > 0 || row.totalQuant > 0)
+      .filter((row) => (!showOnlyNonZeroPivot ? true : row.totalValor > 0))
       .map((row) => {
         const necessidadesList = Object.values(row.necessidadesMap)
+          .filter((group) => group.totalValor > 0)
           .map((group) => ({
             ...group,
-            productsList: Object.values(group.productsMap).sort((a, b) => b.valor - a.valor),
+            productsList: Object.values(group.productsMap)
+              .filter((p) => p.valor > 0)
+              .sort((a, b) => b.valor - a.valor),
           }))
+          .filter((group) => group.productsList.length > 0)
           .sort((a, b) => b.totalValor - a.totalValor);
 
         return {
@@ -1749,6 +1754,7 @@ export default function AcaoOrcamentalView({
           necessidadesList,
         };
       })
+      .filter((row) => (!showOnlyNonZeroPivot ? true : row.necessidadesList.length > 0 || row.totalValor > 0))
       .sort((a, b) => a.code.localeCompare(b.code));
   }, [sectorActivities, showOnlyNonZeroPivot]);
 

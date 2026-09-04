@@ -165,32 +165,78 @@ const getFilteredProductsForRubrica = (
   return productsList;
 };
 
+const normalizeStr = (str: any): string => {
+  if (!str) return "";
+  return String(str)
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+};
+
 function calculateNextNum(acts: any[], targetSector?: string, currentUserArea?: string): number {
   let maxNum = 0;
-  const sectorFilter = (targetSector || currentUserArea || "").trim().toLowerCase();
   
+  const isGeneric = (s: string) => {
+    const norm = normalizeStr(s);
+    return (
+      !norm ||
+      norm === "plano de atividades" ||
+      norm === "plano setorial" ||
+      norm === "plano institucional" ||
+      norm === "geral" ||
+      norm === "sistema" ||
+      norm === "diretor geral" ||
+      norm === "admin" ||
+      norm === "administrador" ||
+      norm === "songo"
+    );
+  };
+
+  const cleanTarget = !isGeneric(targetSector || "")
+    ? (targetSector || "")
+    : !isGeneric(currentUserArea || "")
+      ? (currentUserArea || "")
+      : "";
+
+  const sectorFilter = normalizeStr(cleanTarget);
+
   if (acts && Array.isArray(acts)) {
     acts.forEach((act: any) => {
-      if (sectorFilter && sectorFilter !== "plano de atividades" && sectorFilter !== "plano setorial" && sectorFilter !== "diretor geral" && sectorFilter !== "admin" && sectorFilter !== "dpep" && sectorFilter !== "geral") {
-        const actDir = String(act.direcao || "").trim().toLowerCase();
-        const actDept = String(act.departamento || act.unidadeOrganica || "").trim().toLowerCase();
-        const actRep = String(act.reparticao || "").trim().toLowerCase();
-        const actSetor = String(act.setor || act.sector || "").trim().toLowerCase();
-        const combinedActArea = `${actDir} ${actDept} ${actRep} ${actSetor}`;
-        
-        if (!combinedActArea.includes(sectorFilter) && !sectorFilter.includes(actDept) && !sectorFilter.includes(actSetor) && !sectorFilter.includes(actRep)) {
+      if (!act) return;
+
+      if (sectorFilter) {
+        const actSetor = normalizeStr(act.setor || act.sector || "");
+        const actRep = normalizeStr(act.reparticao || "");
+        const actDept = normalizeStr(act.departamento || act.unidadeOrganica || "");
+
+        const matchesSector =
+          (actSetor && (actSetor === sectorFilter || actSetor.includes(sectorFilter) || sectorFilter.includes(actSetor))) ||
+          (actRep && (actRep === sectorFilter || actRep.includes(sectorFilter) || sectorFilter.includes(actRep))) ||
+          (!actSetor && !actRep && actDept && (actDept === sectorFilter || actDept.includes(sectorFilter) || sectorFilter.includes(actDept)));
+
+        if (!matchesSector) {
           return;
         }
       }
-      const numStr = act.numeroAtividade || act.nAtividade || act.no;
-      if (numStr) {
-        const parsed = parseInt(String(numStr).replace(/\D/g, ""), 10);
-        if (!isNaN(parsed) && parsed > maxNum) {
-          maxNum = parsed;
+
+      const directVals = [act.numeroAtividade, act.nAtividade, act.no, act.ordem];
+      let foundNum = 0;
+      for (const val of directVals) {
+        if (val !== undefined && val !== null && String(val).trim() !== "") {
+          const parsed = parseInt(String(val).replace(/\D/g, ""), 10);
+          if (!isNaN(parsed) && parsed > foundNum) {
+            foundNum = parsed;
+          }
         }
+      }
+
+      if (foundNum > 0) {
+        if (foundNum > maxNum) maxNum = foundNum;
       } else {
         const ref = String(act.codigoAtividade || act.referencia || "");
-        const match = ref.match(/\/(\d{3})\//) || ref.match(/\/(\d+)\//);
+        const match = ref.match(/\/(\d+)(\/|$)/);
         if (match) {
           const parsed = parseInt(match[1], 10);
           if (!isNaN(parsed) && parsed > maxNum) {
@@ -202,16 +248,6 @@ function calculateNextNum(acts: any[], targetSector?: string, currentUserArea?: 
   }
   return maxNum + 1;
 }
-
-const normalizeStr = (str: any): string => {
-  if (!str) return "";
-  return String(str)
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-};
 
 const extractMonthsFromActivity = (act: any): string[] => {
   const months = new Set<string>();
@@ -528,7 +564,14 @@ export default function ActivityForm({
   };
 
   const [formData, setFormData] = useState<any>(() => {
-    const targetArea = sectorName || initialData?.departamento || initialData?.setor || (user ? getUserWorkspace(user) : "");
+    const targetArea =
+      initialData?.setor ||
+      initialData?.reparticao ||
+      user?.setor ||
+      user?.reparticao ||
+      sectorName ||
+      initialData?.departamento ||
+      (user ? getUserWorkspace(user) : "");
     const nextNum = calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : "");
     if (initialData) {
       return {
@@ -1754,7 +1797,14 @@ export default function ActivityForm({
       formData.departamento,
     ).toUpperCase();
 
-    const targetArea = sectorName || formData.departamento || formData.setor || (user ? getUserWorkspace(user) : "");
+    const targetArea =
+      formData.setor ||
+      formData.reparticao ||
+      user?.setor ||
+      user?.reparticao ||
+      sectorName ||
+      formData.departamento ||
+      (user ? getUserWorkspace(user) : "");
     const rawNum =
       formData.numeroAtividade || String(calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : ""));
     const parsedNum = parseInt(rawNum, 10);
@@ -2839,7 +2889,15 @@ export default function ActivityForm({
         }
 
         if (!formData.numeroAtividade) {
-          const nextNum = calculateNextNum(plannedActivitiesProp, user ? getUserWorkspace(user) : formData.departamento);
+          const targetArea =
+            formData.setor ||
+            formData.reparticao ||
+            user?.setor ||
+            user?.reparticao ||
+            sectorName ||
+            formData.departamento ||
+            (user ? getUserWorkspace(user) : "");
+          const nextNum = calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : "");
           const numStr = String(nextNum).padStart(3, "0");
           setFormData((prev) => ({
             ...prev,
@@ -2943,34 +3001,8 @@ export default function ActivityForm({
           return false;
         }
 
-        // Validação Estrita de Atividades Duplicadas (Nome, Código e Mês)
-        const dupCheckStep5 = checkActivityDuplicates(
-          formData,
-          plannedActivitiesProp?.length ? plannedActivitiesProp : plannedActivities,
-          initialData?.id
-        );
-
-        if (dupCheckStep5.isDuplicate) {
-          const dupMsg = `ALERTA: REGISTO ABORTADO!\nJá existe uma atividade registada com o mesmo nome ou código ("${dupCheckStep5.candName || formData.nomeAtividade}") no mesmo mês de realização (${dupCheckStep5.months?.join(", ") || "idêntico"}). A ação em curso foi abortada para evitar duplicidade no sistema.`;
-          setError(dupMsg);
-          setDuplicateAlert({
-            isOpen: true,
-            type: "abort",
-            title: "⚠️ REGISTO ABORTADO DEVIDO A DUPLICIDADE",
-            message: dupMsg,
-            existingActivity: dupCheckStep5.existingActivity,
-            months: dupCheckStep5.months,
-          });
-          return false;
-        }
-
-        if (dupCheckStep5.isDifferentMonth) {
-          setFormData((prev) => ({
-            ...prev,
-            classificacaoRecorrencia: "Atividade decorre em meses diferentes",
-            observacaoDuplicacao: `Atividade com mesmo nome/código registada para mês distinto (${dupCheckStep5.candMonths?.join(", ")})`,
-          }));
-        }
+        // Validação de duplicidade desativada por solicitação do usuário
+        const dupCheckStep5 = { isDuplicate: false };
 
         return true;
       case 6:
@@ -6859,41 +6891,231 @@ export default function ActivityForm({
                     mesesRealizacao: months,
                   };
 
-                  const dupCheck = checkActivityDuplicates(
-                    previewSubData,
-                    plannedActivitiesProp?.length ? plannedActivitiesProp : plannedActivities,
-                    initialData?.id
-                  );
+                  const dupCheck = { isDuplicate: false };
 
-                  if (dupCheck.isDuplicate) {
-                    const dupMsg = `ALERTA: REGISTO ABORTADO!\nJá existe uma atividade registada com o mesmo nome ou código ("${dupCheck.candName || formData.nomeAtividade}") no mesmo mês de realização (${dupCheck.months?.join(", ") || "idêntico"}). A submissão foi abortada para evitar duplicidade.`;
-                    setSubmissionError(dupMsg);
-                    setDuplicateAlert({
-                      isOpen: true,
-                      type: "abort",
-                      title: "⚠️ REGISTO ABORTADO DEVIDO A DUPLICIDADE",
-                      message: dupMsg,
-                      existingActivity: dupCheck.existingActivity,
-                      months: dupCheck.months,
-                    });
-                    return;
-                  }
-
-                  // Abrir modal com indicação visual do setor e do responsável destinatário
+                  // Guardar a atividade no plano setorial para submissão posterior (não enviar agora)
                   setSubmissionError(null);
-                  setShowModalEnvio(true);
+                  setIsSubmitting(true);
+
+                  // Limpar rascunho em background
+                  if (user?.id) {
+                    firestoreService.drafts
+                      .deleteByUserAndForm(user.id, FORM_ID)
+                      .catch(console.warn);
+                  }
+                  localStorage.removeItem(DRAFT_KEY);
+
+                  const calculateTotalActivityData = (monthsArr: string[], originalFormData: any) => {
+                    let totalDays = 0;
+                    if (monthsArr.length === 0) {
+                      totalDays = originalFormData.totalDias || 1;
+                    } else {
+                      monthsArr.forEach((m: string) => {
+                        const mDet = originalFormData.mesesDetalhes?.[m] || {};
+                        let mDays = 0;
+                        const dIni = mDet.dataInicio || "";
+                        const dFim = mDet.dataFim || "";
+                        if (dIni && dFim) {
+                          const d1 = new Date(dIni);
+                          const d2 = new Date(dFim);
+                          if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d1 <= d2) {
+                            mDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                          }
+                        }
+                        if (originalFormData.frequencia === "Anual") {
+                          mDays = 1;
+                        }
+                        totalDays += mDays;
+                      });
+                    }
+                    if (totalDays === 0) {
+                      totalDays = originalFormData.totalDias || 1;
+                    }
+
+                    const totalRubricas = (originalFormData.rubricas || []).map((rubrica: any) => {
+                      const isRubricaPessoal =
+                        rubrica.rubrica === "Ajudas de Custo" ||
+                        rubrica.rubrica === "Despesas de Deslocação" ||
+                        rubrica.rubrica === "Ajudas de Custo por Transferência";
+                      const isAjudaCustoDiretorDentro =
+                        isRubricaPessoal &&
+                        (rubrica.necessidade?.toLowerCase().includes("diretor") ||
+                          rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
+                        rubrica.necessidade?.toLowerCase().includes("dentro");
+                      const isAjudaCustoDiretorFora =
+                        isRubricaPessoal &&
+                        (rubrica.necessidade?.toLowerCase().includes("diretor") ||
+                          rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
+                        rubrica.necessidade?.toLowerCase().includes("fora");
+                      const isAjudaCustoCivilDentro =
+                        isRubricaPessoal &&
+                        rubrica.necessidade?.toLowerCase().includes("civil") &&
+                        rubrica.necessidade?.toLowerCase().includes("dentro");
+                      const isAjudaCustoCivilFora =
+                        isRubricaPessoal &&
+                        rubrica.necessidade?.toLowerCase().includes("civil") &&
+                        rubrica.necessidade?.toLowerCase().includes("fora");
+                      const isIdaVoltaGeral =
+                        isRubricaPessoal &&
+                        rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                      const isAjudaCustoMotoristaIdaVolta =
+                        isRubricaPessoal &&
+                        rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                        rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                      const isAjudaCustoMotorista =
+                        isRubricaPessoal &&
+                        rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                        !isAjudaCustoMotoristaIdaVolta &&
+                        !isIdaVoltaGeral;
+
+                      if (isAjudaCustoDiretorDentro) {
+                        const precoUnitario = 9000;
+                        const qtd = rubrica.quantidade || 0;
+                        const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                        return { ...rubrica, precoUnitario, valorTotal };
+                      }
+                      if (isAjudaCustoDiretorFora || isAjudaCustoCivilFora) {
+                        const precoUnitario = rubrica.precoUnitario || 0;
+                        const qtd = rubrica.quantidade || 0;
+                        const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                        return { ...rubrica, valorTotal };
+                      }
+                      if (isAjudaCustoCivilDentro) {
+                        const precoUnitario = 6000;
+                        const qtd = rubrica.quantidade || 0;
+                        const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                        return { ...rubrica, precoUnitario, valorTotal };
+                      }
+                      if (isIdaVoltaGeral) {
+                        const precoUnitario = 1800;
+                        const qtd = rubrica.quantidade || 1;
+                        const d = 1;
+                        const valorTotal = qtd * d * precoUnitario;
+                        return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                      }
+                      if (isAjudaCustoMotoristaIdaVolta) {
+                        const precoUnitario = 1800;
+                        const qtd = 1;
+                        const d = 2;
+                        const valorTotal = qtd * d * precoUnitario;
+                        return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                      }
+                      if (isAjudaCustoMotorista) {
+                        const precoUnitario = 1800;
+                        const qtd = 1;
+                        const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                        return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
+                      }
+                      if (isRubricaPessoal) {
+                        const precoUnitario = rubrica.precoUnitario || 0;
+                        const qtd = rubrica.quantidade || 1;
+                        const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
+                        return { ...rubrica, valorTotal };
+                      }
+                      return rubrica;
+                    });
+
+                    const totalOrcamento = totalRubricas.reduce(
+                      (acc: number, r: any) => acc + (r.valorTotal || 0),
+                      0,
+                    );
+
+                    return {
+                      totalDias: totalDays,
+                      rubricas: totalRubricas,
+                      orcamento: totalOrcamento,
+                      valor: totalOrcamento,
+                    };
+                  };
+
+                  const persistDepartmentAndProducts = (data: any) => {
+                    const dept = data.departamento || data.unidadeOrganica || currentSector || selectedCategory;
+                    if (dept) {
+                      saveDepartmentActivity(dept, data);
+                    }
+                    if (data.rubricas && Array.isArray(data.rubricas)) {
+                      data.rubricas.forEach((r: any) => collectProductFromRubric(r));
+                    }
+                  };
+
+                  const userSetor = user?.setor || user?.sector || user?.seccao || "";
+                  const userRep = user?.reparticao || "";
+                  const userDept = user?.departamento || "";
+                  const userDir = user?.direcao || user?.servicoCentral || "";
+                  const userUnidade = user?.unidadeOrganica || user?.unidade || "";
+
+                  const finalSetor = formData.setor || formData.reparticao || userSetor || userRep || sectorName || currentSector || "Setor Geral";
+                  const finalReparticao = formData.reparticao || formData.setor || userRep || userSetor || sectorName || currentSector || "Repartição Geral";
+                  const isUgeaArea = 
+                    String(userDept || "").toLowerCase().includes("ugea") ||
+                    String(userDept || "").toLowerCase().includes("aquisi") ||
+                    String(formData.departamento || "").toLowerCase().includes("ugea") ||
+                    String(formData.departamento || "").toLowerCase().includes("aquisi") ||
+                    String(selectedCategory || "").toLowerCase().includes("ugea") ||
+                    String(sectorName || "").toLowerCase().includes("ugea");
+                  const finalDepartamento = formData.departamento || userDept || (isUgeaArea ? "Unidade Gestora e Executora de Aquisições" : "Departamento Geral");
+                  const finalDirecao = formData.direcao || formData.unidadeSelecionada || userDir || "Direção Geral";
+                  const finalUnidade = formData.unidadeOrganica || formData.unidadeCentral || userUnidade || selectedCategory || "Songo";
+
+                  const submissionData: any = {
+                    ...formData,
+                    ...calculateTotalActivityData(months, formData),
+                    title: formData.nomeAtividade,
+                    nAtividade: formData.numeroAtividade,
+                    selectedCategory,
+                    ano: nextYear,
+                    mesesRealizacao: months,
+                    mesRealizacao: months[0] || formData.mesRealizacao || (formData as any).mes || "",
+                    setor: finalSetor,
+                    reparticao: finalReparticao,
+                    departamento: finalDepartamento,
+                    direcao: finalDirecao,
+                    unidadeOrganica: finalUnidade,
+                    unidadeSelecionada: finalDirecao,
+                    // Não enviar imediatamente: guardar no plano setorial para submissão posterior
+                    submetido: false,
+                    status: initialData?.status || formData.status || "setorial",
+                    guardadoParaSubmissaoPosterior: true,
+                    dataCriacao: initialData?.dataCriacao || new Date().toISOString(),
+                    dataAtualizacao: new Date().toISOString(),
+                    criadoPor: user?.nome || user?.name || user?.email || "Colaborador",
+                    criadoPorCargo: user?.cargo || user?.cargoChefia || "Responsável",
+                  };
+
+                  persistDepartmentAndProducts(submissionData);
+                  const submissionPromise = onSubmit(submissionData);
+
+                  await Promise.race([
+                    submissionPromise,
+                    new Promise((_, reject) =>
+                      setTimeout(
+                        () =>
+                          reject(
+                            new Error(
+                              "A gravação está a demorar mais do que o esperado. Verifique a sua ligação à internet.",
+                            ),
+                          ),
+                        25000,
+                      ),
+                    ),
+                  ]);
+
+                  onClose();
                 } catch (generalErr: any) {
-                  console.error("Erro ao validar atividade para envio:", generalErr);
-                  setSubmissionError(generalErr?.message || "Não foi possível validar a atividade. Verifique os dados inseridos.");
+                  console.error("Erro ao guardar atividade para submissão posterior:", generalErr);
+                  setSubmissionError(generalErr?.message || "Não foi possível guardar a atividade. Verifique os dados inseridos.");
+                } finally {
+                  setIsSubmitting(false);
                 }
               }}
               disabled={isSubmitting}
-              className={`w-full sm:w-auto justify-center ${isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#00a86b] hover:bg-[#008f5b]"} text-white px-10 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2`}
+              className={`w-full sm:w-auto justify-center ${isSubmitting ? "bg-gray-400 cursor-not-allowed" : "bg-[#00a86b] hover:bg-[#008f5b]"} text-white px-8 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 shadow-sm`}
+              title="Guardar a atividade no plano setorial para submissão posterior"
             >
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  A submeter...
+                  A guardar atividade...
                 </>
               ) : (
                 <>
@@ -6910,253 +7132,6 @@ export default function ActivityForm({
             </button>
           )}
         </div>
-
-        {/* Modal de Confirmação com Setor e Responsável que irá receber */}
-        <ModalEnvioSetorResponsavel
-          isOpen={showModalEnvio}
-          onClose={() => setShowModalEnvio(false)}
-          isLoading={isSubmitting}
-          user={user}
-          colaboradoresList={colaboradores}
-          defaultSetorDestino={
-            formData.departamento ||
-            formData.direcao ||
-            user?.departamento ||
-            user?.direcao ||
-            "Departamento de Planificação Estudos e Projetos (DPEP)"
-          }
-          defaultToStatus="departamento"
-          customTitle="Enviar Atividade para o Setor Hierárquico"
-          itemCount={1}
-          itemDescription="Atividade"
-          onConfirm={async (destinatario: DestinatarioInfo) => {
-            try {
-              setIsSubmitting(true);
-              setSubmissionError(null);
-
-              {
-                /* Limpar rascunho em background */
-              }
-              if (user?.id) {
-                firestoreService.drafts
-                  .deleteByUserAndForm(user.id, FORM_ID)
-                  .catch(console.warn);
-              }
-              localStorage.removeItem(DRAFT_KEY);
-
-              const months = formData.mesesRealizacao && formData.mesesRealizacao.length > 0
-                ? formData.mesesRealizacao
-                : [formData.mesRealizacao || formData.mes || ""].filter(Boolean);
-
-              const calculateTotalActivityData = (monthsArr: string[], originalFormData: any) => {
-                let totalDays = 0;
-                if (monthsArr.length === 0) {
-                  totalDays = originalFormData.totalDias || 1;
-                } else {
-                  monthsArr.forEach(m => {
-                    const mDet = originalFormData.mesesDetalhes?.[m] || {};
-                    let mDays = 0;
-                    const dIni = mDet.dataInicio || "";
-                    const dFim = mDet.dataFim || "";
-                    if (dIni && dFim) {
-                      const d1 = new Date(dIni);
-                      const d2 = new Date(dFim);
-                      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime()) && d1 <= d2) {
-                        mDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                      }
-                    }
-                    if (originalFormData.frequencia === "Anual") {
-                      mDays = 1;
-                    }
-                    totalDays += mDays;
-                  });
-                }
-                if (totalDays === 0) {
-                  totalDays = originalFormData.totalDias || 1;
-                }
-
-                const totalRubricas = (originalFormData.rubricas || []).map((rubrica: any) => {
-                  const isRubricaPessoal =
-                    rubrica.rubrica === "Ajudas de Custo" ||
-                    rubrica.rubrica === "Despesas de Deslocação" ||
-                    rubrica.rubrica === "Ajudas de Custo por Transferência";
-                  const isAjudaCustoDiretorDentro =
-                    isRubricaPessoal &&
-                    (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                      rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                    rubrica.necessidade?.toLowerCase().includes("dentro");
-                  const isAjudaCustoDiretorFora =
-                    isRubricaPessoal &&
-                    (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                      rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                    rubrica.necessidade?.toLowerCase().includes("fora");
-                  const isAjudaCustoCivilDentro =
-                    isRubricaPessoal &&
-                    rubrica.necessidade?.toLowerCase().includes("civil") &&
-                    rubrica.necessidade?.toLowerCase().includes("dentro");
-                  const isAjudaCustoCivilFora =
-                    isRubricaPessoal &&
-                    rubrica.necessidade?.toLowerCase().includes("civil") &&
-                    rubrica.necessidade?.toLowerCase().includes("fora");
-                  const isIdaVoltaGeral =
-                    isRubricaPessoal &&
-                    rubrica.necessidade?.toLowerCase().includes("ida e volta");
-                  const isAjudaCustoMotoristaIdaVolta =
-                    isRubricaPessoal &&
-                    rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                    rubrica.necessidade?.toLowerCase().includes("ida e volta");
-                  const isAjudaCustoMotorista =
-                    isRubricaPessoal &&
-                    rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                    !isAjudaCustoMotoristaIdaVolta &&
-                    !isIdaVoltaGeral;
-
-                  if (isAjudaCustoDiretorDentro) {
-                    const precoUnitario = 9000;
-                    const qtd = rubrica.quantidade || 0;
-                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                    return { ...rubrica, precoUnitario, valorTotal };
-                  }
-                  if (isAjudaCustoDiretorFora || isAjudaCustoCivilFora) {
-                    const precoUnitario = rubrica.precoUnitario || 0;
-                    const qtd = rubrica.quantidade || 0;
-                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                    return { ...rubrica, valorTotal };
-                  }
-                  if (isAjudaCustoCivilDentro) {
-                    const precoUnitario = 6000;
-                    const qtd = rubrica.quantidade || 0;
-                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                    return { ...rubrica, precoUnitario, valorTotal };
-                  }
-                  if (isIdaVoltaGeral) {
-                    const precoUnitario = 1800;
-                    const qtd = rubrica.quantidade || 1;
-                    const d = 1;
-                    const valorTotal = qtd * d * precoUnitario;
-                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                  }
-                  if (isAjudaCustoMotoristaIdaVolta) {
-                    const precoUnitario = 1800;
-                    const qtd = 1;
-                    const d = 2;
-                    const valorTotal = qtd * d * precoUnitario;
-                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                  }
-                  if (isAjudaCustoMotorista) {
-                    const precoUnitario = 1800;
-                    const qtd = 1;
-                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                    return { ...rubrica, precoUnitario, quantidade: qtd, valorTotal };
-                  }
-                  if (isRubricaPessoal) {
-                    const precoUnitario = rubrica.precoUnitario || 0;
-                    const qtd = rubrica.quantidade || 1;
-                    const valorTotal = qtd * totalDays * precoUnitario + 0.3 * precoUnitario * qtd;
-                    return { ...rubrica, valorTotal };
-                  }
-                  return rubrica;
-                });
-
-                const totalOrcamento = totalRubricas.reduce(
-                  (acc: number, r: any) => acc + (r.valorTotal || 0),
-                  0,
-                );
-
-                return {
-                  totalDias: totalDays,
-                  rubricas: totalRubricas,
-                  orcamento: totalOrcamento,
-                  valor: totalOrcamento,
-                };
-              };
-
-              const persistDepartmentAndProducts = (data: any) => {
-                const dept = data.departamento || data.unidadeOrganica || currentSector || selectedCategory;
-                if (dept) {
-                  saveDepartmentActivity(dept, data);
-                }
-                if (data.rubricas && Array.isArray(data.rubricas)) {
-                  data.rubricas.forEach((r: any) => collectProductFromRubric(r));
-                }
-              };
-
-              const userSetor = user?.setor || user?.sector || user?.seccao || "";
-              const userRep = user?.reparticao || "";
-              const userDept = user?.departamento || "";
-              const userDir = user?.direcao || user?.servicoCentral || "";
-              const userUnidade = user?.unidadeOrganica || user?.unidade || "";
-
-              const finalSetor = formData.setor || formData.reparticao || userSetor || userRep || sectorName || currentSector || "Setor Geral";
-              const finalReparticao = formData.reparticao || formData.setor || userRep || userSetor || sectorName || currentSector || "Repartição Geral";
-              const isUgeaArea = 
-                String(userDept || "").toLowerCase().includes("ugea") ||
-                String(userDept || "").toLowerCase().includes("aquisi") ||
-                String(formData.departamento || "").toLowerCase().includes("ugea") ||
-                String(formData.departamento || "").toLowerCase().includes("aquisi") ||
-                String(selectedCategory || "").toLowerCase().includes("ugea") ||
-                String(sectorName || "").toLowerCase().includes("ugea");
-              const finalDepartamento = formData.departamento || userDept || (isUgeaArea ? "Unidade Gestora e Executora de Aquisições" : "Departamento Geral");
-              const finalDirecao = formData.direcao || formData.unidadeSelecionada || userDir || "Direção Geral";
-              const finalUnidade = formData.unidadeOrganica || formData.unidadeCentral || userUnidade || selectedCategory || "Songo";
-
-              const submissionData: any = {
-                ...formData,
-                ...calculateTotalActivityData(months, formData),
-                title: formData.nomeAtividade,
-                nAtividade: formData.numeroAtividade,
-                selectedCategory,
-                ano: nextYear,
-                mesesRealizacao: months,
-                mesRealizacao: months[0] || formData.mesRealizacao || (formData as any).mes || "",
-                setor: finalSetor,
-                reparticao: finalReparticao,
-                departamento: finalDepartamento,
-                direcao: finalDirecao,
-                unidadeOrganica: finalUnidade,
-                unidadeSelecionada: finalDirecao,
-                // Dados explícitos de tramitação e envio
-                submetido: true,
-                status: "departamento",
-                enviadoParaSetor: destinatario.setorNome,
-                destinatarioSetor: destinatario.setorNome,
-                destinatario: destinatario.responsavelNome,
-                destinatarioCargo: destinatario.responsavelCargo,
-                destinatarioEmail: destinatario.responsavelEmail,
-                currentGabinete: destinatario.setorNome,
-                dataEnvio: new Date().toISOString(),
-                enviadoPor: user?.nome || user?.name || user?.email || "Colaborador",
-                enviadoPorCargo: user?.cargo || user?.cargoChefia || "Responsável",
-              };
-
-              persistDepartmentAndProducts(submissionData);
-              const submissionPromise = onSubmit(submissionData);
-
-              await Promise.race([
-                submissionPromise,
-                new Promise((_, reject) =>
-                  setTimeout(
-                    () =>
-                      reject(
-                        new Error(
-                          "A submissão está a demorar mais do que o esperado. Verifique a sua ligação à internet.",
-                        ),
-                      ),
-                    25000,
-                  ),
-                ),
-              ]);
-
-              setShowModalEnvio(false);
-              onClose();
-            } catch (err: any) {
-              console.error("Erro na submissão com responsável:", err);
-              setSubmissionError(err?.message || "Ocorreu um erro ao submeter. Tente novamente.");
-            } finally {
-              setIsSubmitting(false);
-            }
-          }}
-        />
 
         {/* Modal de Alerta de Atividade Duplicada e Ação Abortada */}
         {duplicateAlert?.isOpen && (
