@@ -3116,60 +3116,63 @@ export default function ActivityForm({
       }
 
       const newRubricas = currentRubricas.map((rubrica) => {
+        const rubStr = (rubrica.rubrica || "").toLowerCase();
+        const necStr = (rubrica.necessidade || "").toLowerCase();
+
         const isRubricaPessoal =
-          rubrica.rubrica?.toLowerCase().includes("pessoal") ||
-          rubrica.rubrica?.includes("112");
+          rubStr.includes("pessoal") ||
+          (rubrica.rubrica || "").includes("112");
         const isDiretor =
-          rubrica.necessidade?.toLowerCase().includes("diretor") ||
-          rubrica.necessidade?.toLowerCase().includes("direto ger") ||
-          rubrica.necessidade?.includes("(DG)") ||
-          rubrica.necessidade?.toLowerCase().includes("(dg)");
+          necStr.includes("diretor") ||
+          necStr.includes("direto ger") ||
+          (rubrica.necessidade || "").includes("(DG)") ||
+          necStr.includes("(dg)");
         const isCivil =
-          rubrica.necessidade?.toLowerCase().includes("civil") ||
-          rubrica.necessidade?.toLowerCase().includes("técnico");
-        const isDentro = rubrica.necessidade?.toLowerCase().includes("dentro");
-        const isFora = rubrica.necessidade?.toLowerCase().includes("fora");
+          necStr.includes("civil") ||
+          necStr.includes("técnico");
+        const isDentro = necStr.includes("dentro");
+        const isFora = necStr.includes("fora");
 
         const isAjudaCustoDiretorDentro =
           isRubricaPessoal &&
           isDentro &&
           isDiretor &&
-          !rubrica.necessidade?.toLowerCase().includes("motorista") &&
-          !rubrica.necessidade?.toLowerCase().includes("ida e volta");
+          !necStr.includes("motorista") &&
+          !necStr.includes("ida e volta");
         const isAjudaCustoDiretorFora = isRubricaPessoal && isFora && isDiretor;
         const isAjudaCustoCivilDentro =
           isRubricaPessoal &&
           isDentro &&
           isCivil &&
-          !rubrica.necessidade?.toLowerCase().includes("motorista") &&
+          !necStr.includes("motorista") &&
           !isDiretor &&
-          !rubrica.necessidade?.toLowerCase().includes("ida e volta");
+          !necStr.includes("ida e volta");
         const isAjudaCustoCivilFora =
           isRubricaPessoal &&
           isFora &&
           isCivil &&
-          !rubrica.necessidade?.toLowerCase().includes("motorista");
+          !necStr.includes("motorista");
 
         const isIdaVoltaGeral =
-          rubrica.necessidade?.toLowerCase().includes("ida e volta") &&
-          !rubrica.necessidade?.toLowerCase().includes("motorista");
+          necStr.includes("ida e volta") &&
+          !necStr.includes("motorista");
         const isAjudaCustoMotoristaIdaVolta =
-          (rubrica.necessidade?.toLowerCase().includes("motorista") &&
-            rubrica.necessidade?.toLowerCase().includes("ida e volta")) ||
+          (necStr.includes("motorista") &&
+            necStr.includes("ida e volta")) ||
           rubrica.necessidade ===
             "Ajudas de custo para Motorista (ida e volta)";
         const isAjudaCustoMotorista =
           isRubricaPessoal &&
-          rubrica.necessidade?.toLowerCase().includes("motorista") &&
+          necStr.includes("motorista") &&
           !isAjudaCustoMotoristaIdaVolta &&
           !isIdaVoltaGeral;
         const isCombustivel =
           rubrica.necessidade === "Combustíveis e lubrificantes" ||
           rubrica.necessidade === "121001 - Combustíveis e lubrificantes" ||
           (Boolean(rubrica.necessidade) &&
-            rubrica.necessidade.toLowerCase().includes("combustív")) ||
+            necStr.includes("combustív")) ||
           (Boolean(rubrica.necessidade) &&
-            rubrica.necessidade.includes("121001"));
+            (rubrica.necessidade || "").includes("121001"));
 
         if (isAjudaCustoDiretorDentro) {
           const precoUnitario = 9000;
@@ -3423,19 +3426,22 @@ export default function ActivityForm({
       especificacao: "" 
     };
 
+    const rubStr = (rubrica.rubrica || "").toLowerCase();
+    const necStr = (necessidade || "").toLowerCase();
+
     // Verificação robusta para Ajuda de Custo
     const isAjudaCusto =
-      (rubrica.rubrica?.toLowerCase().includes("pessoal") ||
-        rubrica.rubrica?.includes("112")) &&
-      necessidade?.toLowerCase().includes("ajuda") &&
-      necessidade?.toLowerCase().includes("custo");
+      (rubStr.includes("pessoal") ||
+        (rubrica.rubrica || "").includes("112")) &&
+      necStr.includes("ajuda") &&
+      necStr.includes("custo");
 
     const isDiretor =
-      necessidade?.toLowerCase().includes("diretor") ||
-      necessidade?.toLowerCase().includes("direto ger") ||
-      necessidade?.includes("(DG)") ||
-      necessidade?.toLowerCase().includes("(dg)");
-    const isFora = necessidade?.toLowerCase().includes("fora");
+      necStr.includes("diretor") ||
+      necStr.includes("direto ger") ||
+      (necessidade || "").includes("(DG)") ||
+      necStr.includes("(dg)");
+    const isFora = necStr.includes("fora");
     const valorDiario = isFora ? 0 : isDiretor ? 9000 : 6000;
 
     if (isAjudaCusto) {
@@ -3447,7 +3453,7 @@ export default function ActivityForm({
         necessidade ===
           "Ajuda de custo dentro do país para pessoal civil (MOTORISTA)";
       const isMotorista =
-        necessidade?.toLowerCase().includes("motorista") &&
+        necStr.includes("motorista") &&
         !isMotoristaIdaVoltaManual &&
         !isIdaVoltaGeral;
 
@@ -5463,62 +5469,59 @@ export default function ActivityForm({
 
             <div className="space-y-4">
               {formData.rubricas.map((rubrica, index) => {
+                const rubStr = (rubrica.rubrica || "").toLowerCase();
+                const necStr = (rubrica.necessidade || "").toLowerCase();
+
                 const isAjudaCusto =
-                  (rubrica.rubrica?.toLowerCase().includes("pessoal") ||
-                    rubrica.rubrica?.includes("112")) &&
-                  rubrica.necessidade?.toLowerCase().includes("ajuda") &&
-                  rubrica.necessidade?.toLowerCase().includes("custo");
+                  (rubStr.includes("pessoal") ||
+                    (rubrica.rubrica || "").includes("112")) &&
+                  necStr.includes("ajuda") &&
+                  necStr.includes("custo");
                 const isIdaVoltaGeral =
-                  rubrica.necessidade?.toLowerCase().includes("ida e volta") &&
-                  !rubrica.necessidade?.toLowerCase().includes("motorista");
+                  necStr.includes("ida e volta") &&
+                  !necStr.includes("motorista");
                 const isMotoristaIdaVoltaManual =
-                  (rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                    rubrica.necessidade
-                      ?.toLowerCase()
-                      .includes("ida e volta")) ||
+                  (necStr.includes("motorista") &&
+                    necStr.includes("ida e volta")) ||
                   rubrica.necessidade ===
                     "Ajudas de custo para Motorista (ida e volta)";
                 const isAjudaCustoMotoristaReal =
-                  (rubrica.rubrica?.toLowerCase().includes("pessoal") ||
-                    rubrica.rubrica?.includes("112")) &&
-                  rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                  (rubStr.includes("pessoal") ||
+                    (rubrica.rubrica || "").includes("112")) &&
+                  necStr.includes("motorista") &&
                   !isMotoristaIdaVoltaManual &&
                   !isIdaVoltaGeral;
 
                 const isRubricaPessoal =
-                  rubrica.rubrica?.includes("112") ||
-                  rubrica.rubrica?.toLowerCase().includes("pessoal");
+                  (rubrica.rubrica || "").includes("112") ||
+                  rubStr.includes("pessoal");
                 const isCombustivel =
                   rubrica.necessidade === "Combustíveis e lubrificantes" ||
                   rubrica.necessidade ===
                     "121001 - Combustíveis e lubrificantes" ||
                   (Boolean(rubrica.necessidade) &&
-                    rubrica.necessidade.toLowerCase().includes("combustív")) ||
+                    necStr.includes("combustív")) ||
                   (Boolean(rubrica.necessidade) &&
-                    rubrica.necessidade.includes("121001"));
+                    (rubrica.necessidade || "").includes("121001"));
                 const isBolsaEstudos =
-                  (rubrica.rubrica?.toLowerCase().includes("famílias") ||
-                    rubrica.rubrica
-                      ?.toLowerCase()
-                      .includes("transferências")) &&
-                  rubrica.necessidade?.toLowerCase().includes("bolsa");
+                  (rubStr.includes("famílias") ||
+                    rubStr.includes("transferências")) &&
+                  necStr.includes("bolsa");
 
                 const isBensServicos =
-                  (rubrica.rubrica?.includes("121") ||
-                    rubrica.rubrica?.includes("122") ||
-                    rubrica.rubrica?.toLowerCase().includes("bens") ||
-                    rubrica.rubrica?.toLowerCase().includes("serviço")) &&
+                  ((rubrica.rubrica || "").includes("121") ||
+                    (rubrica.rubrica || "").includes("122") ||
+                    rubStr.includes("bens") ||
+                    rubStr.includes("serviço")) &&
                   !isCombustivel &&
                   !isBolsaEstudos;
 
                 const isDiretor =
-                  rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                  rubrica.necessidade?.toLowerCase().includes("direto ger") ||
-                  rubrica.necessidade?.includes("(DG)") ||
-                  rubrica.necessidade?.toLowerCase().includes("(dg)");
-                const isFora = rubrica.necessidade
-                  ?.toLowerCase()
-                  .includes("fora");
+                  necStr.includes("diretor") ||
+                  necStr.includes("direto ger") ||
+                  (rubrica.necessidade || "").includes("(DG)") ||
+                  necStr.includes("(dg)");
+                const isFora = necStr.includes("fora");
                 const valorDiario = isFora ? 0 : isDiretor ? 9000 : 6000;
 
                 const isCombustivelReadOnly = false;
@@ -6933,38 +6936,44 @@ export default function ActivityForm({
                     }
 
                     const totalRubricas = (originalFormData.rubricas || []).map((rubrica: any) => {
+                      const rubStr = (rubrica.rubrica || "").toLowerCase();
+                      const necStr = (rubrica.necessidade || "").toLowerCase();
+
                       const isRubricaPessoal =
                         rubrica.rubrica === "Ajudas de Custo" ||
                         rubrica.rubrica === "Despesas de Deslocação" ||
-                        rubrica.rubrica === "Ajudas de Custo por Transferência";
+                        rubrica.rubrica === "Ajudas de Custo por Transferência" ||
+                        rubStr.includes("pessoal") ||
+                        rubStr.includes("112");
+
                       const isAjudaCustoDiretorDentro =
                         isRubricaPessoal &&
-                        (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                          rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                        rubrica.necessidade?.toLowerCase().includes("dentro");
+                        (necStr.includes("diretor") ||
+                          necStr.includes("coordenador")) &&
+                        necStr.includes("dentro");
                       const isAjudaCustoDiretorFora =
                         isRubricaPessoal &&
-                        (rubrica.necessidade?.toLowerCase().includes("diretor") ||
-                          rubrica.necessidade?.toLowerCase().includes("coordenador")) &&
-                        rubrica.necessidade?.toLowerCase().includes("fora");
+                        (necStr.includes("diretor") ||
+                          necStr.includes("coordenador")) &&
+                        necStr.includes("fora");
                       const isAjudaCustoCivilDentro =
                         isRubricaPessoal &&
-                        rubrica.necessidade?.toLowerCase().includes("civil") &&
-                        rubrica.necessidade?.toLowerCase().includes("dentro");
+                        necStr.includes("civil") &&
+                        necStr.includes("dentro");
                       const isAjudaCustoCivilFora =
                         isRubricaPessoal &&
-                        rubrica.necessidade?.toLowerCase().includes("civil") &&
-                        rubrica.necessidade?.toLowerCase().includes("fora");
+                        necStr.includes("civil") &&
+                        necStr.includes("fora");
                       const isIdaVoltaGeral =
                         isRubricaPessoal &&
-                        rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                        necStr.includes("ida e volta");
                       const isAjudaCustoMotoristaIdaVolta =
                         isRubricaPessoal &&
-                        rubrica.necessidade?.toLowerCase().includes("motorista") &&
-                        rubrica.necessidade?.toLowerCase().includes("ida e volta");
+                        necStr.includes("motorista") &&
+                        necStr.includes("ida e volta");
                       const isAjudaCustoMotorista =
                         isRubricaPessoal &&
-                        rubrica.necessidade?.toLowerCase().includes("motorista") &&
+                        necStr.includes("motorista") &&
                         !isAjudaCustoMotoristaIdaVolta &&
                         !isIdaVoltaGeral;
 

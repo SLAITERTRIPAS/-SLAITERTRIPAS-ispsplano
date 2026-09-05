@@ -205,7 +205,7 @@ export async function createServer() {
 
       try {
         response = await client.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-1.5-flash",
           contents: [promptInstruction, `Texto a analisar: "${text}"`],
           config: {
             responseMimeType: "application/json",
@@ -214,12 +214,12 @@ export async function createServer() {
         });
       } catch (err35: any) {
         console.warn(
-          "gemini-2.5-flash com alta demanda ou indisponível. Tentando gemini-2.5-pro como plano B...",
+          "gemini-1.5-flash com alta demanda ou indisponível. Tentando gemini-1.5-pro como plano B...",
           err35.message || err35,
         );
         try {
           response = await client.models.generateContent({
-            model: "gemini-2.5-pro",
+            model: "gemini-1.5-pro",
             contents: [promptInstruction, `Texto a analisar: "${text}"`],
             config: {
               responseMimeType: "application/json",
@@ -323,7 +323,7 @@ export async function createServer() {
       };
 
       const response = await client.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: [{ parts }],
         config: {
           responseMimeType: "application/json",
