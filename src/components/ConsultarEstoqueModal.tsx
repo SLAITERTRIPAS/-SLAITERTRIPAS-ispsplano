@@ -140,7 +140,7 @@ export default function ConsultarEstoqueModal({
       });
     });
 
-    // 2. Processar itens de bens planificados em atividades/matriz orçamental
+    // 2. Processar itens de bens planificados em actividades/matriz orçamental
     activities.forEach((act) => {
       const setorNorm = (act.unidade || act.departamento || act.direcao || act.setor || "Serviços Gerais").trim();
       const rubricaLower = (act.rubrica || act.necessidade || "").toLowerCase();
@@ -171,7 +171,7 @@ export default function ConsultarEstoqueModal({
             id: act.id || key,
             setor: setorNorm,
             nome: prodName,
-            grupo: "Planificado via Atividades",
+            grupo: "Planificado via Actividades",
             categoria: "Bens e Materiais (Cap. 12.1)",
             quantidadePlanificada: qtdPlan,
             quantidadeRequisitada: 0,

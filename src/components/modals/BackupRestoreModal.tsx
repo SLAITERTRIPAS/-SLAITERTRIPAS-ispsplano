@@ -684,7 +684,7 @@ export default function BackupRestoreModal({
                         Backup e Restauração de Dados
                       </h4>
                       <p className="text-xs text-gray-600 mb-4 leading-relaxed">
-                        Exclusivo para registos institucionais, colaboradores, atividades, estudantes, finanças e inventário dos 4 Órgãos.
+                        Exclusivo para registos institucionais, colaboradores, actividades, estudantes, finanças e inventário dos 4 Órgãos.
                       </p>
                     </div>
 

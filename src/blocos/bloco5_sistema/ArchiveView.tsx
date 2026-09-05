@@ -40,12 +40,12 @@ interface ArchiveDocument {
 
 const OFFICIAL_CATEGORIES = [
   "Relatórios Anuais",
-  "Planos de Actividades Orçamentos",
+  "Planos de Atividades e Orçamentos",
   "Legislação, Estatutos e Regulamentos",
-  "Deliberações e Actas do Conselho",
+  "Deliberações e Atas do Conselho",
   "Planos de Aquisições e Contratações",
   "Informações Propostas",
-  "Guias de marchas e de apresentacao",
+  "Guias de marchas e de apresentação",
   "Processos Individuais do Pessoal",
   "Protocolos, Acordos e Cooperação",
   "Correspondência Recebida e Expedida",
@@ -1065,7 +1065,7 @@ export default function ArchiveView({
             </h2>
             <p className="text-blue-105/90 text-sm font-medium leading-relaxed">
               Consulte e organize o histórico oficial de relatórios
-              institucionais, orçamentos, planos de actividades setorizados e
+              institucionais, orçamentos, planos de atividades setorizados e
               contratos de formação técnica do {deptName}. Todos os arquivos são
               mantidos sob estrito rigor académico e regulamentar.
             </p>
@@ -1360,7 +1360,7 @@ export default function ArchiveView({
                               ) : viewingDoc.actividades ? (
                                 <div className="space-y-6">
                                   <h6 className="text-lg font-black text-slate-900  tracking-tight border-b-2 border-slate-200 pb-2">
-                                    Plano de Actividades Resumido
+                                    Plano de Atividades Resumido
                                   </h6>
                                   <div className="grid grid-cols-1 gap-4">
                                     {viewingDoc.actividades

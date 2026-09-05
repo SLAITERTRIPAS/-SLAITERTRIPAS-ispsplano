@@ -112,7 +112,7 @@ export default function FormularioAlocacaoDocente({
     cargoChefia: targetData.cargoChefia || "Selecione...",
     dataNomeacao: targetData.dataNomeacao || "",
     dataDesnomeacao: targetData.dataDesnomeacao || "",
-    estadoMandato: targetData.estadoMandato || "Em Atividade",
+    estadoMandato: targetData.estadoMandato || "Em Actividade",
     estadoColaborador: targetData.estadoColaborador || "Ativo",
   });
 
@@ -1179,7 +1179,7 @@ export default function FormularioAlocacaoDocente({
                   onChange={(e) => handleChange("estadoMandato", e.target.value)}
                   className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-red-600 font-bold appearance-none pr-8 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="Em Atividade">Em Atividade</option>
+                  <option value="Em Actividade">Em Actividade</option>
                   <option value="Concluído">Concluído</option>
                   <option value="Suspenso">Suspenso</option>
                 </select>

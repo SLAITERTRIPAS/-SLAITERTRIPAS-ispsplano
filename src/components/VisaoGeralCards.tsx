@@ -93,7 +93,7 @@ export default function VisaoGeralCards({
     if (upper.includes("PLANO")) {
       return {
         title: cardTitle,
-        sub: "Planificação e Acompanhamento de Atividades",
+        sub: "Planificação e Acompanhamento de Actividades",
         icon: FileText,
         color: "border-slate-900 bg-slate-50/50 shadow-[4px_4px_0px_0px_#134e4a] hover:border-teal-800",
         badgeColor: "bg-teal-100 text-teal-900 border border-teal-200/60",
@@ -166,12 +166,12 @@ export default function VisaoGeralCards({
         "Gestão de Fornecedores",
         "Plano de Aquisição",
         "Plano de Contratação",
-        "Planos de Atividades",
+        "Planos de Actividades",
         "Gestão de Expediente",
       ]
     : [
         "Efetivo Geral",
-        "Planos de Atividades",
+        "Planos de Actividades",
         "Relatórios",
         "Recursos Financeiros",
         "Corpo Discente",

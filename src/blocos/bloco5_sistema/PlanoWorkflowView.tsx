@@ -61,6 +61,10 @@ import {
   isSuperBossUser,
   getRoles,
   canAccessArea,
+  canUserDeleteActivity,
+  canUserEditActivity,
+  isActivityFromUserSector,
+  cleanAreaText,
 } from "../../lib/auth";
 import {
   isMatch,
@@ -111,7 +115,7 @@ import { PeriodoPlanificacao } from "../../types";
 import {
   DEPARTAMENTOS,
   REPARTICOES,
-  SECTORES,
+  SETORES,
   MESES,
   FONTES_RECEITA,
   PRIORIDADES,
@@ -124,7 +128,7 @@ const GABINETES_DESTINATARIOS = [
   "Gabinete do Diretor Geral",
   "Direção Administrativa e Financeira (DAF)",
   "Direção Acadêmica",
-  "Direção de Planificação e Estudos (DPEP)",
+  "Departamento de Planificação Estudos e Projetos (DPEP)",
   "Direção de Extensão",
   "Direção de Investigação e Pós-Graduação",
   "Departamento de Recursos Humanos",
@@ -307,14 +311,14 @@ export default function PlanoWorkflowView({
           ...archiveDocs.filter(
             (p: any) =>
               (p.ano === syncYear || p.year === syncYear) &&
-              (p.atividades || p.activities),
+              (p.actividades || p.activities),
           ),
           ...docsFromArchive.filter(
             (p: any) =>
               (p.ano === syncYear || p.year === syncYear) &&
-              (p.atividades ||
+              (p.actividades ||
                 p.activities ||
-                p.planoAtividades ||
+                p.planoActividades ||
                 p.title?.toLowerCase().endsWith(".pdf") ||
                 p.title?.toLowerCase().endsWith(".xlsx")),
           ),
@@ -442,10 +446,10 @@ export default function PlanoWorkflowView({
   const authorizedActivities = useMemo(() => {
     if (!rawActivities) return [];
 
-    // Filtrar apenas atividades válidas
+    // Filtrar apenas actividades válidas
     const validActs = rawActivities.filter(isValidActivity);
 
-    // Primeiro obter todas as atividades autorizadas e planificadas pelo utilizador
+    // Primeiro obter todas as actividades autorizadas e planificadas pelo utilizador
     const allAuthorized = getAuthorizedActivities(validActs, user);
 
     let yearFiltered = allAuthorized.filter((a) => {
@@ -484,40 +488,63 @@ export default function PlanoWorkflowView({
       );
     }
 
-    // Filtro especial para o Setor de Planificação - agora mostra todas as atividades autorizadas
-    if (user && isSuperBossUser(user) && simulateSector) {
-      const target = (title || "").trim().toLowerCase();
-      if (
-        target &&
-        target !== "plano setorial" &&
-        target !== "sistema" &&
-        target !== "geral"
-      ) {
-        authorized = authorized.filter((a) => {
-          if (!a) return false;
-          const aDir = String(a.direcao || "").toLowerCase();
-          const aDept = String(a.departamento || "").toLowerCase();
-          const aSect = String(a.setor || a.reparticao || "").toLowerCase();
-          const aUOrg = String(a.unidadeOrganica || "").toLowerCase();
+    // Filtro especial por título do plano para visualização setorial
+    const target = (title || "").trim().toLowerCase();
+    if (
+      target &&
+      target !== "plano setorial" &&
+      target !== "sistema" &&
+      target !== "geral" &&
+      target !== "plano de atividades" &&
+      target !== "plano de actividades"
+    ) {
+      const isTargetUgea = target.includes("ugea") || target.includes("aquisic") || target.includes("aquisiç");
+      const isTargetDpep = target.includes("dpep") || target.includes("planifica");
 
+      authorized = authorized.filter((a) => {
+        if (!a) return false;
+        const aDept = cleanAreaText(a.departamento || "");
+        const aSect = cleanAreaText(a.setor || a.reparticao || "");
+        const aOrig = cleanAreaText(a.origem || a.setorOrigin || a.setorCriador || a.unidadeOrganica || "");
+
+        if (isTargetUgea) {
           return (
-            aDir.includes(target) ||
-            target.includes(aDir) ||
-            aDept.includes(target) ||
-            target.includes(aDept) ||
-            aSect.includes(target) ||
-            target.includes(aSect) ||
-            aUOrg.includes(target) ||
-            target.includes(aUOrg)
+            aDept.includes("ugea") ||
+            aSect.includes("ugea") ||
+            aOrig.includes("ugea") ||
+            aDept.includes("aquisicoes") ||
+            aSect.includes("aquisicoes")
           );
-        });
-      }
+        }
+
+        if (isTargetDpep) {
+          return (
+            aDept.includes("dpep") ||
+            aSect.includes("dpep") ||
+            aOrig.includes("dpep") ||
+            aDept.includes("planifica") ||
+            aSect.includes("planifica")
+          );
+        }
+
+        const aDir = cleanAreaText(a.direcao || "");
+        const cleanTarget = cleanAreaText(target);
+
+        return (
+          aDept.includes(cleanTarget) ||
+          cleanTarget.includes(aDept) ||
+          aSect.includes(cleanTarget) ||
+          cleanTarget.includes(aSect) ||
+          aOrig.includes(cleanTarget) ||
+          cleanTarget.includes(aOrig)
+        );
+      });
     }
 
     const uniqueMap = new Map<string, any>();
     authorized.forEach((a, idx) => {
       if (!a || !isValidActivity(a)) return;
-      const key = a.id ? `id-${a.id}` : `act-${idx}-${a.codigoAtividade || a.referencia || ""}-${a.designacao || a.title || ""}-${a.direcao || ""}-${a.setor || ""}`;
+      const key = a.id ? `id-${a.id}` : `act-${idx}-${a.codigoActividade || a.referencia || ""}-${a.designacao || a.title || ""}-${a.direcao || ""}-${a.setor || ""}`;
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, a);
       }
@@ -562,7 +589,7 @@ export default function PlanoWorkflowView({
           }
         });
 
-        // Se houver departamentos válidos com atividades válidas
+        // Se houver departamentos válidos com actividades válidas
         if (Object.keys(validDepts).length > 0) {
           result[direcao] = validDepts;
         } else if (validGroupActs.length > 0) {
@@ -593,10 +620,10 @@ export default function PlanoWorkflowView({
   const onUpdateRelatorio = async (activityId: string, relatorio: string) => {
     try {
       await firestoreService.matrixActivities.update(activityId, { relatorio });
-      onShowAlert(`Relatório da atividade atualizado com sucesso.`);
+      onShowAlert(`Relatório da actividade atualizado com sucesso.`);
     } catch (err) {
       console.error(err);
-      alert("Falha ao atualizar relatório da atividade.");
+      alert("Falha ao atualizar relatório da actividade.");
     }
   };
 
@@ -632,7 +659,7 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `Atividade e todas as rubricas/necessidades associadas marcadas como: ${approvalStatus === "aprovada" ? "Aprovada" : approvalStatus}`,
+        `Actividade e todas as rubricas/necessidades associadas marcadas como: ${approvalStatus === "aprovada" ? "Aprovada" : approvalStatus}`,
       );
     } catch (err) {
       console.error(err);
@@ -663,11 +690,11 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `Atividade e toda a sua coluna, rubricas e necessidades reconduzidas com sucesso para o ano ${nextYear}!`,
+        `Actividade e toda a sua coluna, rubricas e necessidades reconduzidas com sucesso para o ano ${nextYear}!`,
       );
     } catch (err) {
       console.error(err);
-      onShowAlert("Erro ao reconduzir atividade para o ano+1.");
+      onShowAlert("Erro ao reconduzir actividade para o ano+1.");
     }
   };
 
@@ -708,7 +735,7 @@ export default function PlanoWorkflowView({
 
   const handleBulkUpdateApproval = async (approvalStatus: string) => {
     if (selectedActivityIds.length === 0) {
-      onShowAlert("Selecione pelo menos uma atividade.");
+      onShowAlert("Selecione pelo menos uma actividade.");
       return;
     }
     try {
@@ -742,7 +769,7 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `${selectedActivityIds.length} atividade(s) aprovada(s) e submetida(s) automaticamente ao Setor de Monitoria (organizadas por mês de realização)!`,
+        `${selectedActivityIds.length} actividade(s) aprovada(s) e submetida(s) automaticamente ao Setor de Monitoria (organizadas por mês de realização)!`,
       );
       setSelectedActivityIds([]);
     } catch (err) {
@@ -753,12 +780,12 @@ export default function PlanoWorkflowView({
 
   const handleBulkDelete = async () => {
     if (selectedActivityIds.length === 0) {
-      onShowAlert("Selecione pelo menos uma atividade para excluir.");
+      onShowAlert("Selecione pelo menos uma actividade para excluir.");
       return;
     }
     if (
       !window.confirm(
-        `Tem certeza que deseja excluir ${selectedActivityIds.length} atividade(s) selecionada(s)?`
+        `Tem certeza que deseja excluir ${selectedActivityIds.length} actividade(s) selecionada(s)?`
       )
     ) {
       return;
@@ -771,18 +798,18 @@ export default function PlanoWorkflowView({
         prev.filter((a) => !selectedActivityIds.includes(a.id))
       );
       onShowAlert(
-        `${selectedActivityIds.length} atividade(s) excluída(s) com sucesso.`
+        `${selectedActivityIds.length} actividade(s) excluída(s) com sucesso.`
       );
       setSelectedActivityIds([]);
     } catch (err) {
       console.error(err);
-      onShowAlert("Erro ao excluir atividades selecionadas.");
+      onShowAlert("Erro ao excluir actividades selecionadas.");
     }
   };
 
   const handleBulkRolloverYear = async () => {
     if (selectedActivityIds.length === 0) {
-      onShowAlert("Selecione pelo menos uma atividade.");
+      onShowAlert("Selecione pelo menos uma actividade.");
       return;
     }
     try {
@@ -801,12 +828,12 @@ export default function PlanoWorkflowView({
         }),
       );
       onShowAlert(
-        `${selectedActivityIds.length} atividades reconduzidas com sucesso para o ano+1!`,
+        `${selectedActivityIds.length} actividades reconduzidas com sucesso para o ano+1!`,
       );
       setSelectedActivityIds([]);
     } catch (err) {
       console.error(err);
-      onShowAlert("Erro ao reconduzir atividades em lote para o ano+1.");
+      onShowAlert("Erro ao reconduzir actividades em lote para o ano+1.");
     }
   };
 
@@ -881,9 +908,9 @@ export default function PlanoWorkflowView({
           const mapped = {
             no: findVal(["nº", "numero", "id", "item", "ordem", "seq"]) || index + 1,
             numeroDirecao: findVal(["nº direção", "numero direcao", "n direcao", "ordem direção", "nº direcao"]),
-            codigoAtividade: findVal(["codigo", "referência", "ref", "nº atividade", "código"]),
-            title: findVal(["atividade", "designação", "descrição", "nome", "acção", "projeto", "tarefa", "acao", "designacao"]),
-            objetivoAtividade: findVal(["objetivo", "meta", "finalidade", "proposito", "justificação", "justificacao", "objetivo geral"]),
+            codigoActividade: findVal(["codigo", "referência", "ref", "nº actividade", "código"]),
+            title: findVal(["actividade", "designação", "descrição", "nome", "acção", "projeto", "tarefa", "acao", "designacao"]),
+            objetivoActividade: findVal(["objetivo", "meta", "finalidade", "proposito", "justificação", "justificacao", "objetivo geral"]),
             unidadeOrganica: findVal(["unidade", "isps", "instituição", "uo", "instituicao"]),
             direcao: findVal(["direção", "direccão", "direcao", "direccao"]),
             departamento: findVal(["departamento", "depto", "dept"]),
@@ -927,12 +954,12 @@ export default function PlanoWorkflowView({
         return mapActivity(row, idx);
       });
 
-      // Agrupamento Inteligente de Atividades e Rubricas
+      // Agrupamento Inteligente de Actividades e Rubricas
       const aggregatedActivities: any[] = [];
       mappedActivitiesRaw.forEach((mapped) => {
         const lastAct = aggregatedActivities[aggregatedActivities.length - 1];
         
-        // Critérios para considerar a mesma atividade (Nº igual ou Título igual)
+        // Critérios para considerar a mesma actividade (Nº igual ou Título igual)
         const isSameActivity = lastAct && (
           (String(mapped.no) === String(lastAct.no)) || 
           (String(mapped.title).trim().toLowerCase() === String(lastAct.title).trim().toLowerCase() && mapped.title && lastAct.title)
@@ -1031,22 +1058,22 @@ export default function PlanoWorkflowView({
       // 2. Salvar no Arquivo Morto
       await firestoreService.archive_documents.add({
         title: importFileName,
-        type: "Planos de Atividades e Orçamentos",
+        type: "Planos de Actividades e Orçamentos",
         origin: user?.direcao || user?.departamento || user?.setor || "Unidade Importada",
         year: selectedYear,
-        atividades: previewActivities,
+        actividades: previewActivities,
         dataImportacao: new Date().toISOString(),
         formato: String(importFileName || "").split(".").pop()?.toUpperCase() || "EXCEL",
       });
 
       setImportProgress(30);
-      setProcessingStatus(`A gravar ${previewActivities.length} atividades na base de dados...`);
+      setProcessingStatus(`A gravar ${previewActivities.length} actividades na base de dados...`);
 
       // 3. Injetar na base de dados ativa
       let importedCount = 0;
       for (let i = 0; i < previewActivities.length; i++) {
         const act = previewActivities[i];
-        if (act.title || act.objetivoAtividade) {
+        if (act.title || act.objetivoActividade) {
           const unitario = Number(act.unitario || 0);
           const qtd = Number(act.numeroPessoas || 1);
           const ajuda = Number(act.ajudaCusto || 0);
@@ -1075,7 +1102,7 @@ export default function PlanoWorkflowView({
       setProcessingStatus("Sincronização concluída!");
       await new Promise(r => setTimeout(r, 500));
 
-      onShowAlert(`Ciclo de ${selectedYear} Atualizado: ${importedCount} atividades importadas!`);
+      onShowAlert(`Ciclo de ${selectedYear} Atualizado: ${importedCount} actividades importadas!`);
       setShowImportPreview(false);
       setPreviewActivities([]);
     } catch (error) {
@@ -1111,9 +1138,9 @@ export default function PlanoWorkflowView({
       if (selectedPlan) {
         console.log("Selected Plan:", selectedPlan);
         sourceActivities =
-          selectedPlan.atividades ||
+          selectedPlan.actividades ||
           selectedPlan.activities ||
-          selectedPlan.planoAtividades;
+          selectedPlan.planoActividades;
 
         if (
           !sourceActivities &&
@@ -1136,7 +1163,7 @@ export default function PlanoWorkflowView({
 
       if (sourceActivities.length === 0) {
         onShowAlert(
-          `Não foram encontradas atividades para o ano ${syncYear} no Arquivo Morto.`,
+          `Não foram encontradas actividades para o ano ${syncYear} no Arquivo Morto.`,
         );
         setIsSyncModalOpen(false);
         setIsLoading(false);
@@ -1176,7 +1203,7 @@ export default function PlanoWorkflowView({
 
       if (userActivities.length === 0) {
         onShowAlert(
-          `Não foram encontradas atividades específicas do seu setor no Plano ${syncYear} institucional.`,
+          `Não foram encontradas actividades específicas do seu setor no Plano ${syncYear} institucional.`,
         );
         setIsSyncModalOpen(false);
         setIsLoading(false);
@@ -1184,10 +1211,10 @@ export default function PlanoWorkflowView({
       }
 
       for (const activity of userActivities) {
-        const ref = activity.referencia || activity.codigoAtividade;
+        const ref = activity.referencia || activity.codigoActividade;
         const exists = rawActivities.some(
           (a) =>
-            (a.referencia === ref || a.codigoAtividade === ref) &&
+            (a.referencia === ref || a.codigoActividade === ref) &&
             a.ano === syncYear,
         );
 
@@ -1197,7 +1224,7 @@ export default function PlanoWorkflowView({
             ano: syncYear,
             createdAt: new Date().toISOString(),
             title: activity.designacao || activity.title,
-            objetivoAtividade: activity.objetivo || activity.objetivoAtividade,
+            objetivoActividade: activity.objetivo || activity.objetivoActividade,
             no: ref ? String(ref).split("/")[0].replace("A", "") : "00",
             isPESOE: false,
             submetido: false,
@@ -1214,12 +1241,12 @@ export default function PlanoWorkflowView({
 
       if (count > 0) {
         onShowAlert(
-          `Sucesso: ${count} atividades do seu plano foram sincronizadas com base no Arquivo Morto.`,
+          `Sucesso: ${count} actividades do seu plano foram sincronizadas com base no Arquivo Morto.`,
         );
         setIsSyncModalOpen(false);
       } else {
         onShowAlert(
-          `As atividades do ano ${syncYear} já constam no seu plano de atividades.`,
+          `As actividades do ano ${syncYear} já constam no seu plano de actividades.`,
         );
         setIsSyncModalOpen(false);
       }
@@ -1234,7 +1261,7 @@ export default function PlanoWorkflowView({
   };
 
   // Consolidação Orçamental Hierárquica:
-  // 1. Orçamento do Departamento = soma do valor total de todas as atividades planificadas para o departamento
+  // 1. Orçamento do Departamento = soma do valor total de todas as actividades planificadas para o departamento
   // 2. Orçamento da Direção = soma dos orçamentos de todos os departamentos que respondem a essa direção
   // 3. Orçamento Institucional = soma dos orçamentos de todas as direções
 
@@ -1258,7 +1285,7 @@ export default function PlanoWorkflowView({
     if (!isThisDeptHR && !isUserHR) return 0;
     
     const salaryActs = filteredActivities.filter((a) => {
-        // A atividade só conta para o RH se o departamento dela for estritamente o RH
+        // A actividade só conta para o RH se o departamento dela for estritamente o RH
         const activityDept = String(a.departamento || "").trim().toUpperCase();
         return isSalaryActivity(a) && validHRDepartments.includes(activityDept);
     });
@@ -1488,34 +1515,49 @@ export default function PlanoWorkflowView({
   const activeSchedule = useMemo(() => {
     const now = new Date();
     return planSchedules.find((s) => {
+      if (!s || !s.startDate || !s.endDate) return false;
       const start = new Date(s.startDate);
       const end = new Date(s.endDate);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return false;
       return now >= start && now <= end && Number(s.year) === selectedYear;
     });
   }, [planSchedules, selectedYear]);
 
-  // Auto-submit expired schedules
+  // Auto-submit expired schedules along defined workflow path
   useEffect(() => {
-    if (!isPlanificacao || planSchedules.length === 0) return;
+    if (!planSchedules || planSchedules.length === 0) return;
 
     const checkExpirations = async () => {
       const now = new Date();
       for (const schedule of planSchedules) {
-        if (!schedule.autoSubmitted && new Date(schedule.endDate) < now) {
+        if (!schedule || !schedule.id || !schedule.endDate) continue;
+        const schedEndDate = new Date(schedule.endDate);
+        if (isNaN(schedEndDate.getTime())) continue;
+
+        if (!schedule.autoSubmitted && schedEndDate < now) {
           // Map each schedule.statusToUpdate to its corresponding NEXT workflow status
+          const targetStatusKey = (schedule.statusToUpdate || "setor")
+            .toLowerCase()
+            .trim()
+            .replace("setorial", "setor");
+
           const AUTO_SUBMIT_TRANSITIONS: Record<string, string> = {
             setor: "reparticao",
+            setorial: "reparticao",
             reparticao: "departamento",
             departamento: "direcao",
             direcao: "planificacao",
           };
 
-          // Logic to auto-submit all pending activities for this schedule
+          // Logic to auto-submit all pending unsubmitted activities for this expired schedule
           const toSubmit = rawActivities.filter((a) => {
-            const actStatus = (a.status || "setor").replace("setorial", "setor");
+            const actStatus = (a.status || "setor")
+              .toLowerCase()
+              .trim()
+              .replace("setorial", "setor");
             return (
               Number(a.ano) === Number(schedule.year) &&
-              actStatus === schedule.statusToUpdate &&
+              actStatus === targetStatusKey &&
               !a.submetido
             );
           });
@@ -1525,12 +1567,14 @@ export default function PlanoWorkflowView({
               `Auto-submitting ${toSubmit.length} activities for schedule ${schedule.id}`,
             );
             try {
-              const nextStatus = AUTO_SUBMIT_TRANSITIONS[schedule.statusToUpdate] || "reparticao";
+              const nextStatus = AUTO_SUBMIT_TRANSITIONS[targetStatusKey] || "reparticao";
               await Promise.all(
                 toSubmit.map((act) =>
                   firestoreService.matrixActivities.update(act.id, {
                     status: nextStatus,
                     submetido: true,
+                    autoSubmitted: true,
+                    dataSubmissaoAutomatica: new Date().toISOString(),
                   }),
                 ),
               );
@@ -1539,13 +1583,13 @@ export default function PlanoWorkflowView({
                 autoSubmitted: true,
               });
               onShowAlert(
-                `O prazo de atualização para o plano ${schedule.year} expirou. ${toSubmit.length} atividades foram submetidas automaticamente para o nível seguinte.`,
+                `O prazo do calendário de planificação (${schedule.title || schedule.year}) expirou. ${toSubmit.length} actividades foram submetidas automaticamente para o nível seguinte do fluxo institucional.`,
               );
             } catch (err) {
               console.error("Error in auto-submit:", err);
             }
           } else {
-            // Even if nothing to submit, mark it so we don't check again
+            // Even if nothing to submit, mark it so we don't check repeatedly
             await firestoreService.plan_schedules.update(schedule.id, {
               autoSubmitted: true,
             });
@@ -1555,87 +1599,14 @@ export default function PlanoWorkflowView({
     };
 
     checkExpirations();
-  }, [planSchedules, rawActivities, isPlanificacao, selectedYear]);
+  }, [planSchedules, rawActivities, selectedYear]);
 
   const canEdit = (activity: MatrixActivity) => {
-    if (!activity) return false;
-    if (!user) return false;
+    return canUserEditActivity(user, activity);
+  };
 
-    // Se estiver aprovada, fica bloqueada para alterações
-    if (
-      activity.statusAprovacao === "aprovada" ||
-      (activity.status as any) === "institucional"
-    )
-      return false;
-
-    // Super Boss/Admin can always edit
-    if (isSuperBossUser(user)) return true;
-
-    // Se o documento foi tramitado para um gabinete específico, apenas membros desse gabinete podem editar
-    if (activity.currentGabinete) {
-      const uArea = (user.setor || user.reparticao || user.departamento || user.direcao || "").toLowerCase();
-      const aGabinete = activity.currentGabinete.toLowerCase();
-      if (!aGabinete.includes(uArea) && !uArea.includes(aGabinete)) return false;
-    }
-
-    // Se estiver em período de atualização agendado, permite editar mesmo se submetido
-    if (
-      activeSchedule &&
-      Number(activity.ano) === Number(activeSchedule.year)
-    ) {
-      const userRole = selectedRoleMode
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-      const targetRole = (activeSchedule.statusToUpdate || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-      if (userRole === targetRole) return true;
-    }
-
-    // "todos os colaboradores e chefes devem ter acesso a seu planos no ato de planificacao, issso garannte a visita e atualizacao do mesmo"
-    // So during planning (all statuses except 'institucional'), if the user has access to see/own it, they can edit/update it.
-    const uEmail = (user.email || "").toLowerCase();
-    const uName = (user.nome || user.name || "").toLowerCase();
-    const creator = (activity.createdBy || "").toLowerCase();
-    const creatorName = (activity.createdByName || "").toLowerCase();
-    const isOwner =
-      creator === uEmail ||
-      creatorName === uName ||
-      (uEmail && creator.includes(uEmail)) ||
-      activity.responsavelEmail?.toLowerCase() === uEmail;
-
-    if (isOwner) return true;
-
-    // Check if user is chief and has access to the department/direction/sector
-    const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
-    if (roles.isBoss) {
-      const hasAreaAccess = canAccessArea(
-        user,
-        activity.direcao || "",
-        activity.departamento || "",
-        activity.setor || activity.reparticao || "",
-      );
-      if (hasAreaAccess) return true;
-    }
-
-    if (isCD) {
-      return (
-        (activity.status as any) === "departamento" &&
-        activity.departamento === user?.departamento
-      );
-    }
-    if (isDC) {
-      return (
-        (activity.status as any) === "direcao" &&
-        activity.direcao === user?.direcao
-      );
-    }
-
-    return !activity.submetido;
+  const canDelete = (activity: MatrixActivity) => {
+    return canUserDeleteActivity(user, activity);
   };
 
   const [activeSubTab, setActiveSubTab] = useState<
@@ -1665,18 +1636,18 @@ export default function PlanoWorkflowView({
         valorTotal: number;
         precoUnitarioMedio: number;
         especificacoes: Set<string>;
-        atividadesCount: number;
-        atividadesList: string[];
+        actividadesCount: number;
+        actividadesList: string[];
       };
     } = {};
 
     planActivities.forEach((act) => {
       const actName =
-        act.designacaoAtividade ||
-        act.nomeAtividade ||
+        act.designacaoActividade ||
+        act.nomeActividade ||
         act.title ||
         act.designacao ||
-        "Atividade Planificada";
+        "Actividade Planificada";
 
       if (Array.isArray(act.rubricas) && act.rubricas.length > 0) {
         act.rubricas.forEach((r: any) => {
@@ -1705,16 +1676,16 @@ export default function PlanoWorkflowView({
               valorTotal: 0,
               precoUnitarioMedio: 0,
               especificacoes: new Set<string>(),
-              atividadesCount: 0,
-              atividadesList: [],
+              actividadesCount: 0,
+              actividadesList: [],
             };
           }
 
           productMap[key].quantidadeTotal += qty;
           productMap[key].valorTotal += val;
-          productMap[key].atividadesCount += 1;
-          if (!productMap[key].atividadesList.includes(actName)) {
-            productMap[key].atividadesList.push(actName);
+          productMap[key].actividadesCount += 1;
+          if (!productMap[key].actividadesList.includes(actName)) {
+            productMap[key].actividadesList.push(actName);
           }
           if (r.especificacao) productMap[key].especificacoes.add(r.especificacao);
         });
@@ -1722,7 +1693,7 @@ export default function PlanoWorkflowView({
         const val = getActivityTotal(act);
         if (val > 0) {
           const prodName = String(
-            act.designacao || act.nomeAtividade || act.title || "Atividade Planificada"
+            act.designacao || act.nomeActividade || act.title || "Actividade Planificada"
           ).trim();
           const necCat = String(act.necessidade || "").trim();
           const rubCode = String(act.rubrica || "Despesas de Funcionamento").trim();
@@ -1738,16 +1709,16 @@ export default function PlanoWorkflowView({
               valorTotal: 0,
               precoUnitarioMedio: 0,
               especificacoes: new Set<string>(),
-              atividadesCount: 0,
-              atividadesList: [],
+              actividadesCount: 0,
+              actividadesList: [],
             };
           }
 
           productMap[key].quantidadeTotal += qty;
           productMap[key].valorTotal += val;
-          productMap[key].atividadesCount += 1;
-          if (!productMap[key].atividadesList.includes(actName)) {
-            productMap[key].atividadesList.push(actName);
+          productMap[key].actividadesCount += 1;
+          if (!productMap[key].actividadesList.includes(actName)) {
+            productMap[key].actividadesList.push(actName);
           }
         }
       }
@@ -1817,7 +1788,7 @@ export default function PlanoWorkflowView({
 
     if (
       !window.confirm(
-        `Deseja buscar e replicar as atividades da unidade "${userUnit}" para o ciclo de ${selectedYear}?`,
+        `Deseja buscar e replicar as actividades da unidade "${userUnit}" para o ciclo de ${selectedYear}?`,
       )
     ) {
       return;
@@ -1828,7 +1799,7 @@ export default function PlanoWorkflowView({
       let activitiesToReplicate: any[] = [];
       const previousYear = selectedYear - 1;
 
-      // 1. Tentar buscar atividades do ano anterior (N-1) no banco de dados ativo
+      // 1. Tentar buscar actividades do ano anterior (N-1) no banco de dados ativo
       const previousYearActivities = rawActivities.filter(
         (a) => a.ano === previousYear,
       );
@@ -1836,7 +1807,7 @@ export default function PlanoWorkflowView({
       if (previousYearActivities.length > 0) {
         activitiesToReplicate = previousYearActivities;
         console.log(
-          `Replicação: ${activitiesToReplicate.length} atividades encontradas no ano ${previousYear}.`,
+          `Replicação: ${activitiesToReplicate.length} actividades encontradas no ano ${previousYear}.`,
         );
       } else {
         // 2. Se não houver no banco ativo, buscar no arquivo morto
@@ -1844,16 +1815,16 @@ export default function PlanoWorkflowView({
           (await firestoreService.archive_documents.get()) || [];
         const specificPlan = archiveDocs.find(
           (doc) =>
-            doc.type === "Planos de Atividades e Orçamentos" &&
+            doc.type === "Planos de Actividades e Orçamentos" &&
             (doc.origin === userUnit || doc.title?.includes(userUnit)) &&
             (doc.year === previousYear ||
               doc.title?.includes(previousYear.toString())) &&
-            doc.atividades &&
-            doc.atividades.length > 0,
+            doc.actividades &&
+            doc.actividades.length > 0,
         );
 
         if (specificPlan) {
-          activitiesToReplicate = specificPlan.atividades;
+          activitiesToReplicate = specificPlan.actividades;
           console.log(
             "Replicação: Plano específico encontrado no arquivo morto.",
           );
@@ -1861,17 +1832,17 @@ export default function PlanoWorkflowView({
           // Fallback: Buscar no Plano Institucional no Arquivo
           const instPlan = archiveDocs.find(
             (doc) =>
-              (doc.type === "Planos de Atividades e Orçamentos" ||
+              (doc.type === "Planos de Actividades e Orçamentos" ||
                 doc.type === "Plano Institucional") &&
               (doc.title?.toUpperCase().includes("INSTITUCIONAL") ||
                 doc.title?.toUpperCase().includes("PESOE")) &&
-              doc.atividades &&
-              doc.atividades.length > 0,
+              doc.actividades &&
+              doc.actividades.length > 0,
           );
 
           if (instPlan) {
-            // Filtrar apenas atividades que mencionam o setor do utilizador
-            activitiesToReplicate = instPlan.atividades.filter((act: any) => {
+            // Filtrar apenas actividades que mencionam o setor do utilizador
+            activitiesToReplicate = instPlan.actividades.filter((act: any) => {
               const rep = (act.reparticao || "").toUpperCase();
               const det = String(act.departamento || "").toUpperCase();
               const set = (act.setor || "").toUpperCase();
@@ -1885,7 +1856,7 @@ export default function PlanoWorkflowView({
         }
       }
 
-      // 3. Fallback final: atividades do estado atual (anteriores) se ainda não encontrou nada
+      // 3. Fallback final: actividades do estado atual (anteriores) se ainda não encontrou nada
       if (activitiesToReplicate.length === 0) {
         activitiesToReplicate = filteredActivities.filter(
           (a) =>
@@ -1893,12 +1864,12 @@ export default function PlanoWorkflowView({
             (a.status as any) === "draft" ||
             (a.status as any) === "setorial",
         );
-        console.log("Replicação: Usando atividades locais filtradas.");
+        console.log("Replicação: Usando actividades locais filtradas.");
       }
 
       if (activitiesToReplicate.length === 0) {
         onShowAlert(
-          "Nenhuma atividade encontrada para replicar no arquivo ou no plano institucional para a sua unidade.",
+          "Nenhuma actividade encontrada para replicar no arquivo ou no plano institucional para a sua unidade.",
         );
         return;
       }
@@ -1924,7 +1895,7 @@ export default function PlanoWorkflowView({
           ...rest,
           no: activity.no || activity.ordem || activity.n || "",
           title:
-            activity.title || activity.atividade || activity.activity || "",
+            activity.title || activity.actividade || activity.activity || "",
           ano: selectedYear,
           status: "draft",
           submetido: false,
@@ -1939,11 +1910,11 @@ export default function PlanoWorkflowView({
         count++;
       }
       onShowAlert(
-        `${count} atividades replicadas com sucesso para ${userUnit}. Foram organizadas sequencialmente.`,
+        `${count} actividades replicadas com sucesso para ${userUnit}. Foram organizadas sequencialmente.`,
       );
     } catch (error: any) {
       console.error("Error replicating activities:", error);
-      onShowAlert("Erro ao replicar atividades: " + error.message);
+      onShowAlert("Erro ao replicar actividades: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -1956,7 +1927,7 @@ export default function PlanoWorkflowView({
     }
 
     const confirmClear = window.confirm(
-      "ATENÇÃO: Esta ação irá remover TODAS as atividades ativas do sistema (matrixActivities e actividades). " +
+      "ATENÇÃO: Esta ação irá remover TODAS as actividades ativas do sistema (matrixActivities e actividades). " +
         "Certifique-se de que os planos já foram arquivados no 'Arquivo Morto' antes de prosseguir. " +
         "Deseja continuar com a limpeza total?",
     );
@@ -1964,7 +1935,7 @@ export default function PlanoWorkflowView({
     if (!confirmClear) return;
 
     const secondConfirm = window.confirm(
-      "CONFIRMAÇÃO FINAL: Deseja realmente APAGAR permanentemente todos os registros de atividades atuais para deixar o sistema limpo?",
+      "CONFIRMAÇÃO FINAL: Deseja realmente APAGAR permanentemente todos os registros de actividades atuais para deixar o sistema limpo?",
     );
 
     if (!secondConfirm) return;
@@ -2025,7 +1996,7 @@ export default function PlanoWorkflowView({
       setStagedActivities([]);
       setActiveSubTab("pesoe");
       onShowAlert(
-        `${stagedActivities.length} atividades do plano foram submetidas e guardadas com sucesso no Plano de Atividades.`,
+        `${stagedActivities.length} actividades do plano foram submetidas e guardadas com sucesso no Plano de Actividades.`,
       );
     } catch (e) {
       console.error("Erro ao submeter plano:", e);
@@ -2064,7 +2035,7 @@ export default function PlanoWorkflowView({
         }
         
         /*
-        // Limpeza Global de Rascunhos: Removida para evitar perda de atividades planificadas em curso
+        // Limpeza Global de Rascunhos: Removida para evitar perda de actividades planificadas em curso
         const globalDrafts = rawActivities.filter(
           (a) => (a.status as string) !== "institucional" && (a.status as string) !== "pendente_monitoria" && (a.status as string) !== "em_andamento" && (a.status as string) !== "concluido"
         );
@@ -2076,7 +2047,7 @@ export default function PlanoWorkflowView({
         */
 
         onShowAlert(
-          `DE publicado com sucesso! Atividades para ${nextMonthName} transferidas para Monitoria.`
+          `DE publicado com sucesso! Actividades para ${nextMonthName} transferidas para Monitoria.`
         );
       } else {
         onShowAlert("Publicação do DE anulada com sucesso!");
@@ -2155,13 +2126,13 @@ export default function PlanoWorkflowView({
 
     deptsReparticoes.forEach((rep) => {
       list.push({ name: rep, type: "Repartição" });
-      const sectorsOfRep = SECTORES[rep] || [];
+      const sectorsOfRep = SETORES[rep] || [];
       sectorsOfRep.forEach((sec) => {
         list.push({ name: sec, type: "Setor", parentReparticao: rep });
       });
     });
 
-    // Analisar atividades e planos para recolher outros setores/repartições subordinados
+    // Analisar actividades e planos para recolher outros setores/repartições subordinados
     const activitiesToScan = [...(filteredActivities || []), ...(rawActivities || [])];
     activitiesToScan.forEach((a) => {
       const matchDept =
@@ -2201,7 +2172,7 @@ export default function PlanoWorkflowView({
       }
     });
 
-    // Garantir que temos "Sectores Gerais"
+    // Garantir que temos "Setores Gerais"
 
     return list;
   };
@@ -2239,7 +2210,7 @@ export default function PlanoWorkflowView({
   const handleAddActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.no) {
-      alert("Por favor preencha o número de ordem e a atividade.");
+      alert("Por favor preencha o número de ordem e a actividade.");
       return;
     }
 
@@ -2275,7 +2246,7 @@ export default function PlanoWorkflowView({
     try {
       await firestoreService.matrixActivities.add(activity);
       onShowAlert(
-        `Atividade planificada adicionada ao Plano ${
+        `Actividade planificada adicionada ao Plano ${
           activeSubTab === "plano_institucional"
             ? "Institucional"
             : activeSubTab === "plano_direcoes"
@@ -2289,11 +2260,16 @@ export default function PlanoWorkflowView({
       setShowAddForm(false);
     } catch (err) {
       console.error(err);
-      alert("Falha ao registar a atividade.");
+      alert("Falha ao registar a actividade.");
     }
   };
 
   const handleDelete = async (id: string) => {
+    const act = rawActivities.find((a) => a.id === id);
+    if (act && !canUserDeleteActivity(user, act)) {
+      onShowAlert("Não tem permissão para eliminar esta atividade. Ela pertence a outro setor ou utilizador.");
+      return;
+    }
     setDeleteConfirmId(id);
   };
 
@@ -2301,6 +2277,11 @@ export default function PlanoWorkflowView({
     if (!deleteConfirmId) return;
     try {
       const act = rawActivities.find((a) => a.id === deleteConfirmId);
+      if (act && !canUserDeleteActivity(user, act)) {
+        onShowAlert("Não tem permissão para eliminar esta atividade. Ela pertence a outro setor ou utilizador.");
+        setDeleteConfirmId(null);
+        return;
+      }
       await firestoreService.matrixActivities.delete(deleteConfirmId);
       setRawActivities((prev) => prev.filter((a) => a.id !== deleteConfirmId));
       onShowAlert("Dados excluídos com sucesso");
@@ -2326,7 +2307,7 @@ export default function PlanoWorkflowView({
 
     if (
       !window.confirm(
-        "ATENÇÃO MODO PROGRAMADOR: Esta ação irá EXCLUIR PERMANENTEMENTE TODAS as atividades do ciclo 2027 na base de dados. Esta operação não pode ser desfeita. Deseja continuar?",
+        "ATENÇÃO MODO PROGRAMADOR: Esta ação irá EXCLUIR PERMANENTEMENTE TODAS as actividades do ciclo 2027 na base de dados. Esta operação não pode ser desfeita. Deseja continuar?",
       )
     ) {
       return;
@@ -2338,7 +2319,7 @@ export default function PlanoWorkflowView({
         (a) => Number(a.ano) === 2027,
       );
       if (activitiesToDelete.length === 0) {
-        onShowAlert("Nenhuma atividade de 2027 encontrada para excluir.");
+        onShowAlert("Nenhuma actividade de 2027 encontrada para excluir.");
       } else {
         let deleted = 0;
         for (const act of activitiesToDelete) {
@@ -2349,7 +2330,7 @@ export default function PlanoWorkflowView({
       }
     } catch (error: any) {
       console.error("Erro ao limpar base de dados:", error);
-      onShowAlert("Erro ao excluir atividades: " + error.message);
+      onShowAlert("Erro ao excluir actividades: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -2363,7 +2344,7 @@ export default function PlanoWorkflowView({
 
     if (
       !window.confirm(
-        "⚠️ ATENÇÃO: Esta ação irá apagar TODOS os planos de atividades de anos anteriores (2025 e anteriores) carregados via modo programador. Deseja continuar?",
+        "⚠️ ATENÇÃO: Esta ação irá apagar TODOS os planos de actividades de anos anteriores (2025 e anteriores) carregados via modo programador. Deseja continuar?",
       )
     ) {
       return;
@@ -2379,7 +2360,7 @@ export default function PlanoWorkflowView({
 
       if (activitiesToDelete.length === 0) {
         onShowAlert(
-          "Nenhuma atividade de anos anteriores (<=2025) encontrada.",
+          "Nenhuma actividade de anos anteriores (<=2025) encontrada.",
         );
       } else {
         let deleted = 0;
@@ -2416,13 +2397,13 @@ export default function PlanoWorkflowView({
     );
 
     if (unassigned.length === 0) {
-      onShowAlert("Nenhuma atividade com departamento vazio encontrada no sistema.");
+      onShowAlert("Nenhuma actividade com departamento vazio encontrada no sistema.");
       return;
     }
 
     if (
       !window.confirm(
-        `⚠️ ATENÇÃO: Deseja realmente excluir permanentemente ${unassigned.length} atividade(s) sem departamento de todo o sistema? Esta operação não pode ser desfeita e garante a limpeza completa dos dados.`
+        `⚠️ ATENÇÃO: Deseja realmente excluir permanentemente ${unassigned.length} actividade(s) sem departamento de todo o sistema? Esta operação não pode ser desfeita e garante a limpeza completa dos dados.`
       )
     ) {
       return;
@@ -2440,10 +2421,10 @@ export default function PlanoWorkflowView({
       setRawActivities((prev) =>
         prev.filter((a) => !(!a.departamento || a.departamento.trim() === ""))
       );
-      onShowAlert(`Limpeza concluída! ${deletedCount} atividade(s) sem departamento foram excluídas do sistema.`);
+      onShowAlert(`Limpeza concluída! ${deletedCount} actividade(s) sem departamento foram excluídas do sistema.`);
     } catch (error: any) {
-      console.error("Erro ao limpar atividades sem departamento:", error);
-      onShowAlert("Erro ao excluir atividades: " + error.message);
+      console.error("Erro ao limpar actividades sem departamento:", error);
+      onShowAlert("Erro ao excluir actividades: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -2466,8 +2447,8 @@ export default function PlanoWorkflowView({
 
     for (const act of rawActivities) {
       if (!act) continue;
-      const name = (act.descricao || act.designacaoAtividade || act.nomeAtividade || act.title || act.atividade || "").toString().trim().toLowerCase();
-      const code = (act.codigoAtividade || act.referencia || act.nAtividade || act.numeroAtividade || act.no || act.codigo || "").toString().trim().toLowerCase();
+      const name = (act.descricao || act.designacaoActividade || act.nomeActividade || act.title || act.actividade || "").toString().trim().toLowerCase();
+      const code = (act.codigoActividade || act.referencia || act.nActividade || act.numeroActividade || act.no || act.codigo || "").toString().trim().toLowerCase();
       const key = `${name}|||${code}`;
       if (!key || key === "|||") continue;
 
@@ -2479,13 +2460,13 @@ export default function PlanoWorkflowView({
     }
 
     if (duplicates.length === 0) {
-      onShowAlert("Nenhuma atividade duplicada/repetida foi encontrada no sistema.");
+      onShowAlert("Nenhuma actividade duplicada/repetida foi encontrada no sistema.");
       return;
     }
 
     if (
       !window.confirm(
-        `⚠️ ATENÇÃO: Foram encontradas ${duplicates.length} atividade(s) duplicadas (mesmo nome e código). Deseja eliminar todas as cópias repetidas da base de dados?`
+        `⚠️ ATENÇÃO: Foram encontradas ${duplicates.length} actividade(s) duplicadas (mesmo nome e código). Deseja eliminar todas as cópias repetidas da base de dados?`
       )
     ) {
       return;
@@ -2502,9 +2483,9 @@ export default function PlanoWorkflowView({
       }
       const duplicateIds = new Set(duplicates.map((d) => d.id));
       setRawActivities((prev) => prev.filter((a) => !duplicateIds.has(a.id)));
-      onShowAlert(`Eliminação concluída! ${deletedCount} atividade(s) duplicada(s) foram removidas da base de dados.`);
+      onShowAlert(`Eliminação concluída! ${deletedCount} actividade(s) duplicada(s) foram removidas da base de dados.`);
     } catch (error: any) {
-      console.error("Erro ao eliminar atividades duplicadas:", error);
+      console.error("Erro ao eliminar actividades duplicadas:", error);
       onShowAlert("Erro ao excluir duplicados: " + error.message);
     } finally {
       setIsLoading(false);
@@ -2561,7 +2542,7 @@ export default function PlanoWorkflowView({
         );
 
     if (toUpdate.length === 0) {
-      alert(`Nenhuma atividade no Plano de ${originLabel} aguardando envio para o Superior.`);
+      alert(`Nenhuma actividade no Plano de ${originLabel} aguardando envio para o Superior.`);
       return;
     }
 
@@ -2616,11 +2597,11 @@ export default function PlanoWorkflowView({
           });
         }),
         firestoreService.archive_documents.add({
-          title: `Plano de Atividades e Orçamento de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
+          title: `Plano de Actividades e Orçamento de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
           year: selectedYear,
-          type: "Planos de Atividades e Orçamentos",
+          type: "Planos de Actividades e Orçamentos",
           date: new Date().toISOString().split("T")[0],
-          atividades: targetActivities,
+          actividades: targetActivities,
           author: user?.nome || user?.email,
           origin: originLabel,
           destinatario: destinatario.setorNome,
@@ -2652,7 +2633,7 @@ export default function PlanoWorkflowView({
       setModalEnvioPlanoState(null);
 
       onShowAlert(
-        `Sucesso! O Plano de ${originLabel} (${targetActivities.length} atividades) foi enviado com sucesso para o Superior Hierárquico (${destinatario.responsavelNome} - ${destinatario.setorNome}).`,
+        `Sucesso! O Plano de ${originLabel} (${targetActivities.length} actividades) foi enviado com sucesso para o Superior Hierárquico (${destinatario.responsavelNome} - ${destinatario.setorNome}).`,
       );
     } catch (err: any) {
       console.error("Erro ao submeter plano ao superior:", err);
@@ -2677,7 +2658,7 @@ export default function PlanoWorkflowView({
 
     if (toUpdate.length === 0) {
       alert(
-        `Nenhuma atividade no Plano de ${originLabel} aguardando expedição.`,
+        `Nenhuma actividade no Plano de ${originLabel} aguardando expedição.`,
       );
       return;
     }
@@ -2724,9 +2705,9 @@ export default function PlanoWorkflowView({
         firestoreService.archive_documents.add({
           title: `Cópia: Proposta de Plano de ${originLabel} (${user?.setor || user?.reparticao || user?.departamento || ""}) - ${new Date().toLocaleDateString("pt-PT")}`,
           year: selectedYear,
-          type: "Planos de Atividades e Orçamentos",
+          type: "Planos de Actividades e Orçamentos",
           date: new Date().toISOString().split("T")[0],
-          atividades: toUpdate,
+          actividades: toUpdate,
           author: user?.nome || user?.email,
           origin: originLabel,
           destinatario: resolvedDest.setorNome,
@@ -2757,7 +2738,7 @@ export default function PlanoWorkflowView({
       setSelectedActivityIds([]);
 
       onShowAlert(
-        `Sucesso! ${toUpdate.length} atividades foram assinadas e enviadas para o setor ${resolvedDest.setorNome} aos cuidados de ${resolvedDest.responsavelNome} (${resolvedDest.responsavelCargo}).`,
+        `Sucesso! ${toUpdate.length} actividades foram assinadas e enviadas para o setor ${resolvedDest.setorNome} aos cuidados de ${resolvedDest.responsavelNome} (${resolvedDest.responsavelCargo}).`,
       );
 
       setShowTramitacaoModal(false);
@@ -2796,7 +2777,7 @@ export default function PlanoWorkflowView({
 
     if (subordinateActs.length === 0) {
       alert(
-        "Nenhuma atividade de repartição ou setor pendente para unificar no plano do departamento.",
+        "Nenhuma actividade de repartição ou setor pendente para unificar no plano do departamento.",
       );
       return;
     }
@@ -2812,7 +2793,7 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `Sucesso! ${subordinateActs.length} atividades das repartições/setores foram unificadas no plano do departamento.`,
+        `Sucesso! ${subordinateActs.length} actividades das repartições/setores foram unificadas no plano do departamento.`,
       );
       setShowReceivedPlans(false);
     } catch (err) {
@@ -2836,7 +2817,7 @@ export default function PlanoWorkflowView({
 
     if (subordinateActs.length === 0) {
       alert(
-        "Nenhuma atividade de departamento pendente para unificar no plano da direção.",
+        "Nenhuma actividade de departamento pendente para unificar no plano da direção.",
       );
       return;
     }
@@ -2852,7 +2833,7 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `Sucesso! ${subordinateActs.length} atividades dos departamentos foram unificadas no plano da direção.`,
+        `Sucesso! ${subordinateActs.length} actividades dos departamentos foram unificadas no plano da direção.`,
       );
       setShowReceivedPlans(false);
     } catch (err) {
@@ -2879,7 +2860,7 @@ export default function PlanoWorkflowView({
     );
 
     if (toSend.length === 0) {
-      alert("Nenhuma atividade do Plano Geral na Direção aguardando envio para os departamentos.");
+      alert("Nenhuma actividade do Plano Geral na Direção aguardando envio para os departamentos.");
       return;
     }
 
@@ -2894,7 +2875,7 @@ export default function PlanoWorkflowView({
         ),
       );
       onShowAlert(
-        `Sucesso! ${toSend.length} atividades do Plano Geral foram enviadas para os Departamentos correspondentes para planificação.`,
+        `Sucesso! ${toSend.length} actividades do Plano Geral foram enviadas para os Departamentos correspondentes para planificação.`,
       );
     } catch (err) {
       console.error(err);
@@ -2920,7 +2901,7 @@ export default function PlanoWorkflowView({
       const pendingDepts = Array.from(new Set(subordinatePending.map(a => a.departamento || "")));
       alert(
         `⚠️ Não é possível enviar à Planificação.\n` +
-        `A Direção só pode enviar após receber as atividades de todos os seus departamentos.\n\n` +
+        `A Direção só pode enviar após receber as actividades de todos os seus departamentos.\n\n` +
         `Departamentos com planos pendentes:\n• ` + pendingDepts.join("\n• ")
       );
       return;
@@ -3008,7 +2989,7 @@ export default function PlanoWorkflowView({
 
       if (pendingActivities.length > 0) {
         const pendingDirs = Array.from(new Set(pendingActivities.map(a => getCanonicalDirection(a.direcao))));
-        errorMsg += `Direções com atividades pendentes de submissão:\n• ` + pendingDirs.join("\n• ") + `\n\n`;
+        errorMsg += `Direções com actividades pendentes de submissão:\n• ` + pendingDirs.join("\n• ") + `\n\n`;
       }
 
       if (missingDirs.length > 0) {
@@ -3042,7 +3023,7 @@ export default function PlanoWorkflowView({
   const handleExportPDF = async (activitiesToExport: any[]) => {
     try {
       if (!activitiesToExport || activitiesToExport.length === 0) {
-        onShowAlert("Nenhuma atividade encontrada para exportar.");
+        onShowAlert("Nenhuma actividade encontrada para exportar.");
         return;
       }
 
@@ -3070,7 +3051,7 @@ export default function PlanoWorkflowView({
       element.innerHTML = `
         <div style="text-align: center; margin-bottom: 24px;">
           <h2 style="font-size: 18px; font-weight: bold; margin-bottom: 4px; text-transform: ;">Instituto Superior Politécnico de Songo</h2>
-          <h3 style="font-size: 14px; color: #4a5568; margin-bottom: 12px;">Relatório de Atividades do Plano</h3>
+          <h3 style="font-size: 14px; color: #4a5568; margin-bottom: 12px;">Relatório de Actividades do Plano</h3>
           <p style="font-size: 11px; font-style: italic; color: #718096;">Gerado em ${new Date().toLocaleDateString("pt-PT")}</p>
         </div>
         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
@@ -3081,7 +3062,7 @@ export default function PlanoWorkflowView({
               <th style="padding: 8px; text-align: left;">Direção</th>
               <th style="padding: 8px; text-align: left;">Depto</th>
               <th style="padding: 8px; text-align: left;">Setor</th>
-              <th style="padding: 8px; text-align: left;">Atividade</th>
+              <th style="padding: 8px; text-align: left;">Actividade</th>
               <th style="padding: 8px; text-align: left;">Objetivo</th>
               <th style="padding: 8px; text-align: right; width: 100px;">Valor</th>
             </tr>
@@ -3094,7 +3075,7 @@ export default function PlanoWorkflowView({
 
       const opt = {
         margin: 10,
-        filename: `Atividades_Plano_${new Date().toISOString().slice(0, 10)}.pdf`,
+        filename: `Actividades_Plano_${new Date().toISOString().slice(0, 10)}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: {
@@ -3160,7 +3141,7 @@ export default function PlanoWorkflowView({
           sectorOrDept,
         ).toUpperCase();
         const actInitials = getActivityInitials(
-          act.nomeAtividade || act.title || act.designacao || "",
+          act.nomeActividade || act.title || act.designacao || "",
         );
 
         const newCode = [
@@ -3174,9 +3155,9 @@ export default function PlanoWorkflowView({
 
         const updateData = {
           no: newNo,
-          numeroAtividade: newNo,
-          nAtividade: newNo,
-          codigoAtividade: newCode,
+          numeroActividade: newNo,
+          nActividade: newNo,
+          codigoActividade: newCode,
           referencia: newCode,
           numeroDirecao: newNumeroDirecao,
         };
@@ -3193,7 +3174,7 @@ export default function PlanoWorkflowView({
 
     setIsProcessing(true);
     onShowAlert(
-      "A organizar a ordem numérica das atividades por setor (a começar de 001 para a frente)...",
+      "A organizar a ordem numérica das actividades por setor (a começar de 001 para a frente)...",
     );
 
     try {
@@ -3243,7 +3224,7 @@ export default function PlanoWorkflowView({
             sectorOrDept,
           ).toUpperCase();
           const actInitials = getActivityInitials(
-            act.nomeAtividade || act.title || act.designacao || "",
+            act.nomeActividade || act.title || act.designacao || "",
           );
 
           const newCode = [
@@ -3257,9 +3238,9 @@ export default function PlanoWorkflowView({
 
           const updateData = {
             no: newNo,
-            numeroAtividade: newNo,
-            nAtividade: newNo,
-            codigoAtividade: newCode,
+            numeroActividade: newNo,
+            nActividade: newNo,
+            codigoActividade: newCode,
             referencia: newCode,
             numeroDirecao: newNumeroDirecao,
           };
@@ -3307,7 +3288,7 @@ export default function PlanoWorkflowView({
     if (printArea) {
       printElementById(
         "pesoe-print-area",
-        `Plano de Atividades ${selectedYear} - Songo`,
+        `Plano de Actividades ${selectedYear} - Songo`,
         "landscape",
         "A3",
       );
@@ -3322,11 +3303,11 @@ export default function PlanoWorkflowView({
   ) => {
     try {
       if (!activitiesToExport || activitiesToExport.length === 0) {
-        onShowAlert("Nenhuma atividade encontrada para exportar.");
+        onShowAlert("Nenhuma actividade encontrada para exportar.");
         return;
       }
 
-      // Ordenar as atividades conforme a ordenação do sistema
+      // Ordenar as actividades conforme a ordenação do sistema
       const sortedActivities = [...activitiesToExport].sort((a, b) =>
         (a.referencia || "").localeCompare(b.referencia || "", undefined, {
           numeric: true,
@@ -3360,9 +3341,9 @@ export default function PlanoWorkflowView({
         "ÓRGÃO",
         "DIREÇÃO",
         "DEPARTAMENTO",
-        "Cód./Atividade",
-        "Nome da atividade",
-        "Objetivo da atividade",
+        "Cód./Actividade",
+        "Nome da actividade",
+        "Objetivo da actividade",
         "Trimestre / Período",
         "Met/Real.",
         "M/T",
@@ -3373,7 +3354,7 @@ export default function PlanoWorkflowView({
         "VALOR TOTAL GERAL (MZM)"
       ];
 
-      // Agrupar atividades para permitir mesclagens (mesma atividade com múltiplas rubricas)
+      // Agrupar actividades para permitir mesclagens (mesma actividade com múltiplas rubricas)
       const groupedData: any[][] = [];
       const merges: any[] = [
         { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // N/O
@@ -3387,10 +3368,10 @@ export default function PlanoWorkflowView({
 
       let currentRow = 2; // Começa após as duas linhas de cabeçalho
 
-      // Agrupar por código/título para identificar rubricas da mesma atividade
+      // Agrupar por código/título para identificar rubricas da mesma actividade
       const groups: { [key: string]: any[] } = {};
       sortedActivities.forEach(act => {
-        const key = `${act.no || ""}-${act.codigoAtividade || act.referencia || ""}-${act.title || act.designacao || ""}`;
+        const key = `${act.no || ""}-${act.codigoActividade || act.referencia || ""}-${act.title || act.designacao || ""}`;
         if (!groups[key]) groups[key] = [];
         groups[key].push(act);
       });
@@ -3405,9 +3386,9 @@ export default function PlanoWorkflowView({
             idx === 0 ? (act.unidadeOrganica || act.unidadeSelecionada || "Songo") : "", // ÓRGÃO
             idx === 0 ? (act.direcao || "") : "", // DIREÇÃO
             idx === 0 ? (act.departamento || "") : "", // DEPARTAMENTO
-            idx === 0 ? (act.codigoAtividade || act.referencia || "") : "", // Cód./Atividade
-            idx === 0 ? (act.title || act.designacao || "") : "", // Nome da atividade
-            idx === 0 ? (act.objetivo || "") : "", // Objetivo da atividade
+            idx === 0 ? (act.codigoActividade || act.referencia || "") : "", // Cód./Actividade
+            idx === 0 ? (act.title || act.designacao || "") : "", // Nome da actividade
+            idx === 0 ? (act.objetivo || "") : "", // Objetivo da actividade
             idx === 0 ? (act.trimestre || "") : "", // Trimestre / Período
             idx === 0 ? (act.mesRealizacao || act.mes_realizacao || act.mes || "") : "", // Met/Real.
             idx === 0 ? (act.necessidadeTransporte || act.necessidade_transporte || "Não") : "", // M/T
@@ -3436,7 +3417,7 @@ export default function PlanoWorkflowView({
       ws["!merges"] = merges;
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, ws, "Plano de Atividades");
+      XLSX.utils.book_append_sheet(workbook, ws, "Plano de Actividades");
 
       // Definir larguras de coluna
       const colWidths = [
@@ -3445,9 +3426,9 @@ export default function PlanoWorkflowView({
         { wch: 25 }, // ÓRGÃO
         { wch: 25 }, // DIREÇÃO
         { wch: 25 }, // DEPARTAMENTO
-        { wch: 20 }, // Cód./Atividade
-        { wch: 35 }, // Nome da atividade
-        { wch: 35 }, // Objetivo da atividade
+        { wch: 20 }, // Cód./Actividade
+        { wch: 35 }, // Nome da actividade
+        { wch: 35 }, // Objetivo da actividade
         { wch: 18 }, // Trimestre / Período
         { wch: 15 }, // Met/Real.
         { wch: 8 },  // M/T
@@ -3465,7 +3446,7 @@ export default function PlanoWorkflowView({
     } catch (err: any) {
       console.error(err);
       onShowAlert(
-        "Erro ao exportar o plano de atividades para Excel: " + err.message,
+        "Erro ao exportar o plano de actividades para Excel: " + err.message,
       );
     }
   };
@@ -3475,7 +3456,7 @@ export default function PlanoWorkflowView({
 
     if (
       !window.confirm(
-        "Deseja recalcular e atualizar os códigos de todas as atividades planificadas para o novo formato (UNIDADE/DEP/REP/001)? Esta ação atualizará permanentemente os registros no banco de dados.",
+        "Deseja recalcular e atualizar os códigos de todas as actividades planificadas para o novo formato (UNIDADE/DEP/REP/001)? Esta ação atualizará permanentemente os registros no banco de dados.",
       )
     ) {
       return;
@@ -3504,9 +3485,9 @@ export default function PlanoWorkflowView({
         // Determinar o número sequencial (extrair do código antigo ou usar o campo no)
         let num = "001";
         const code = (
-          activity.codigoAtividade ||
+          activity.codigoActividade ||
           activity.referencia ||
-          activity.nAtividade ||
+          activity.nActividade ||
           ""
         ).toString();
         const match = code.match(/(\d+)$/);
@@ -3529,9 +3510,9 @@ export default function PlanoWorkflowView({
         const newCode = parts.join("/");
 
         // Só atualiza se o código mudou
-        if (newCode !== activity.codigoAtividade) {
+        if (newCode !== activity.codigoActividade) {
           await firestoreService.matrixActivities.update(activity.id, {
-            codigoAtividade: newCode,
+            codigoActividade: newCode,
             referencia: newCode, // Manter referência sincronizada
             updatedAt: new Date().toISOString(),
           });
@@ -3540,7 +3521,7 @@ export default function PlanoWorkflowView({
       }
 
       onShowAlert(
-        `Sucesso: ${updatedCount} códigos de atividades foram atualizados para o novo formato.`,
+        `Sucesso: ${updatedCount} códigos de actividades foram atualizados para o novo formato.`,
       );
     } catch (err: any) {
       console.error("Erro ao atualizar códigos:", err);
@@ -3576,7 +3557,7 @@ export default function PlanoWorkflowView({
               </div>
               <div className="space-y-1">
                 <h3 className="text-white font-black text-xs  tracking-widest flex items-center gap-2">
-                  Análise do Plano Importado <span className="bg-white text-indigo-600 px-2 py-0.5 rounded-full text-[9px] font-black">{stagedAnalysis.count} Atividades</span>
+                  Análise do Plano Importado <span className="bg-white text-indigo-600 px-2 py-0.5 rounded-full text-[9px] font-black">{stagedAnalysis.count} Actividades</span>
                 </h3>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <div className="flex items-center gap-1.5">
@@ -3719,10 +3700,10 @@ export default function PlanoWorkflowView({
                     </button>
                     <div>
                       <h1 className="text-2xl font-black text-white tracking-tight mb-1">
-                        {workflowMode === "consulting" ? "Consulta de Atividades Planificadas" : "Plano Geral de Atividades"}
+                        {workflowMode === "consulting" ? "Consulta de Actividades Planificadas" : "Plano Geral de Actividades"}
                       </h1>
                       <p className="text-slate-400 text-[10px] font-medium tracking-widest">
-                        {workflowMode === "consulting" ? "Atividades Pessoais e Setoriais Registadas no Sistema" : "Gestão Institucional de Atividades Songo"}
+                        {workflowMode === "consulting" ? "Actividades Pessoais e Setoriais Registadas no Sistema" : "Gestão Institucional de Actividades Songo"}
                       </p>
                     </div>
                   </div>
@@ -3827,7 +3808,7 @@ export default function PlanoWorkflowView({
               <div className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md text-white px-8 py-3.5 shadow-2xl flex flex-wrap items-center justify-between gap-4 border-b border-slate-700 animate-slide-down print:hidden">
                 <div className="flex items-center gap-3">
                   <span className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-xs">
-                    {selectedActivityIds.length} atividade(s) selecionada(s)
+                    {selectedActivityIds.length} actividade(s) selecionada(s)
                   </span>
                   <span className="text-xs font-medium text-slate-300">
                     Opções para o perfil ({selectedRoleMode}):
@@ -3842,7 +3823,7 @@ export default function PlanoWorkflowView({
                           selectedActivityIds.includes(a.id)
                         );
                         if (targetActs.length === 0) {
-                          alert("Nenhuma atividade selecionada para submeter.");
+                          alert("Nenhuma actividade selecionada para submeter.");
                           return;
                         }
                         if (selectedRoleMode === "Setor")
@@ -3861,7 +3842,7 @@ export default function PlanoWorkflowView({
                           handleWorkflowTransition("setorial", "reparticao", "Setor", "Repartição", targetActs);
                       }}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                      title="Submeter atividades selecionadas"
+                      title="Submeter actividades selecionadas"
                     >
                       <Send size={13} />
                       <span>Submeter ({selectedActivityIds.length})</span>
@@ -3897,7 +3878,7 @@ export default function PlanoWorkflowView({
                     <button
                       onClick={handleBulkDelete}
                       className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-                      title="Excluir atividades selecionadas"
+                      title="Excluir actividades selecionadas"
                     >
                       <Trash2 size={13} />
                       <span>Excluir ({selectedActivityIds.length})</span>
@@ -3946,7 +3927,7 @@ export default function PlanoWorkflowView({
                         </p>
                         <p className="text-[11px] font-medium text-red-100">
                           {isPlanificacaoAberta(periodoPlanificacao).motivo ||
-                            "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."}
+                            "O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral."}
                         </p>
                       </div>
                     </div>
@@ -4021,7 +4002,7 @@ export default function PlanoWorkflowView({
                                   if (!statusPeriodo.aberta) {
                                     onShowAlert(
                                       statusPeriodo.motivo ||
-                                        "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."
+                                        "O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral."
                                     );
                                     return;
                                   }
@@ -4033,7 +4014,7 @@ export default function PlanoWorkflowView({
                                 <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
                                   <Plus size={15} strokeWidth={2.5} />
                                 </div>
-                                <span>Nova Atividade</span>
+                                <span>Nova Actividade</span>
                               </button>
 
                               <button
@@ -4053,7 +4034,7 @@ export default function PlanoWorkflowView({
                                 onClick={() => {
                                   setShowFileMenu(false);
                                   onShowAlert(
-                                    "Atividades guardadas na base de dados com sucesso!",
+                                    "Actividades guardadas na base de dados com sucesso!",
                                   );
                                 }}
                                 className="w-full text-left px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition-colors flex items-center gap-3 cursor-pointer"
@@ -4069,7 +4050,7 @@ export default function PlanoWorkflowView({
                                   setShowFileMenu(false);
                                   if (isReadOnly) {
                                     onShowAlert(
-                                      "Modo de consulta. Não é possível submeter atividades.",
+                                      "Modo de consulta. Não é possível submeter actividades.",
                                     );
                                     return;
                                   }
@@ -4120,7 +4101,7 @@ export default function PlanoWorkflowView({
                       >
                         {selectedYear === 2027
                           ? `Você está a elaborar o novo plano para o exercício económico de ${selectedYear}.`
-                          : `Você está visualizando o arquivo de atividades do ano ${selectedYear}. Dados protegidos contra alterações acidentais.`}
+                          : `Você está visualizando o arquivo de actividades do ano ${selectedYear}. Dados protegidos contra alterações acidentais.`}
                       </p>
                     </div>
 
@@ -4141,7 +4122,7 @@ export default function PlanoWorkflowView({
                             <button
                               onClick={handleSendPlanoGeralToDepartamentos}
                               className="bg-amber-600 hover:bg-amber-700 text-white font-black tracking-widest text-[9px]  px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shadow-lg shadow-amber-100 h-[40px]"
-                              title="Enviar atividades criadas na Direção para planificação nos Departamentos correspondentes"
+                              title="Enviar actividades criadas na Direção para planificação nos Departamentos correspondentes"
                             >
                               <Send size={14} strokeWidth={3} /> Enviar Plano Geral para Departamentos
                             </button>
@@ -4228,10 +4209,10 @@ export default function PlanoWorkflowView({
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6 border-b-2 border-slate-100 pb-3">
                   <div>
                     <h3 className="text-xl font-black text-slate-900 tracking-tight">
-                      Plano de Atividades do Setor
+                      Plano de Actividades do Setor
                     </h3>
                     <p className="text-sm font-bold text-slate-500 mt-1">
-                      Total de {filteredActivities.length} Atividades Planificadas
+                      Total de {filteredActivities.length} Actividades Planificadas
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -4239,7 +4220,7 @@ export default function PlanoWorkflowView({
                       onClick={handleFixNumbering}
                       disabled={isProcessing || filteredActivities.length === 0}
                       className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 border border-indigo-200"
-                      title="Organizar a numeração das atividades do setor a partir de 001"
+                      title="Organizar a numeração das actividades do setor a partir de 001"
                     >
                       <RotateCcw size={14} /> Organizar Ordem Numérica (001...)
                     </button>
@@ -4251,20 +4232,20 @@ export default function PlanoWorkflowView({
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-black tracking-widest text-[9px] px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap shadow-lg shadow-blue-100"
                       >
-                        <Plus size={14} strokeWidth={3} /> Nova Atividade
+                        <Plus size={14} strokeWidth={3} /> Nova Actividade
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Lista única de todas as atividades do setor em ordem numérica */}
+                {/* Lista única de todas as actividades do setor em ordem numérica */}
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full">
                   <div className="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 flex items-center justify-between">
                     <span className="text-[10px] font-black text-blue-600 tracking-widest uppercase">
-                      Lista Única de Atividades — {user?.setor || user?.reparticao || title || "Setor"}
+                      Lista Única de Actividades — {user?.setor || user?.reparticao || title || "Setor"}
                     </span>
                     <span className="text-[10px] font-bold text-slate-500 tracking-wider">
-                      {filteredActivities.length} Atividades em Ordem Numérica
+                      {filteredActivities.length} Actividades em Ordem Numérica
                     </span>
                   </div>
 
@@ -4364,7 +4345,7 @@ export default function PlanoWorkflowView({
                               colSpan={37}
                               className="p-12 text-center text-slate-400 italic font-medium"
                             >
-                              Nenhuma atividade planificada para este setor no exercício de {selectedYear}.
+                              Nenhuma actividade planificada para este setor no exercício de {selectedYear}.
                             </td>
                           </tr>
                         )}
@@ -4379,10 +4360,10 @@ export default function PlanoWorkflowView({
                       <Plus className="text-slate-300 w-10 h-10" />
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 mb-2">
-                      Plano de Atividades Vazio
+                      Plano de Actividades Vazio
                     </h3>
                     <p className="text-slate-500 text-sm max-w-xs text-center leading-relaxed">
-                      Ainda não existem atividades planificadas por si para o exercício de {selectedYear}.
+                      Ainda não existem actividades planificadas por si para o exercício de {selectedYear}.
                     </p>
                     {!isReadOnly && (
                       <button
@@ -4392,7 +4373,7 @@ export default function PlanoWorkflowView({
                         }}
                         className="mt-8 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
                       >
-                        Criar Primeira Atividade
+                        Criar Primeira Actividade
                       </button>
                     )}
                   </div>
@@ -4420,7 +4401,7 @@ export default function PlanoWorkflowView({
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full">
                   <div className="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 flex items-center justify-between">
                     <span className="text-[10px] font-black text-blue-600  tracking-widest">
-                      Atividades na Repartição
+                      Actividades na Repartição
                     </span>
                     <div className="flex gap-4">
                       <span className="text-[10px] font-bold text-[#f59e0b]  tracking-wider">
@@ -4520,7 +4501,7 @@ export default function PlanoWorkflowView({
                               colSpan={37}
                               className="p-12 text-center text-slate-400 italic font-medium"
                             >
-                              Nenhuma atividade planificada na repartição.
+                              Nenhuma actividade planificada na repartição.
                             </td>
                           </tr>
                         )}
@@ -4574,7 +4555,7 @@ export default function PlanoWorkflowView({
                         <button
                           onClick={handleUnifyDepartmentPlan}
                           className="bg-purple-600 text-white font-black tracking-widest text-[9px]  px-6 py-4 rounded-xl shadow-lg shadow-purple-100 hover:bg-purple-700 transition-all flex items-center justify-center gap-2"
-                          title="Unificar todas as atividades das repartições e setores no plano do departamento"
+                          title="Unificar todas as actividades das repartições e setores no plano do departamento"
                         >
                           <Layers size={14} strokeWidth={3} /> Unificar
                         </button>
@@ -4600,13 +4581,13 @@ export default function PlanoWorkflowView({
                     <p className="text-xs text-slate-400 mt-1">
                       {showReceivedPlans
                         ? "Visualizando os planos enviados pelas repartições e setores subordinados."
-                        : "O valor total de todas as atividades planificadas para o departamento."}
+                        : "O valor total de todas as actividades planificadas para o departamento."}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-4">
                     <div className="bg-slate-800/90 border border-slate-700/80 p-4 rounded-xl text-right min-w-[200px]">
                       <span className="text-[10px] font-bold text-slate-400  tracking-wider block">
-                        Atividades (Sem Salários)
+                        Actividades (Sem Salários)
                       </span>
                       <span className="text-xl font-black text-emerald-400 font-mono">
                         {deptBudgetTotal.toLocaleString("pt-MZ", {
@@ -4620,7 +4601,7 @@ export default function PlanoWorkflowView({
                           filteredActivities.filter((a) => !isSalaryActivity(a))
                             .length
                         }{" "}
-                        Atividades
+                        Actividades
                       </span>
                     </div>
                     {deptSalaryTotal > 0 && (
@@ -4641,7 +4622,7 @@ export default function PlanoWorkflowView({
                               isSalaryActivity(a),
                             ).length
                           }{" "}
-                          Atividades de Salário
+                          Actividades de Salário
                         </span>
                       </div>
                     )}
@@ -4649,7 +4630,7 @@ export default function PlanoWorkflowView({
                 </div>
 
                 {!showReceivedPlans ? (
-                  /* Meu Plano de Departamento (Apenas atividades do departamento) */
+                  /* Meu Plano de Departamento (Apenas actividades do departamento) */
                   <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm w-full">
                     <div className="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 flex items-center justify-between">
                       <span className="text-[10px] font-black text-blue-600  tracking-widest">
@@ -4665,7 +4646,7 @@ export default function PlanoWorkflowView({
                               isDepartmentMatch(a.unidadeOrganica, title),
                           ).length
                         }{ " " }
-                        Atividades
+                        Actividades
                       </span>
                     </div>
                     <div className="overflow-x-auto print:overflow-visible border border-slate-200 rounded-2xl shadow-sm mb-3 w-full" data-print-type="plano">
@@ -4762,8 +4743,8 @@ export default function PlanoWorkflowView({
                                 colSpan={37}
                                 className="p-12 text-center text-slate-400 italic font-medium"
                               >
-                                Nenhuma atividade no plano próprio do
-                                departamento. Pode criar atividades ou unificar
+                                Nenhuma actividade no plano próprio do
+                                departamento. Pode criar actividades ou unificar
                                 planos recebidos.
                               </td>
                             </tr>
@@ -4773,7 +4754,7 @@ export default function PlanoWorkflowView({
                     </div>
                   </div>
                 ) : (
-                  /* Planos Recebidos (Grouped by Sectors/Repartitions) */
+                  /* Planos Recebidos (Grouped by Setores/Repartições) */
                   <div className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                       <div>
@@ -4797,11 +4778,11 @@ export default function PlanoWorkflowView({
                     {reparticoesAndSectorsForThisDept.map((item) => {
                       const sector = item.name;
                       const sectorActs = filteredActivities.filter((a) => {
-                        if (sector === "Sectores Gerais") {
+                        if (sector === "Setores Gerais") {
                           return (
                             (!a.reparticao && !a.setor) ||
-                            a.reparticao === "Sectores Gerais" ||
-                            a.setor === "Sectores Gerais"
+                            a.reparticao === "Setores Gerais" ||
+                            a.setor === "Setores Gerais"
                           );
                         }
                         return (
@@ -4833,8 +4814,8 @@ export default function PlanoWorkflowView({
                             <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                               {sectorActs.length}{" "}
                               {sectorActs.length === 1
-                                ? "Atividade"
-                                : "Atividades"}
+                                ? "Actividade"
+                                : "Actividades"}
                             </span>
                           </div>
 
@@ -4876,7 +4857,7 @@ export default function PlanoWorkflowView({
                                       colSpan={37}
                                       className="p-6 text-center text-slate-400 text-xs italic font-medium"
                                     >
-                                      Nenhuma atividade registada ou submetida
+                                      Nenhuma actividade registada ou submetida
                                       para este(a) {item.type.toLowerCase()} até
                                       ao momento.
                                     </td>
@@ -4950,8 +4931,8 @@ export default function PlanoWorkflowView({
                   <h2 className="text-xl md:text-2xl font-black text-slate-900  tracking-tight font-serif">
                     TOTAL DE ATIVIDADES DA DIREÇÃO ( {filteredActivities.length}{" "}
                     {filteredActivities.length === 1
-                      ? "Atividade"
-                      : "Atividades"}{" "}
+                      ? "Actividade"
+                      : "Actividades"}{" "}
                     )
                   </h2>
                   <h2 className="text-xl md:text-2xl font-black text-slate-900  tracking-tight font-serif text-emerald-900">
@@ -4995,7 +4976,7 @@ export default function PlanoWorkflowView({
                     <div className="bg-white/10 p-5 rounded-2xl border border-white/10 backdrop-blur-md text-right min-w-[280px] space-y-3">
                       <div>
                         <span className="text-[10px] font-bold text-slate-300  tracking-wider block">
-                          Orçamento das Atividades (Sem Salários)
+                          Orçamento das Actividades (Sem Salários)
                         </span>
                         <span className="text-2xl font-black text-amber-400 font-mono">
                           {totalDirectionBudget.toLocaleString("pt-MZ", {
@@ -5043,7 +5024,7 @@ export default function PlanoWorkflowView({
                             </span>
                             <span className="text-[10px] text-slate-400 font-medium">
                               {d.count}{" "}
-                              {d.count === 1 ? "atividade" : "atividades"}
+                              {d.count === 1 ? "actividade" : "actividades"}
                             </span>
                           </div>
                           <span className="text-xs font-mono font-black text-emerald-400 shrink-0">
@@ -5124,7 +5105,7 @@ export default function PlanoWorkflowView({
                                   MZN
                                 </div>
                                 <div className="text-[9px] text-slate-400 mt-0.5">
-                                  {deptActs.length} {deptActs.length === 1 ? "Atividade" : "Atividades"} em {subordinateSectors.length} setores
+                                  {deptActs.length} {deptActs.length === 1 ? "Actividade" : "Actividades"} em {subordinateSectors.length} setores
                                 </div>
                               </div>
                             </div>
@@ -5134,11 +5115,11 @@ export default function PlanoWorkflowView({
                               {subordinateSectors.map((item) => {
                                 const sector = item.name;
                                 const sectorActs = deptActs.filter((a) => {
-                                  if (sector === "Sectores Gerais") {
+                                  if (sector === "Setores Gerais") {
                                     return (
                                       (!a.reparticao && !a.setor) ||
-                                      a.reparticao === "Sectores Gerais" ||
-                                      a.setor === "Sectores Gerais"
+                                      a.reparticao === "Setores Gerais" ||
+                                      a.setor === "Setores Gerais"
                                     );
                                   }
                                   return (
@@ -5176,7 +5157,7 @@ export default function PlanoWorkflowView({
                                           MZN
                                         </span>
                                         <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">
-                                          {sectorActs.length} {sectorActs.length === 1 ? "Atividade" : "Atividades"}
+                                          {sectorActs.length} {sectorActs.length === 1 ? "Actividade" : "Actividades"}
                                         </span>
                                       </div>
                                     </div>
@@ -5219,7 +5200,7 @@ export default function PlanoWorkflowView({
                                                 colSpan={37}
                                                 className="p-4 text-center text-slate-400 text-xs italic font-medium"
                                               >
-                                                Nenhuma atividade registada ou submetida para este(a) {item.type.toLowerCase()} até ao momento.
+                                                Nenhuma actividade registada ou submetida para este(a) {item.type.toLowerCase()} até ao momento.
                                               </td>
                                             </tr>
                                           )}
@@ -5266,10 +5247,10 @@ export default function PlanoWorkflowView({
                                 <h4 className="text-xl font-black  tracking-tight text-white">
                                     {dept} - (Meu Plano)
                                 </h4>
-                                <p className="text-[10px] text-slate-400 mt-1">O valor total de todas as atividades planejadas para o departamento.</p>
+                                <p className="text-[10px] text-slate-400 mt-1">O valor total de todas as actividades planejadas para o departamento.</p>
                             </div>
                             <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-right">
-                                <div className="text-[9px] font-bold text-slate-400  tracking-wider">Atividades (Sem Salários)</div>
+                                <div className="text-[9px] font-bold text-slate-400  tracking-wider">Actividades (Sem Salários)</div>
                                 <div className="text-lg font-black text-emerald-400 font-mono">
                                     {deptBudget.toLocaleString("pt-MZ", {
                                     minimumFractionDigits: 2,
@@ -5277,7 +5258,7 @@ export default function PlanoWorkflowView({
                                     })}{" "}
                                     MZN
                                 </div>
-                                <div className="text-[9px] text-slate-400 mt-0.5">{deptActs.length} {deptActs.length === 1 ? "Atividade" : "Atividades"}</div>
+                                <div className="text-[9px] text-slate-400 mt-0.5">{deptActs.length} {deptActs.length === 1 ? "Actividade" : "Actividades"}</div>
                             </div>
                           </div>
 
@@ -5432,7 +5413,7 @@ export default function PlanoWorkflowView({
                       </h4>
                       <p className="text-slate-500 text-xs mt-0.5">
                         Você está a visualizar de forma restrita e segura as
-                        atividades consolidadas para a sua direção:{" "}
+                        actividades consolidadas para a sua direção:{" "}
                         <strong className="text-slate-900 font-black">
                           {directorDirection === "ALL"
                             ? "Todas as Áreas"
@@ -5520,10 +5501,10 @@ export default function PlanoWorkflowView({
                         <div className="pb-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
                           <div className="flex-1">
                             <h2 className="text-3xl font-black text-slate-900  tracking-tighter leading-none mb-2">
-                              Atividades da Repartição / Setor
+                              Actividades da Repartição / Setor
                             </h2>
                             <p className="text-slate-500 text-xs italic font-medium">
-                              Gestão das atividades planificadas exclusivamente
+                              Gestão das actividades planificadas exclusivamente
                               para o seu setor/repartição.
                             </p>
                           </div>
@@ -5591,7 +5572,7 @@ export default function PlanoWorkflowView({
                                     colSpan={40}
                                     className="p-20 text-center text-slate-400 font-bold italic  tracking-widest bg-slate-50/50"
                                   >
-                                    Nenhuma atividade encontrada para a sua
+                                    Nenhuma actividade encontrada para a sua
                                     repartição.
                                   </td>
                                 </tr>
@@ -5610,10 +5591,10 @@ export default function PlanoWorkflowView({
                         <div className="pb-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
                           <div className="flex-1">
                             <h2 className="text-3xl font-black text-slate-900  tracking-tighter leading-none mb-2">
-                              Atividades do Departamento
+                              Actividades do Departamento
                             </h2>
                             <p className="text-slate-500 text-xs italic font-medium">
-                              Consolidação de atividades de todos os setores e
+                              Consolidação de actividades de todos os setores e
                               repartições que compõem o departamento.
                             </p>
                           </div>
@@ -5682,7 +5663,7 @@ export default function PlanoWorkflowView({
                                     colSpan={40}
                                     className="p-20 text-center text-slate-400 font-bold italic  tracking-widest bg-slate-50/50"
                                   >
-                                    Nenhuma atividade encontrada para o seu
+                                    Nenhuma actividade encontrada para o seu
                                     departamento.
                                   </td>
                                 </tr>
@@ -5718,7 +5699,7 @@ export default function PlanoWorkflowView({
                           <div className="bg-white/10 p-5 rounded-2xl border border-white/10 backdrop-blur-md text-right min-w-[280px] space-y-3">
                             <div>
                               <span className="text-[10px] font-bold text-slate-300  tracking-wider block">
-                                Orçamento das Atividades (Sem Salários)
+                                Orçamento das Actividades (Sem Salários)
                               </span>
                               <span className="text-2xl font-black text-emerald-400 font-mono">
                                 {totalInstitutionalBudget.toLocaleString(
@@ -5871,7 +5852,7 @@ export default function PlanoWorkflowView({
                                     isDepartmentMatch(a.departamento, user.departamento)),
                               ).length
                             }{" "}
-                            Atividades
+                            Actividades
                           </span>
                         </div>
                       </div>
@@ -5926,7 +5907,7 @@ export default function PlanoWorkflowView({
                                         <span>🏢 DIREÇÃO: {direction}</span>
                                         <div className="flex gap-4 items-center">
                                           <span className="bg-white/10 px-3 py-1 rounded-lg border border-white/20">
-                                            {activities.length} Atividades
+                                            {activities.length} Actividades
                                           </span>
                                           <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-lg border border-amber-500/30 font-mono">
                                             Total Direção:{" "}
@@ -6064,12 +6045,12 @@ export default function PlanoWorkflowView({
                                 .filter(Boolean).map((activity, idx) => {
                                   const totalVal = getActivityTotal(activity);
                                   const code =
-                                    activity.codigoAtividade ||
+                                    activity.codigoActividade ||
                                     activity.referencia ||
                                     activity.codigo ||
                                     "---";
                                   const name =
-                                    activity.nomeAtividade ||
+                                    activity.nomeActividade ||
                                     activity.title ||
                                     activity.designacao ||
                                     "---";
@@ -6223,7 +6204,7 @@ export default function PlanoWorkflowView({
                                     </td>
                                     <td className="p-3.5 text-center font-bold text-slate-600">
                                       <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px]">
-                                        {item.atividadesCount} {item.atividadesCount === 1 ? "Atividade" : "Atividades"}
+                                        {item.actividadesCount} {item.actividadesCount === 1 ? "Atividade" : "Atividades"}
                                       </span>
                                     </td>
                                   </tr>
@@ -6376,7 +6357,7 @@ export default function PlanoWorkflowView({
                                 <h3 className="text-2xl font-black text-slate-900 mt-1 font-mono">
                                   {planificacaoDirActivities.length}
                                   <span className="text-xs ml-2 text-slate-400 font-medium tracking-normal">
-                                    Atividades
+                                    Actividades
                                   </span>
                                 </h3>
                               </div>
@@ -6781,7 +6762,7 @@ export default function PlanoWorkflowView({
                                     .includes(directorDirection.toUpperCase());
                                 }).length
                             }{" "}
-                            Atividades
+                            Actividades
                           </span>
                         </div>
                       </div>
@@ -7139,7 +7120,7 @@ export default function PlanoWorkflowView({
               <div className="p-8 md:p-12 space-y-8 flex-1 bg-white">
                 <InstitutionalHeader
                   unidadeName="Instituto Superior Politécnico de Songo"
-                  direcaoName="Direção de Planificação, Estudos e Projetos"
+                  direcaoName="Departamento de Planificação Estudos e Projetos"
                   departamentoName="Gabinete do Chefe do DPEP"
                   year={selectedYear}
                   isOwner={true}
@@ -7408,21 +7389,21 @@ export default function PlanoWorkflowView({
                         });
 
                         const maxNumber = sectorActs.reduce((max: number, a: any) => {
-                          const numStr = a.numeroAtividade || a.nAtividade || a.no;
+                          const numStr = a.numeroActividade || a.nActividade || a.no;
                           const parsedNum = numStr ? parseInt(String(numStr).replace(/\D/g, ""), 10) : NaN;
                           if (!isNaN(parsedNum) && parsedNum > max) return parsedNum;
 
-                          const ref = String(a.referencia || a.codigoAtividade || "");
+                          const ref = String(a.referencia || a.codigoActividade || "");
                           const match = ref.match(/\/(\d+)(\/|$)/);
                           const num = match ? parseInt(match[1], 10) : 0;
                           return num > max ? num : max;
                         }, 0);
 
-                        const directVal = data.numeroAtividade || data.nAtividade || data.no;
+                        const directVal = data.numeroActividade || data.nActividade || data.no;
                         if (directVal) {
                           const parsed = parseInt(String(directVal).replace(/\D/g, ""), 10);
                           const isColliding = sectorActs.some((a: any) => {
-                            const aNum = parseInt(String(a.numeroAtividade || a.nAtividade || a.no).replace(/\D/g, ""), 10);
+                            const aNum = parseInt(String(a.numeroActividade || a.nActividade || a.no).replace(/\D/g, ""), 10);
                             return aNum === parsed;
                           });
                           if (!isNaN(parsed) && parsed > 0 && !isColliding) {
@@ -7438,11 +7419,11 @@ export default function PlanoWorkflowView({
                       ).toUpperCase();
                       const sectorOrDept = resolvedSector || data.departamento || "Geral";
                       const deptInitials = getDepartmentAbbreviation(sectorOrDept).toUpperCase();
-                      const actTitle = data.nomeAtividade || data.title || "ACT";
+                      const actTitle = data.nomeActividade || data.title || "ACT";
                       const actInitials = getActivityInitials(actTitle);
 
-                      const resolvedCode = (data.codigoAtividade && !data.codigoAtividade.includes("/000/"))
-                        ? data.codigoAtividade.toUpperCase()
+                      const resolvedCode = (data.codigoActividade && !data.codigoActividade.includes("/000/"))
+                        ? data.codigoActividade.toUpperCase()
                         : (!data._forceNewRecord && editingActivity?.referencia)
                           ? editingActivity.referencia
                           : [
@@ -7503,13 +7484,13 @@ export default function PlanoWorkflowView({
                           (data._forceNewRecord ? undefined : editingActivity?.userUid) || user?.uid || user?.id || "",
                         nuit: (data._forceNewRecord ? undefined : editingActivity?.nuit) || user?.nuit || "",
                         no: resolvedNo,
-                        numeroAtividade: resolvedNo,
-                        nAtividade: resolvedNo,
+                        numeroActividade: resolvedNo,
+                        nActividade: resolvedNo,
                         referencia: resolvedCode,
-                        codigoAtividade: resolvedCode,
+                        codigoActividade: resolvedCode,
                         setor: resolvedSector,
                         title:
-                          data.nomeAtividade || data.title || "Nova Atividade",
+                          data.nomeActividade || data.title || "Nova Atividade",
                         direcao:
                           data.unidadeSelecionada ||
                           data.direcao ||
@@ -7579,7 +7560,7 @@ export default function PlanoWorkflowView({
                           data.mesRealizacao ||
                           data.dataInicio ||
                           "",
-                        objetivoAtividade: data.objetivoAtividade || "",
+                        objetivoActividade: data.objetivoActividade || "",
                         trabalhoProvincia: data.trabalhoProvincia || "",
                         trabalhoDistrito: data.trabalhoDistrito || "",
                         realizacaoProvincia: data.realizacaoProvincia || "",
@@ -8060,7 +8041,7 @@ export default function PlanoWorkflowView({
                           {activityForHistory.title || activityForHistory.designacao}
                         </p>
                         <p className="text-[10px] text-indigo-700 mt-1 font-medium">
-                          Código: {activityForHistory.codigoAtividade || activityForHistory.referencia}
+                          Código: {activityForHistory.codigoActividade || activityForHistory.referencia}
                         </p>
                       </div>
 
@@ -8203,14 +8184,14 @@ export default function PlanoWorkflowView({
                                           {act.no || idx + 1}
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-50 text-slate-500 font-mono text-[9px]" rowSpan={rubricas.length}>
-                                          {act.codigoAtividade || "-"}
+                                          {act.codigoActividade || "-"}
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-50 text-slate-900 font-black" rowSpan={rubricas.length}>
                                           {act.title || "-"}
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-50 text-slate-500 font-medium leading-relaxed" rowSpan={rubricas.length}>
                                           <div className="max-h-20 overflow-y-auto pr-2 custom-scrollbar">
-                                            {act.objetivoAtividade || act.especificacoes || "-"}
+                                            {act.objetivoActividade || act.especificacoes || "-"}
                                           </div>
                                         </td>
                                         <td className="px-4 py-3 border-r border-slate-50 text-slate-700 font-bold text-center" rowSpan={rubricas.length}>

@@ -815,7 +815,7 @@ export default function MonografiaView({
               e saída de ofícios, e gere a agenda institucional digital.
             </li>
             <li>
-              <strong>Departamento de Planificação, Estudos e Projetos:</strong>{" "}
+              <strong>Departamento de Planificação Estudos e Projetos:</strong>{" "}
               Ocupa-se da planificação estratégica e avaliação do desempenho
               institucional. No SIGEP, divide-se em:
               <ul className="list-[square] ml-6 mt-1 space-y-1 text-sm text-gray-800">

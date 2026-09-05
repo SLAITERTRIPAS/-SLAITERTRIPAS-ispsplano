@@ -5,11 +5,11 @@ export const isSalaryActivity = (act: any): boolean => {
   if (!act) return false;
   const title = (
     act.titulo ||
-    act.nomeAtividade ||
+    act.nomeActividade ||
     act.nome ||
     ""
   ).toUpperCase();
-  const obj = (act.objetivoAtividade || act.objetivo || "").toUpperCase();
+  const obj = (act.objetivoActividade || act.objetivo || "").toUpperCase();
   const rubrica = (act.rubrica || "").toUpperCase();
   const nec = (act.necessidade || "").toUpperCase();
   const combo = `${title} ${obj} ${rubrica} ${nec}`;

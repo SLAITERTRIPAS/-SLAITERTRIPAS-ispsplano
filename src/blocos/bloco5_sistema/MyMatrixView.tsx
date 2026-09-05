@@ -44,7 +44,7 @@ export default function MyMatrixView({
     content += `ID da Matriz: ${matrix.id}\n`;
     content += `Ano de Vigência: ${matrix.year}\n`;
     content += `Publicada em: ${matrix.publishedAt}\n`;
-    content += `Quantidade de Actividades: ${matrix.activityCount}\n`;
+    content += `Quantidade de Atividades: ${matrix.activityCount}\n`;
     content += `Estado: ${matrix.status === "shared" ? "Partilhada com Direções" : "Consolidada e Aguardando Partilha"}\n\n`;
     content += `--------------------------------------------------\n`;
     content += `Este documento oficial foi gerado e assinado digitalmente pelo Sistema Integrado de Gestão do Songo.\n`;
@@ -113,7 +113,7 @@ export default function MyMatrixView({
                     </div>
                     <div className="flex items-center gap-1.5">
                       <FileCheck size={14} />
-                      <span>{matrix.activityCount} Actividades Definidas</span>
+                      <span>{matrix.activityCount} Atividades Definidas</span>
                     </div>
                   </div>
                 </div>

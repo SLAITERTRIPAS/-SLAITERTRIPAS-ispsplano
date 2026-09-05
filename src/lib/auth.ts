@@ -1,5 +1,5 @@
 import { normalize as n, isMatch } from "./utils";
-import { DEPARTAMENTOS, REPARTICOES, SECTORES } from "../constants/formOptions";
+import { DEPARTAMENTOS, REPARTICOES, SETORES } from "../constants/formOptions";
 
 // Departments that do not have strict internal sector structure
 const UNSTRUCTURED_DEPTS = [
@@ -24,7 +24,7 @@ export const canAccessArea = (
 ) => {
   if (!user) return false;
   
-  // Se a atividade possui partilha manual explícita com o utilizador ou com a sua área de alçada,
+  // Se a actividade possui partilha manual explícita com o utilizador ou com a sua área de alçada,
   // permitimos o acesso de forma soberana e manual!
   if (activity && Array.isArray(activity.sharedWith)) {
     const uEmail = String(user.email || "").toLowerCase().trim();
@@ -73,7 +73,7 @@ export const canAccessArea = (
     norm(activity.origem || "").includes("ugea") ||
     norm(activity.setor || "").includes("ugea") ||
     norm(activity.reparticao || "").includes("ugea") ||
-    String(activity.codigo || activity.codigoAtividade || activity.numProcesso || "").toLowerCase().includes("ugea")
+    String(activity.codigo || activity.codigoActividade || activity.numProcesso || "").toLowerCase().includes("ugea")
   ) : false;
 
   const uDeptRaw = norm(user.departamento || user.setor || user.reparticao || user.direcao || "");
@@ -96,7 +96,7 @@ export const canAccessArea = (
   let tDept = norm(targetDept || "");
   let tSector = norm(targetSector || "");
 
-  // Se a atividade for fornecida, extraímos os campos de destino de forma exaustiva para não deixar passar dados vazios!
+  // Se a actividade for fornecida, extraímos os campos de destino de forma exaustiva para não deixar passar dados vazios!
   if (activity) {
     if (!tDir) {
       tDir = norm(activity.direcao || activity.direccao || activity.unidadeOrganica || activity.unidadeCentral || "");
@@ -143,6 +143,9 @@ export const canAccessArea = (
 
   // Se é Diretor de Direção ou Chefe do GDG (supervisiona todos os departamentos da sua Direção / Gabinete do Diretor-Geral)
   if (userRoles.isDC || userRoles.isGDG) {
+    if (activity && (!activity.submetido || activity.status === "rascunho" || activity.status === "draft" || activity.status === "setorial")) {
+      return isActivityFromUserSector(activity, user);
+    }
     return true;
   }
 
@@ -154,6 +157,9 @@ export const canAccessArea = (
 
   // Se é Chefe de Departamento
   if (userRoles.isCD) {
+    if (uDept && tDept) {
+      return tDept.includes(uDept) || uDept.includes(tDept) || tDept === uDept;
+    }
     return true;
   }
 
@@ -164,6 +170,160 @@ export const canAccessArea = (
   }
 
   return true;
+};
+
+/**
+ * Normaliza e limpa designações de áreas orgânicas para comparação fiável.
+ */
+export const cleanAreaText = (s: any): string =>
+  String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\b(departamento|depto|dep|reparticao|rep|setor|sector|direcao|direccao|gabinete|unidade|de|do|da|dos|das|servico|servicos)\b/gi, "")
+    .replace(/[^a-z0-9]/gi, "")
+    .trim();
+
+/**
+ * Verifica com rigor se uma actividade pertence ao setor ou departamento do utilizador.
+ */
+export const isActivityFromUserSector = (activity: any, user: any): boolean => {
+  if (!activity || !user) return false;
+
+  const aDept = cleanAreaText(activity.departamento || activity.solicitante || activity.unidade || activity.orgao || "");
+  const aSec = cleanAreaText(activity.setor || activity.sector || activity.reparticao || "");
+  const aOrig = cleanAreaText(activity.origem || activity.setorOrigin || activity.setorCriador || activity.unidadeOrganica || "");
+
+  const uDept = cleanAreaText(user.departamento || "");
+  const uSec = cleanAreaText(user.setor || user.reparticao || "");
+  const uArea = cleanAreaText(user.areaDeAfetacao || "");
+
+  // Distinção soberana: UGEA vs DPEP vs Outros
+  const isActUgea = aDept.includes("ugea") || aSec.includes("ugea") || aOrig.includes("ugea") || aDept.includes("aquisicoes") || aSec.includes("aquisicoes");
+  const isUserUgea = uDept.includes("ugea") || uSec.includes("ugea") || uArea.includes("ugea") || uDept.includes("aquisicoes") || uSec.includes("aquisicoes");
+  if (isActUgea || isUserUgea) {
+    return isActUgea === isUserUgea;
+  }
+
+  const isActDpep = aDept.includes("dpep") || aSec.includes("dpep") || aOrig.includes("dpep") || aDept.includes("planifica") || aSec.includes("planifica");
+  const isUserDpep = uDept.includes("dpep") || uSec.includes("dpep") || uArea.includes("dpep") || uDept.includes("planifica") || uSec.includes("planifica");
+  if (isActDpep || isUserDpep) {
+    return isActDpep === isUserDpep;
+  }
+
+  // Comparação por setor / repartição / departamento
+  if (uSec && (aSec.includes(uSec) || uSec.includes(aSec) || aOrig.includes(uSec))) return true;
+  if (uDept && (aDept.includes(uDept) || uDept.includes(aDept) || aOrig.includes(uDept))) return true;
+  if (uArea && (aSec.includes(uArea) || aDept.includes(uArea) || aOrig.includes(uArea))) return true;
+
+  return false;
+};
+
+/**
+ * Valida se o utilizador tem permissão para eliminar uma actividade.
+ */
+export const canUserDeleteActivity = (user: any, activity: any): boolean => {
+  if (!user || !activity) return false;
+
+  // Super Boss / Admin pode gerir tudo
+  if (isSuperBossUser(user)) return true;
+
+  const role = String(user.role || "").toLowerCase();
+  const isSysAdmin =
+    role === "admin" ||
+    role === "administrador" ||
+    role === "administrador do sistema" ||
+    role === "administrador de sistema" ||
+    role === "proprietario" ||
+    role === "proprietário" ||
+    user.isOwner === true;
+
+  if (isSysAdmin) return true;
+
+  const uEmail = String(user.email || "").toLowerCase().trim();
+  const uId = String(user.uid || user.id || "").trim();
+  const uNuit = String(user.nuit || "").trim();
+  const uName = String(user.nome || user.name || user.displayName || "").toLowerCase().trim();
+
+  const creatorEmail = String(activity.createdBy || activity.emailCriador || activity.autorEmail || "").toLowerCase().trim();
+  const actUserId = String(activity.userId || activity.userUid || activity.uid || "").trim();
+  const creatorNuit = String(activity.nuit || activity.nuitCriador || "").trim();
+  const creatorName = String(activity.createdByName || activity.autor || activity.autorNome || activity.planificadoPor || activity.criadoPor || "").toLowerCase().trim();
+
+  const isCreator =
+    (creatorEmail && uEmail && (creatorEmail === uEmail || creatorEmail.includes(uEmail) || uEmail.includes(creatorEmail))) ||
+    (actUserId && uId && actUserId === uId) ||
+    (creatorNuit && uNuit && creatorNuit === uNuit) ||
+    (creatorName && uName && creatorName === uName);
+
+  if (isCreator) {
+    // Criador pode eliminar a sua actividade individual enquanto não estiver aprovada/institucional
+    if (activity.statusAprovacao === "aprovada" || (activity.status as any) === "institucional") {
+      return false;
+    }
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Valida se o utilizador tem permissão para editar uma actividade.
+ */
+export const canUserEditActivity = (user: any, activity: any): boolean => {
+  if (!user || !activity) return false;
+
+  // Atividade já institucional / homologada só pode ser editada por Admin/SuperBoss
+  if (
+    activity.statusAprovacao === "aprovada" ||
+    (activity.status as any) === "institucional"
+  ) {
+    return isSuperBossUser(user);
+  }
+
+  if (isSuperBossUser(user)) return true;
+
+  const role = String(user.role || "").toLowerCase();
+  const isSysAdmin =
+    role === "admin" ||
+    role === "administrador" ||
+    role === "administrador do sistema" ||
+    role === "administrador de sistema" ||
+    role === "proprietario" ||
+    role === "proprietário" ||
+    user.isOwner === true;
+
+  if (isSysAdmin) return true;
+
+  const uEmail = String(user.email || "").toLowerCase().trim();
+  const uId = String(user.uid || user.id || "").trim();
+  const uNuit = String(user.nuit || "").trim();
+  const uName = String(user.nome || user.name || user.displayName || "").toLowerCase().trim();
+
+  const creatorEmail = String(activity.createdBy || activity.emailCriador || activity.autorEmail || "").toLowerCase().trim();
+  const actUserId = String(activity.userId || activity.userUid || activity.uid || "").trim();
+  const creatorNuit = String(activity.nuit || activity.nuitCriador || "").trim();
+  const creatorName = String(activity.createdByName || activity.autor || activity.autorNome || activity.planificadoPor || activity.criadoPor || "").toLowerCase().trim();
+
+  const isCreator =
+    (creatorEmail && uEmail && (creatorEmail === uEmail || creatorEmail.includes(uEmail) || uEmail.includes(creatorEmail))) ||
+    (actUserId && uId && actUserId === uId) ||
+    (creatorNuit && uNuit && creatorNuit === uNuit) ||
+    (creatorName && uName && creatorName === uName);
+
+  if (isCreator) return true;
+
+  // Se a atividade já foi submetida pelo criador ao superior para análise / consolidação:
+  if (activity.submetido) {
+    const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
+    if (roles.isBoss || roles.isDG || roles.isDC || roles.isCD || roles.isCR) {
+      if (canAccessArea(user, activity.direcao || "", activity.departamento || "", activity.setor || activity.reparticao || "", activity)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 };
 
 /**
@@ -226,12 +386,12 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
   const validActivities = activities.filter((a) => {
     if (!a) return false;
     const name = String(
-      a.nomeAtividade ||
+      a.nomeActividade ||
         a.designacao ||
-        a.designacaoAtividade ||
+        a.designacaoActividade ||
         a.title ||
         a.descricao ||
-        a.atividade ||
+        a.actividade ||
         "",
     ).trim();
 
@@ -244,7 +404,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       name.toLowerCase() === "sem título" ||
       name.toLowerCase() === "sem designação"
     ) {
-      const obj = String(a.objetivo || a.objetivoAtividade || "").trim();
+      const obj = String(a.objetivo || a.objetivoActividade || "").trim();
       const hasValidObj = obj && obj !== "-" && obj !== "--" && obj !== "---";
       const hasRubricas =
         Array.isArray(a.rubricas) &&
@@ -270,7 +430,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
     const dir = String(a.direcao || "").trim().toLowerCase();
     if (
       (dept === "departamento geral" || dept === "geral" || dir === "departamento geral" || !dept) &&
-      (!name || name === "-" || name === "Nova Atividade" || name === "ACT")
+      (!name || name === "-" || name === "Nova Actividade" || name === "ACT")
     ) {
       const hasValidRubricas =
         Array.isArray(a.rubricas) &&
@@ -292,7 +452,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
   if (!user) return validActivities;
 
   // Se o usuário não tem email ou é uma sessão anônima/pública sem restrição definida,
-  // exibe as atividades institucionais/gerais para não deixar a tela em branco em novos computadores
+  // exibe as actividades institucionais/gerais para não deixar a tela em branco em novos computadores
   const uEmail = String(user.email || "").toLowerCase().trim();
   const uDept = String(user.departamento || "").toLowerCase().trim();
   const uSector = String(user.setor || user.reparticao || "").toLowerCase().trim();
@@ -320,7 +480,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
   return validActivities.filter((a) => {
     if (!a) return false;
 
-    // As atividades sempre devem estar visíveis para o próprio criador / autor / responsável
+    // As actividades sempre devem estar visíveis para o próprio criador / autor / responsável
     const creatorEmail = String(a.createdBy || a.emailCriador || a.autorEmail || a.responsavelEmail || a.publicadoPorEmail || "").toLowerCase().trim();
     const creatorName = String(a.createdByName || a.autor || a.autorNome || a.planificadoPor || a.criadoPor || a.publicadoPorNome || "").toLowerCase().trim();
     const actResponsavel = String(a.responsavel || "").toLowerCase().trim();
@@ -347,7 +507,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
 
     // Regra estrita para o Setor de Monitoria e DPEP (Planificação):
     // Devem ser avaliados ANTES de isPlannedByOwnSector para evitar que a Direção genérica ("Gabinete do Diretor-Geral")
-    // exponha atividades não submetidas de outros setores ao DPEP / Planificação.
+    // exponha actividades não submetidas de outros setores ao DPEP / Planificação.
     const userTitleCargo = String(user.title || user.cargo || user.cargoChefia || "").toLowerCase();
     const isMonitoriaUser =
       uSector.includes("monitoria") ||
@@ -420,7 +580,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
     }
 
     // Regra estrita para o DPEP / Chefe do DPEP (ex: VLV117780880 - Veca Vicente):
-    // O Chefe do DPEP e o Setor de Planificação apenas visualizam as suas próprias atividades
+    // O Chefe do DPEP e o Setor de Planificação apenas visualizam as suas próprias actividades
     // ou propostas de outros setores que tenham sido EFETIVAMENTE SUBMETIDAS/ENVIADAS à Planificação/DPEP.
     const isDPEPUser =
       !isMonitoriaUser &&
@@ -440,7 +600,7 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       const aDir = String(a.direcao || "").toLowerCase();
       const aOrig = String(a.origem || a.setorOrigin || a.setorCriador || a.unidadeOrganica || "").toLowerCase();
 
-      // Atividade própria do DPEP / Planificação
+      // Actividade própria do DPEP / Planificação
       const isOwnDPEP =
         aDept.includes("dpep") ||
         aDept.includes("planificação") ||
@@ -473,58 +633,56 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
       return false;
     }
 
-    // Garantia Soberana: Todas as atividades planificadas e submetidas pertencentes ao Setor, Repartição,
-    // Departamento do utilizador são SEMPRE visíveis no plano da sua área de origem!
     const userSectorNames = [uSector, uDept, uDir, user.areaDeAfetacao || ""]
       .filter(Boolean)
       .map((x) => String(x).toLowerCase().trim());
 
-    const isPlannedByOwnSector = userSectorNames.some((uSec) => {
-      if (!uSec || uSec.length < 2) return false;
-      const aSec = String(a.setor || a.reparticao || "").toLowerCase().trim();
-      const aDept = String(a.departamento || "").toLowerCase().trim();
-      const aDir = String(a.direcao || "").toLowerCase().trim();
-      const aOrig = String(a.origem || a.setorOrigin || a.setorCriador || a.unidadeOrganica || "").toLowerCase().trim();
-
-      // Para direções genéricas ("gabinete do diretor-geral"), apenas compara departamento/setor específico para evitar sobreposição entre setores do mesmo gabinete
-      if (uSec === "gabinete do diretor-geral" || uSec === "direção geral") {
-        return (
-          (aDept && uDept && (aDept.includes(uDept) || uDept.includes(aDept))) ||
-          (aSec && uSector && (aSec.includes(uSector) || uSector.includes(aSec)))
-        );
-      }
-
-      return (
-        (aSec && (aSec.includes(uSec) || uSec.includes(aSec))) ||
-        (aDept && (aDept.includes(uSec) || uSec.includes(aDept))) ||
-        (aDir && (aDir.includes(uSec) || uSec.includes(aDir))) ||
-        (aOrig && (aOrig.includes(uSec) || uSec.includes(aOrig)))
+    // Se tiver sido expressamente tramitada/enviada para este utilizador ou setor/gabinete
+    const isExplicitlySent =
+      sentToSectors.some((targetSector) =>
+        userSectorNames.some((uSec) => targetSector.includes(uSec) || uSec.includes(targetSector))
+      ) ||
+      sentTo.some((target) =>
+        (uEmail && target.includes(uEmail)) || (uName && target.includes(uName))
       );
-    });
 
-    if (isPlannedByOwnSector) {
+    if (isExplicitlySent) {
       return true;
     }
 
-    const isSectorRecipient = sentToSectors.some((targetSector) =>
-      userSectorNames.some((uSec) => targetSector.includes(uSec) || uSec.includes(targetSector))
-    );
+    // Actividades NÃO SUBMETIDAS (em rascunho / fase de planificação individual local):
+    // Como a planificação é estritamente INDIVIDUAL e PRIVADA para cada utilizador logado,
+    // se a actividade ainda não foi enviada/submetida pelo criador e o utilizador atual NÃO é o criador,
+    // ela permanece confidencial e invisível até ser enviada ao superior ou o prazo expirar.
+    const isDraftOrSetorial =
+      !a.submetido ||
+      a.status === "rascunho" ||
+      a.status === "draft" ||
+      a.status === "setorial" ||
+      !a.status ||
+      a.status === "planeada";
 
-    if (isSectorRecipient) {
-      return true;
+    if (isDraftOrSetorial) {
+      // Bloqueio absoluto de privacidade individual para actividades não submetidas
+      return false;
     }
 
-    // Se o utilizador tem cargo de chefia (Director, Chefe de Departamento, Chefe de Repartição),
-    // ele deve poder visualizar TODAS as atividades da sua hierarquia para monitoria,
-    // independentemente do nível de submissão (status), conforme solicitado pelo utilizador ("não devem estar ocultas").
+    // A partir daqui, a actividade JÁ FOI SUBMETIDA (manualmente pelo utilizador ou auto-submetida por expiração de prazo):
+    // Segue a hierarquia de tramitação institucional e do plano setorial
     const roles = getRoles(user.title || user.cargo || user.cargoChefia || "");
-    if (roles.isDC || roles.isCD || roles.isCR || roles.isDG || isDPEPUser || isMonitoriaUser) {
+    if (roles.isBoss || roles.isDG || roles.isDC || roles.isCD || roles.isCR) {
       if (canAccessArea(user, a.direcao || "", a.departamento || "", a.setor || a.reparticao || "", a)) {
         return true;
       }
     }
 
-    // Por padrão estrito: qualquer atividade não criada, não partilhada e não recebida de outro setor permanece invisível
+    // No plano do setor, as actividades submetidas da sua própria área são visíveis
+    const isOwnSector = isActivityFromUserSector(a, user);
+    if (isOwnSector && a.submetido) {
+      return true;
+    }
+
+    // Por padrão estrito: qualquer actividade não criada, não pertencente ao próprio setor e não recebida de outro setor permanece invisível
     return false;
   });
 };
@@ -533,11 +691,13 @@ export const getAuthorizedActivities = (activities: any[], user: any) => {
  * Determines the user's primary workspace area for dashboard redirection.
  */
 export const getUserWorkspace = (user: any) => {
+  if (!user) return "";
   if (user.areaDeAfetacao) return user.areaDeAfetacao;
   return (
     user.setor || user.reparticao || user.departamento || user.direcao || ""
   );
 };
+
 
 /**
  * Checks if a user is a boss (Director, Chief, etc.) based on their name/role.

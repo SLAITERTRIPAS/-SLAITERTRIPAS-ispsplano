@@ -619,7 +619,7 @@ export default function UGEA_SupplierRegistrationForm({
                 { id: "docNifFiscal", label: "Cartão / Certidão de Quitação Fiscal (NIF)" },
                 { id: "docEstatutosEmpresa", label: "Estatutos da Sociedade e Pacto Social" },
                 { id: "docCertificadoContaBancaria", label: "Declaração Bancária com Comprovativo de IBAN/NIB" },
-                { id: "docLicencasEspecificas", label: "Alvará ou Licenças de Exercício de Atividade Específica" },
+                { id: "docLicencasEspecificas", label: "Alvará ou Licenças de Exercício de Actividade Específica" },
               ].map((doc) => (
                 <label key={doc.id} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100/80 cursor-pointer transition-all">
                   <input

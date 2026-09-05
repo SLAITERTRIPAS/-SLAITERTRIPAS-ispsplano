@@ -47,7 +47,7 @@ import { Pen, Calendar as CalendarIcon, FolderOpen } from "lucide-react";
 import BalancoMensalView from "../bloco4_servicos_centrais/BalancoMensalView";
 import BalancoCombustivelView from "../bloco4_servicos_centrais/BalancoCombustivelView";
 import BalancoInventarioView from "../bloco4_servicos_centrais/BalancoInventarioView";
-import BalancoActividadesView from "../bloco4_servicos_centrais/BalancoActividadesView";
+import BalancoAtividadesView from "../bloco4_servicos_centrais/BalancoAtividadesView";
 import { isSuperBossUser, isPatrimonioBossOrAdmin } from "../../lib/auth";
 
 export default function GestaoPatrimonialView({
@@ -287,7 +287,7 @@ export default function GestaoPatrimonialView({
         );
       case "balanco":
         return (
-          <BalancoActividadesView
+          <BalancoAtividadesView
             activities={matrixActivities}
             user={user}
             onBack={() => setActiveSubView("plano")}

@@ -18,7 +18,7 @@ export const CardKPI: React.FC<CardKPIProps> = ({ label, onClick }) => {
     color = "border-blue-900 bg-blue-50/30 text-blue-950 hover:bg-blue-50";
   } else if (upper.includes("PLANO")) {
     IconComp = FileText;
-    sub = "Planificação de Atividades";
+    sub = "Planificação de Actividades";
     color = "border-emerald-900 bg-emerald-50/30 text-emerald-950 hover:bg-emerald-50";
   } else if (upper.includes("RELATÓRIO")) {
     IconComp = BarChart3;

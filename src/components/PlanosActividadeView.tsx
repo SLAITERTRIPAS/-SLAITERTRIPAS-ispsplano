@@ -56,7 +56,7 @@ export default function PlanosActividadeView({
     return () => unsub();
   }, []);
 
-  // Extrair direções presentes nas atividades
+  // Extrair direções presentes nas actividades
   const availableDirections = useMemo(() => {
     const set = new Set<string>();
     activities.forEach((a) => {
@@ -66,15 +66,15 @@ export default function PlanosActividadeView({
     return Array.from(set).sort();
   }, [activities]);
 
-  // Filtrar atividades
+  // Filtrar actividades
   const filteredActivities = useMemo(() => {
     return activities.filter((act) => {
       // Busca textual
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
-        const code = String(act.codigoAtividade || act.codigo || act.numeroAtividade || act.id || "").toLowerCase();
-        const name = String(act.nomeAtividade || act.title || act.nome || act.atividade || "").toLowerCase();
-        const obj = String(act.objetivoAtividade || act.objetivo || act.descricao || "").toLowerCase();
+        const code = String(act.codigoActividade || act.codigo || act.numeroActividade || act.id || "").toLowerCase();
+        const name = String(act.nomeActividade || act.title || act.nome || act.actividade || "").toLowerCase();
+        const obj = String(act.objetivoActividade || act.objetivo || act.descricao || "").toLowerCase();
         const sec = String(act.setor || act.departamento || act.direcao || "").toLowerCase();
         const resp = String(act.responsavel || "").toLowerCase();
 
@@ -147,10 +147,10 @@ export default function PlanosActividadeView({
             <Building2 size={13} /> Sistema Integrado de Gestão e Planificação
           </div>
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-            Planos de Atividade Institucionais & Setoriais
+            Planos de Actividade Institucionais & Setoriais
           </h2>
           <p className="text-sm text-slate-300 max-w-2xl font-medium">
-            Localização, monitoria e consulta organizada de todas as atividades planificadas, orçamentos correspondentes e cronogramas de execução.
+            Localização, monitoria e consulta organizada de todas as actividades planificadas, orçamentos correspondentes e cronogramas de execução.
           </p>
         </div>
       </div>
@@ -159,7 +159,7 @@ export default function PlanosActividadeView({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-2xs">
           <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total de Atividades</span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Total de Actividades</span>
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
               <FileText size={18} />
             </div>
@@ -217,7 +217,7 @@ export default function PlanosActividadeView({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
             <input
               type="text"
-              placeholder="Pesquisar atividades por código, título, departamento, responsável..."
+              placeholder="Pesquisar actividades por código, título, departamento, responsável..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -253,32 +253,32 @@ export default function PlanosActividadeView({
         </div>
       </div>
 
-      {/* Lista de Atividades Organizadas */}
+      {/* Lista de Actividades Organizadas */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xs overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div>
-            <h3 className="text-base font-black text-slate-900 tracking-tight">Atividades Registadas no Plano</h3>
+            <h3 className="text-base font-black text-slate-900 tracking-tight">Actividades Registadas no Plano</h3>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               Lista sequencial e detalhada de ações e dotações
             </p>
           </div>
           <span className="text-xs font-bold font-mono text-slate-600 bg-white px-3 py-1 rounded-xl border border-slate-200">
-            {filteredActivities.length} Atividades
+            {filteredActivities.length} Actividades
           </span>
         </div>
 
         <div className="p-5 overflow-y-auto space-y-3">
           {loading ? (
-            <div className="py-16 text-center text-slate-400 text-xs">A carregar atividades do plano...</div>
+            <div className="py-16 text-center text-slate-400 text-xs">A carregar actividades do plano...</div>
           ) : filteredActivities.length === 0 ? (
             <div className="py-16 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
               <Inbox size={32} className="text-slate-300" />
-              <span>Nenhuma atividade encontrada com os filtros selecionados.</span>
+              <span>Nenhuma actividade encontrada com os filtros selecionados.</span>
             </div>
           ) : (
             filteredActivities.map((act, idx) => {
-              const code = act.codigoAtividade || act.codigo || act.numeroAtividade || `ACT-${idx + 1}`;
-              const name = act.nomeAtividade || act.title || act.nome || act.atividade || "Atividade sem título";
+              const code = act.codigoActividade || act.codigo || act.numeroActividade || `ACT-${idx + 1}`;
+              const name = act.nomeActividade || act.title || act.nome || act.actividade || "Actividade sem título";
               const sector = act.setor || act.reparticao || act.departamento || "Setor Geral";
               const val = Number(act.valor || act.orcamentoTotal || act.valorTotal || act.orcamento || 0);
 
@@ -313,9 +313,9 @@ export default function PlanosActividadeView({
                     {name}
                   </h4>
 
-                  {act.objetivoAtividade || act.objetivo ? (
+                  {act.objetivoActividade || act.objetivo ? (
                     <p className="text-xs text-slate-600 line-clamp-2">
-                      {act.objetivoAtividade || act.objetivo}
+                      {act.objetivoActividade || act.objetivo}
                     </p>
                   ) : null}
                 </div>
@@ -330,8 +330,8 @@ export default function PlanosActividadeView({
         isOpen={showConsultarModal}
         onClose={() => setShowConsultarModal(false)}
         activities={filteredActivities}
-        title="Plano de Atividades Global"
-        subtitle="Visualização e organização de todas as atividades do plano"
+        title="Plano de Actividades Global"
+        subtitle="Visualização e organização de todas as actividades do plano"
         selectedSectorName={selectedDir === "todos" ? "Institucional" : selectedDir}
       />
     </div>

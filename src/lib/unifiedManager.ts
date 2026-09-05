@@ -377,7 +377,7 @@ export async function saveUnifiedProduct(product: { nome: string; preco: number;
     }
     localStorage.setItem("sigep_unified_products", safeJSONStringify(newList));
 
-    // Sincronização global de preços e nomes em TODOS os planos de atividades (assíncrono)
+    // Sincronização global de preços e nomes em TODOS os planos de actividades (assíncrono)
     syncGlobalProductUpdates(key, oldKey, updatedProduct).catch(err => {
       console.error("Erro na sincronização global de preços:", err);
     });
@@ -558,14 +558,14 @@ export async function saveDepartmentActivity(departmentName: string, activityDat
     };
 
     const candMonths = getActMonths(activityData);
-    const candName = norm(activityData.nomeAtividade || activityData.title);
-    const candCode = norm(activityData.codigoAtividade || activityData.numeroAtividade || activityData.no);
+    const candName = norm(activityData.nomeActividade || activityData.title);
+    const candCode = norm(activityData.codigoActividade || activityData.numeroActividade || activityData.no);
 
     const filtered = current.filter((a: any) => {
       if (a.id === activityData.id) return false;
 
-      const aName = norm(a.nomeAtividade || a.title);
-      const aCode = norm(a.codigoAtividade || a.numeroAtividade || a.no);
+      const aName = norm(a.nomeActividade || a.title);
+      const aCode = norm(a.codigoActividade || a.numeroActividade || a.no);
 
       if ((candName && aName === candName) || (candCode && aCode === candCode)) {
         const aMonths = getActMonths(a);
@@ -594,7 +594,7 @@ export async function saveDepartmentActivity(departmentName: string, activityDat
           const newId = await firestoreService.addToCollection("actividades", payload);
           if (newId) activityData.id = newId;
         }
-        console.log(`☁️ Atividade sincronizada com a nuvem: ${departmentName}`);
+        console.log(`☁️ Actividade sincronizada com a nuvem: ${departmentName}`);
       } catch (err) {
         console.warn("Aviso: Falha na sincronização imediata com a nuvem, mantendo em cache local.", err);
       }

@@ -238,9 +238,9 @@ export default function CentralOverview({
   }, [cursosEstudantes]);
 
   // -------------------------------------------------------------
-  // 3. PLANOS DE ATIVIDADES (Puxado do plano de atividade de cada setor)
+  // 3. PLANOS DE ATIVIDADES (Puxado do plano de actividade de cada setor)
   // -------------------------------------------------------------
-  const atividadesUnidade = useMemo(() => {
+  const actividadesUnidade = useMemo(() => {
     return matrixActivities.filter((a) => {
       const deptUpper = (a.departamento || a.setor || a.reparticao || a.solicitante || "").toUpperCase();
       const isUgeaAct = deptUpper.includes("UGEA") || deptUpper.includes("GESTORA EXECUTORA") || deptUpper.includes("AQUISIÇÕES") || deptUpper.includes("AQUISICOES");
@@ -256,7 +256,7 @@ export default function CentralOverview({
       const ref = (a.referencia || "").toUpperCase();
 
       if (isDICOSAFA) {
-        // Apenas atividades explicitamente alocadas ou criadas por setores da DICOSAFA
+        // Apenas actividades explicitamente alocadas ou criadas por setores da DICOSAFA
         return (
           dep.includes("DICOSAFA") ||
           dep.includes("DIRETOR DA DICOSAFA") ||
@@ -275,10 +275,10 @@ export default function CentralOverview({
     });
   }, [matrixActivities, titleUpper, isDICOSSER, isDICOSAFA, isEngenharia, isCIE]);
 
-  const totalAtividadesPlanificadas = atividadesUnidade.length;
+  const totalActividadesPlanificadas = actividadesUnidade.length;
   const orcamentoTotalProposto = useMemo(() => {
-    if (atividadesUnidade.length > 0) {
-      return atividadesUnidade.reduce((acc, act) => {
+    if (actividadesUnidade.length > 0) {
+      return actividadesUnidade.reduce((acc, act) => {
         const val =
           parseFloat(act.orcamentoProposto) ||
           parseFloat(act.orcamento) ||
@@ -289,7 +289,7 @@ export default function CentralOverview({
       }, 0);
     }
     return 0;
-  }, [atividadesUnidade]);
+  }, [actividadesUnidade]);
 
   // -------------------------------------------------------------
   // 4. RELATÓRIOS
@@ -299,7 +299,7 @@ export default function CentralOverview({
       {
         id: "rel_1",
         departamento: "Setor / Departamento Principal",
-        titulo: `Relatório Consolidado de Atividades da ${title}`,
+        titulo: `Relatório Consolidado de Actividades da ${title}`,
         periodo: "1º Semestre 2026",
         data: "28/06/2026",
         autor: `Chefia de ${title.substring(0, 25)}`,
@@ -353,7 +353,7 @@ export default function CentralOverview({
           <div>
             <span className="text-[10px] font-black tracking-widest text-blue-600">{title} • Efetivo Geral</span>
             <h2 className="text-xl font-black text-slate-900 font-serif">Efetivo Geral • Docente e CTA</h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Pessoal afeto a esta direção/departamento discriminado por categoria e gênero (RH)</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Pessoal afeto a esta direção/departamento discriminado por categoria e género (RH)</p>
           </div>
           <button
             onClick={() => setActiveView("overview")}
@@ -421,7 +421,7 @@ export default function CentralOverview({
         <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div>
             <span className="text-[10px] font-black tracking-widest text-blue-600">{title} • Gestão Discente</span>
-            <h2 className="text-xl font-black text-slate-900 font-serif">Estudantes por Curso e Gênero (Registo Académico)</h2>
+            <h2 className="text-xl font-black text-slate-900 font-serif">Estudantes por Curso e Género (Registo Académico)</h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">Estudantes alocados a este departamento e curso específico</p>
           </div>
           <button
@@ -484,7 +484,7 @@ export default function CentralOverview({
             </div>
             <div>
               <span className="text-[10px] font-black tracking-wider text-slate-500">Total de Atividades Planificadas</span>
-              <div className="text-3xl font-black text-slate-900 mt-1 font-serif">{totalAtividadesPlanificadas} Atividades</div>
+              <div className="text-3xl font-black text-slate-900 mt-1 font-serif">{totalActividadesPlanificadas} Atividades</div>
             </div>
           </div>
           <div className="bg-gradient-to-br from-emerald-900 to-teal-950 text-white p-6 rounded-2xl shadow-lg border border-emerald-800/50 flex items-center gap-5">
@@ -603,8 +603,8 @@ export default function CentralOverview({
   // -------------------------------------------------------------
   const cardsList = [
     { id: "efetivo", title: "Efetivo Geral", sub: `Docente (H:${realDocH} M:${realDocM}) | CTA (H:${realCtaH} M:${realCtaM})`, icon: Users, color: "border-blue-900 bg-blue-50/30 text-blue-950 hover:bg-blue-50" },
-    { id: "estudantes", title: "Estudantes por Curso e Gênero", sub: `${cursosEstudantes.length} Cursos • M: ${estudantesStats.homens} | F: ${estudantesStats.mulheres}`, icon: GraduationCap, color: "border-indigo-900 bg-indigo-50/30 text-indigo-950 hover:bg-indigo-50" },
-    { id: "planos", title: "Planos de Atividades", sub: `${totalAtividadesPlanificadas} Atividades • ${orcamentoTotalProposto.toLocaleString("pt-MZ")} MZN`, icon: FileText, color: "border-emerald-900 bg-emerald-50/30 text-emerald-950 hover:bg-emerald-50" },
+    { id: "estudantes", title: "Estudantes por Curso e Género", sub: `${cursosEstudantes.length} Cursos • M: ${estudantesStats.homens} | F: ${estudantesStats.mulheres}`, icon: GraduationCap, color: "border-indigo-900 bg-indigo-50/30 text-indigo-950 hover:bg-indigo-50" },
+    { id: "planos", title: "Planos de Atividades", sub: `${totalActividadesPlanificadas} Atividades • ${orcamentoTotalProposto.toLocaleString("pt-MZ")} MZN`, icon: FileText, color: "border-emerald-900 bg-emerald-50/30 text-emerald-950 hover:bg-emerald-50" },
     { id: "relatorios", title: "Relatórios", sub: "Relatórios por Departamentos e Unidades", icon: BarChart3, color: "border-amber-900 bg-amber-50/30 text-amber-950 hover:bg-amber-50" },
     { id: "expediente", title: "Gestão de Expediente", sub: `Total de ${totalExpediente} Expedientes registados`, icon: FolderOpen, color: "border-purple-900 bg-purple-50/30 text-purple-950 hover:bg-purple-50" },
   ];
@@ -635,7 +635,7 @@ export default function CentralOverview({
                 if (onNavigate) {
                   if (card.id === "efetivo") onNavigate("Repartição de Pessoal");
                   else if (card.id === "estudantes") onNavigate("Estatística");
-                  else if (card.id === "planos") onNavigate("Plano de Actividades");
+                  else if (card.id === "planos") onNavigate("Plano de Atividades");
                   else if (card.id === "relatorios") onNavigate("Relatórios");
                   else if (card.id === "expediente") onNavigate("Gestão de Expediente");
                   else setActiveView(card.id as any);

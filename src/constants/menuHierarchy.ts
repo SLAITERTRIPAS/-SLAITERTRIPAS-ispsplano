@@ -45,7 +45,7 @@ export const baseMenuItems = [
               { title: "Gestão de Fornecedores" },
               { title: "Plano de Aquisição" },
               { title: "Plano de Contratação" },
-              { title: "Plano de Atividade da UGEA" },
+              { title: "Plano de Actividade da UGEA" },
             ],
           },
           {

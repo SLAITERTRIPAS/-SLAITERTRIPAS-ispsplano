@@ -1,6 +1,6 @@
 /**
  * Utilitário de Impressão de Documentos do SIGEP
- * Permite abrir qualquer documento (Plano de Atividades, Relatório, Balancete, Ficha)
+ * Permite abrir qualquer documento (Plano de Actividades, Relatório, Balancete, Ficha)
  * ajustando e escolhendo o formato ideal (A4 / A3 em Orientação Vertical ou Horizontal)
  * conforme a ocupação da área com informações.
  */
@@ -195,9 +195,9 @@ export function openPrintDocumentWindow(options: PrintDocumentOptions) {
   })();
 
   const lowestLevelName = [setor, reparticao, departamento, divisao, direcao].filter(Boolean)[0] || resolvedOrgao;
-  let resolvedTitle = (title || "Plano de Atividade").trim();
+  let resolvedTitle = (title || "Plano de Actividade").trim();
   if (resolvedTitle.toUpperCase() === "PLANO DE ATIVIDADE" || resolvedTitle.toUpperCase() === "PLANO DE ATIVIDADES") {
-    resolvedTitle = `Plano de Atividade de ${lowestLevelName}`;
+    resolvedTitle = `Plano de Actividade de ${lowestLevelName}`;
   }
 
   const defaultHeader =
@@ -716,9 +716,9 @@ export function printActivitiesPlanDocument(options: PrintPlanOptions) {
         dirTotal += actTotal;
         grandTotal += actTotal;
 
-        const codAct = act.codigoAtividade || act.referencia || act.codigo || "-";
-        const nomeAct = act.nomeAtividade || act.designacao || act.title || act.atividade || "-";
-        const objAct = act.objetivo || act.objetivoAtividade || "-";
+        const codAct = act.codigoActividade || act.referencia || act.codigo || "-";
+        const nomeAct = act.nomeActividade || act.designacao || act.title || act.actividade || "-";
+        const objAct = act.objetivo || act.objetivoActividade || "-";
         const orgao = act.orgao || act.unidadeOrganica || (user?.unidadeOrganica) || "Songo";
         const noDir = act.noDirecao || act.no || globalIndex;
 
@@ -785,7 +785,7 @@ export function printActivitiesPlanDocument(options: PrintPlanOptions) {
   tableRowsHtml += `
     <tr style="background-color: #0f172a; color: #ffffff; font-weight: 900; border: 2px solid #000000; font-size: 13px;">
       <td colspan="15" style="border: 1.5px solid #000000; padding: 10px 14px; color: #ffffff; letter-spacing: 0.5px;">
-        Valor Global Total do Plano de Atividades (${year})
+        Valor Global Total do Plano de Actividades (${year})
       </td>
       <td style="text-align: right; border: 1.5px solid #000000; padding: 10px 14px; font-size: 14px; font-weight: 900; color: #ffffff; background-color: #1e293b;">
         ${formatMZN(grandTotal)} MT
@@ -803,7 +803,7 @@ export function printActivitiesPlanDocument(options: PrintPlanOptions) {
             <th rowspan="2" style="border: 1.5px solid #000000; padding: 6px 4px; text-align: center; width: 35px; color: #000000; background-color: #cbd5e1;">N/O</th>
             <th rowspan="2" style="border: 1.5px solid #000000; padding: 6px 4px; text-align: center; width: 45px; color: #000000; background-color: #cbd5e1;">Nº Dir.</th>
             <th colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; text-align: center; color: #000000; background-color: #e2e8f0;">I. Identificação</th>
-            <th colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; text-align: center; color: #000000; background-color: #e2e8f0;">II. Atividade</th>
+            <th colspan="3" style="border: 1.5px solid #000000; padding: 6px 8px; text-align: center; color: #000000; background-color: #e2e8f0;">II. Actividade</th>
             <th colspan="2" style="border: 1.5px solid #000000; padding: 6px 6px; text-align: center; color: #000000; background-color: #e2e8f0;">V. Tempo</th>
             <th rowspan="2" style="border: 1.5px solid #000000; padding: 6px 4px; text-align: center; width: 45px; color: #000000; background-color: #cbd5e1;">VI. Trans</th>
             <th colspan="5" style="border: 1.5px solid #000000; padding: 6px 8px; text-align: center; color: #000000; background-color: #e2e8f0;">VII. Rubricas e Necessidades</th>
@@ -841,7 +841,7 @@ export function printActivitiesPlanDocument(options: PrintPlanOptions) {
     user?.unidadeOrganica,
   ].filter(Boolean)[0] || "INSTITUCIONAL";
 
-  const resolvedTitle = title || `Plano de Atividade de ${lowestArea} - ${year}`;
+  const resolvedTitle = title || `Plano de Actividade de ${lowestArea} - ${year}`;
 
   openPrintDocumentWindow({
     title: resolvedTitle,

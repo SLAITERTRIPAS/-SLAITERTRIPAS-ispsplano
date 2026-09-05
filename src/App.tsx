@@ -264,7 +264,7 @@ export default function App() {
       if (isSuperBossUser(extendedUser)) {
         await firestoreService.seedAllCollaborators(EFETIVO_GERAL_DATA);
       }
-      setModalMessage("✅ Sucesso! Todos os dados e planos de atividades estão sincronizados com a nuvem e acessíveis em qualquer computador.");
+      setModalMessage("✅ Sucesso! Todos os dados e planos de actividades estão sincronizados com a nuvem e acessíveis em qualquer computador.");
     } catch (error) {
       console.error(error);
       setModalMessage("Erro ao sincronizar dados com o servidor remoto.");
@@ -1524,7 +1524,7 @@ export default function App() {
       setView("plano_contratacao");
       return;
     }
-    if (title === "Plano de Atividade da UGEA") {
+    if (title === "Plano de Actividade da UGEA" || title === "Plano de Atividade da UGEA") {
       setDashboardTitle(title);
       setView("plano_workflow");
       return;
@@ -1810,6 +1810,7 @@ export default function App() {
             <div className="flex-grow relative flex flex-col min-h-0 overflow-y-auto mt-0">
               <ViewRenderer
                 bootComplete={bootComplete}
+                onBootComplete={() => setBootComplete(true)}
                 view={view}
                 user={user}
                 extendedUser={extendedUser}

@@ -153,7 +153,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { 
-            title: "Atividades Totais", 
+            title: "Actividades Totais", 
             value: stats.totalActivities, 
             label: "Total no Ciclo", 
             icon: Activity, 
@@ -230,7 +230,7 @@ export const DPEPDashboard: React.FC<DPEPDashboardProps> = ({
               <thead>
                 <tr className="bg-slate-50/50">
                   <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400  tracking-widest">Unidade Orgânica</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400  tracking-widest">Atividades</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400  tracking-widest">Actividades</th>
                   <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400  tracking-widest">Aprovadas</th>
                   <th className="px-6 py-4 text-right text-[10px] font-black text-slate-400  tracking-widest">Orçamento (MZN)</th>
                   <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400  tracking-widest">Status</th>

@@ -136,7 +136,7 @@ export const ViewRenderer: React.FC<ViewRendererProps> = (props) => {
       <SplashScreen
         user={props.extendedUser}
         isFirstLogin={false}
-        onFinish={props.onBootComplete}
+        onFinish={props.onBootComplete || (() => {})}
         initStatus={props.initStatus}
       />
     );
@@ -148,6 +148,7 @@ export const ViewRenderer: React.FC<ViewRendererProps> = (props) => {
     </Suspense>
   );
 };
+
 
 const ViewRendererInner: React.FC<ViewRendererProps> = ({
   view,
@@ -652,10 +653,10 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
       );
 
     case "plano_aquisicao":
-      return <UGEA_PlanView type="Aquisicão" activities={matrixActivities} onBack={goBack} />;
+      return <UGEA_PlanView type="Aquisicão" activities={matrixActivities} user={extendedUser || user} onBack={goBack} />;
 
     case "plano_contratacao":
-      return <UGEA_PlanView type="Contratação" activities={matrixActivities} onBack={goBack} />;
+      return <UGEA_PlanView type="Contratação" activities={matrixActivities} user={extendedUser || user} onBack={goBack} />;
 
     case "produtos_precos":
       return <GestaoProdutosPrecosView />;
@@ -764,7 +765,7 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
     case "matrix":
       return (
         <MatrixView
-          title={dashboardTitle || "Matriz de Atividades"}
+          title={dashboardTitle || "Matriz de Actividades"}
           isDepartment={false}
           externalActivities={events as any}
           onUpdateActivity={onUpdateEvent}
@@ -813,7 +814,7 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
             user={extendedUser}
             onBack={goBack}
             showBack={true}
-            title={dashboardTitle || "Calendário de Atividades"}
+            title={dashboardTitle || "Calendário de Actividades"}
             onLogout={onLogout}
           />
           <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-6 bg-slate-900">
@@ -824,7 +825,7 @@ const ViewRendererInner: React.FC<ViewRendererProps> = ({
               onDeleteEvent={onDeleteEvent}
               onAgendar={() => onSetView("agendar")}
               onNota={() => onSetView("nota_form")}
-              title={dashboardTitle || "Calendário de Atividades"}
+              title={dashboardTitle || "Calendário de Actividades"}
               notes={notes}
               user={extendedUser}
             />

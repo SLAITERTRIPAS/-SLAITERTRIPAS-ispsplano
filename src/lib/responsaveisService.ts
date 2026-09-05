@@ -451,7 +451,7 @@ export const LISTA_SETORES_DESTINATARIOS: DestinatarioInfo[] = [
     responsavelCargo: "Chefe do Departamento de Planificação Estudos e Projetos",
     responsavelEmail: "dpep@songo.ac.mz",
     tipoEnvio: "Consolidação Orçamental e PESOE",
-    descricao: "Consolidação do plano estratégico, mapa de atividades e proposta orçamental",
+    descricao: "Consolidação do plano estratégico, mapa de actividades e proposta orçamental",
   },
   {
     setorNome: "Gabinete do Diretor-Geral (GDG)",
@@ -469,7 +469,7 @@ export const LISTA_SETORES_DESTINATARIOS: DestinatarioInfo[] = [
     responsavelCargo: "Órgão Colegial Deliberativo",
     responsavelEmail: "conselho.direcao@songo.ac.mz",
     tipoEnvio: "Aprovação e Homologação de Planos",
-    descricao: "Aprovação formal do Plano de Atividades Institucional",
+    descricao: "Aprovação formal do Plano de Actividades Institucional",
   },
   {
     setorNome: "Departamento de Administração e Finanças (DAF)",

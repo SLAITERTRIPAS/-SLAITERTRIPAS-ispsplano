@@ -43,12 +43,12 @@ export const intelligentDiagnostics = {
     const anomalies: SystemAnomaly[] = [];
 
     try {
-      // 1. Diagnóstico da Matriz POA e Atividades
+      // 1. Diagnóstico da Matriz POA e Actividades
       try {
         const matrixSnap = await getDocs(collection(db, "matrix_activities"));
         const activities = matrixSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
 
-        // Detectar Atividades Duplicadas por Título, Direção e Departamento
+        // Detectar Actividades Duplicadas por Título, Direção e Departamento
         const seen = new Map<string, any[]>();
         const normalize = (str: any) =>
           String(str || "")
@@ -59,7 +59,7 @@ export const intelligentDiagnostics = {
             .replace(/\s+/g, " ");
 
         activities.forEach((act: any) => {
-          const title = act.nomeAtividade || act.designacao || act.title || "";
+          const title = act.nomeActividade || act.designacao || act.title || "";
           const dir = act.direcao || act.unidadeOrganica || "Geral / Unidade Orgânica";
           const dept = act.departamento || "Geral";
           const key = `${normalize(title)}|${normalize(dir)}|${normalize(dept)}`;
@@ -79,7 +79,7 @@ export const intelligentDiagnostics = {
           if (items.length > 1) {
             const first = items[0];
             duplicateGroups.push({
-              title: first.nomeAtividade || first.designacao || first.title || "Atividade Sem Nome",
+              title: first.nomeActividade || first.designacao || first.title || "Actividade Sem Nome",
               direcao: first.direcao || first.unidadeOrganica || "Geral / Unidade Orgânica",
               departamento: first.departamento || "Geral",
               items,
@@ -93,27 +93,27 @@ export const intelligentDiagnostics = {
             .slice(0, 5)
             .map(
               (g) =>
-                `• [Direção: ${g.direcao} | Departamento: ${g.departamento}] → Atividade: "${g.title}" (${g.items.length} registos repetidos)`
+                `• [Direção: ${g.direcao} | Departamento: ${g.departamento}] → Actividade: "${g.title}" (${g.items.length} registos repetidos)`
             )
             .join("\n");
 
           const extraCount = duplicateGroups.length - 5;
-          const extraText = extraCount > 0 ? `\n...e mais ${extraCount} grupo(s) com atividades duplicadas.` : "";
+          const extraText = extraCount > 0 ? `\n...e mais ${extraCount} grupo(s) com actividades duplicadas.` : "";
 
           anomalies.push({
             id: "diag_dup_activities",
-            title: "Atividades Duplicadas na Matriz POA",
-            description: `Detetadas ${totalDuplicateCount} cópia(s) duplicada(s) em ${duplicateGroups.length} grupo(s) de atividades:\n${locationDetails}${extraText}`,
+            title: "Actividades Duplicadas na Matriz POA",
+            description: `Detetadas ${totalDuplicateCount} cópia(s) duplicada(s) em ${duplicateGroups.length} grupo(s) de actividades:\n${locationDetails}${extraText}`,
             category: "Matriz & POA",
             severity: "critical",
             autoFixable: true,
             affectedCount: totalDuplicateCount,
             fixActionKey: "fix_duplicate_activities",
-            recommendation: "Método de solução: Substituir e consolidar a atividade mantendo os dados mais completos e eliminar permanentemente os registos duplicados da base de dados Firestore.",
+            recommendation: "Método de solução: Substituir e consolidar a actividade mantendo os dados mais completos e eliminar permanentemente os registos duplicados da base de dados Firestore.",
           });
         }
 
-        // Detectar Atividades no Departamento de Património
+        // Detectar Actividades no Departamento de Património
         const patrimonioActs = activities.filter((act: any) => {
           const deptStr = normalize(act.departamento || act.reparticao || act.unidadeOrganica || "");
           return deptStr.includes("patrimonio");
@@ -122,41 +122,41 @@ export const intelligentDiagnostics = {
         if (patrimonioActs.length > 0) {
           const patDetails = patrimonioActs
             .slice(0, 3)
-            .map((act: any) => `• [Departamento de Património] → Atividade: "${act.nomeAtividade || act.title || act.designacao || 'Atividade'}"`)
+            .map((act: any) => `• [Departamento de Património] → Actividade: "${act.nomeActividade || act.title || act.designacao || 'Actividade'}"`)
             .join("\n");
 
           anomalies.push({
             id: "diag_patrimonio_activities",
-            title: "Atividades no Departamento de Património",
-            description: `Detetada(s) ${patrimonioActs.length} atividade(s) registada(s) no Departamento de Património:\n${patDetails}`,
+            title: "Actividades no Departamento de Património",
+            description: `Detetada(s) ${patrimonioActs.length} actividade(s) registada(s) no Departamento de Património:\n${patDetails}`,
             category: "Matriz & POA",
             severity: "critical",
             autoFixable: true,
             affectedCount: patrimonioActs.length,
             fixActionKey: "fix_duplicate_activities",
-            recommendation: "Método de solução: Eliminar as atividades do Departamento de Património e recalcular a numeração de todos os departamentos a começar em 001.",
+            recommendation: "Método de solução: Eliminar as actividades do Departamento de Património e recalcular a numeração de todos os departamentos a começar em 001.",
           });
         }
 
-        // Detectar Atividades sem Numeração ou com Sequência Inconsistente
+        // Detectar Actividades sem Numeração ou com Sequência Inconsistente
         const unnumbered = activities.filter(
-          (act: any) => !act.no && !act.codigoAtividade && !act.referencia
+          (act: any) => !act.no && !act.codigoActividade && !act.referencia
         );
         if (unnumbered.length > 0) {
           anomalies.push({
             id: "diag_unnumbered_activities",
-            title: "Atividades sem Código Sequencial Identificador",
-            description: `Existem ${unnumbered.length} atividades sem número de ordem (código sequencial), dificultando a rastreabilidade nos relatórios.`,
+            title: "Actividades sem Código Sequencial Identificador",
+            description: `Existem ${unnumbered.length} actividades sem número de ordem (código sequencial), dificultando a rastreabilidade nos relatórios.`,
             category: "Matriz & POA",
             severity: "warning",
             autoFixable: true,
             affectedCount: unnumbered.length,
             fixActionKey: "fix_activity_numbering",
-            recommendation: "Recalcular a numeração sequencial de todas as atividades por Direção/Departamento.",
+            recommendation: "Recalcular a numeração sequencial de todas as actividades por Direção/Departamento.",
           });
         }
 
-        // Detectar Atividades com Orçamento Zero ou Nulo sem justificativa
+        // Detectar Actividades com Orçamento Zero ou Nulo sem justificativa
         const zeroBudget = activities.filter(
           (act: any) =>
             !act.valorTotal &&
@@ -168,14 +168,14 @@ export const intelligentDiagnostics = {
         if (zeroBudget.length > 0) {
           anomalies.push({
             id: "diag_zero_budget",
-            title: "Atividades com Orçamento Indefinido (Valor Zero)",
-            description: `Detetadas ${zeroBudget.length} atividades sem orçamento definido. Isso pode gerar inconsistências em execuções financeiras futuras.`,
+            title: "Actividades com Orçamento Indefinido (Valor Zero)",
+            description: `Detetadas ${zeroBudget.length} actividades sem orçamento definido. Isso pode gerar inconsistências em execuções financeiras futuras.`,
             category: "Matriz & POA",
             severity: "info",
             autoFixable: true,
             affectedCount: zeroBudget.length,
             fixActionKey: "review_zero_budget",
-            recommendation: "Regularizar orçamento das atividades pendentes.",
+            recommendation: "Regularizar orçamento das actividades pendentes.",
           });
         }
       } catch (e) {
@@ -348,7 +348,7 @@ export const intelligentDiagnostics = {
         const res = await databaseMaintenance.removeDuplicateActivitiesAndFixNumbering();
         return {
           success: true,
-          message: `Sucesso! Eliminados ${res.deletedCount} registos duplicados e reordenadas ${res.updatedCount} atividades sequencialmente.`,
+          message: `Sucesso! Eliminados ${res.deletedCount} registos duplicados e reordenadas ${res.updatedCount} actividades sequencialmente.`,
         };
       }
 
@@ -494,7 +494,7 @@ export const intelligentDiagnostics = {
         if (count > 0) await batch.commit();
         return {
           success: true,
-          message: `Regularizado estado orçamental de ${count} atividades com orçamento não definido.`,
+          message: `Regularizado estado orçamental de ${count} actividades com orçamento não definido.`,
         };
       }
 

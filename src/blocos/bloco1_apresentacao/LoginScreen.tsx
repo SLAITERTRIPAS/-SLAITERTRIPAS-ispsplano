@@ -204,7 +204,7 @@ export default function LoginScreen({
   const [matchedUser, setMatchedUser] = useState<any>(null);
   const [dbEstudantes, setDbEstudantes] = useState<any[]>([]);
 
-  // Subscrição de Atividades e Eventos da Base de Dados
+  // Subscrição de Actividades e Eventos da Base de Dados
   const [dbActivities, setDbActivities] = useState<any[]>([]);
   const [dbCalendarEvents, setDbCalendarEvents] = useState<any[]>([]);
   const [selectedEventDetail, setSelectedEventDetail] = useState<any | null>(null);
@@ -235,7 +235,7 @@ export default function LoginScreen({
         }
       });
     } catch (e) {
-      console.warn("Aviso ao subscrever atividades no LoginScreen:", e);
+      console.warn("Aviso ao subscrever actividades no LoginScreen:", e);
     }
 
     try {
@@ -265,7 +265,7 @@ export default function LoginScreen({
       },
       {
         id: "praz-2",
-        title: "Início do Ciclo de Execução de Atividades do Mês",
+        title: "Início do Ciclo de Execução de Actividades do Mês",
         date: "2026-09-10",
         type: "Execução Mensal",
         setor: "Todas as Direções e Setores",
@@ -290,13 +290,13 @@ export default function LoginScreen({
     ];
 
     const mappedActivities = dbActivities
-      .filter((act) => act && (act.title || act.atividade || act.nome))
+      .filter((act) => act && (act.title || act.actividade || act.nome))
       .map((act, index) => ({
         id: act.id || `act-login-${index}`,
-        title: act.title || act.atividade || act.nome,
+        title: act.title || act.actividade || act.nome,
         date: act.dataRealizacao || act.data || act.dataInicio,
         mes: act.mes || act.dataMes,
-        type: "Atividade a Executar",
+        type: "Actividade a Executar",
         setor: act.setor || act.departamento || act.unidade || "Setor Responsável",
         referencia: act.referencia || act.codigo || `ACT-${index + 1}`,
       }));
@@ -306,7 +306,7 @@ export default function LoginScreen({
         evt.isPlanningPeriodEvent ||
         /período oficial|ciclo|abertura|fechamento|planificação/i.test(evt.title || "");
       if (isCyclePeriod && (evt.type === "Feriado Institucional" || !evt.type)) {
-        return { ...evt, type: "Início e Fechamento de Atividade" };
+        return { ...evt, type: "Início e Fechamento de Actividade" };
       }
       return evt;
     });
@@ -385,12 +385,12 @@ export default function LoginScreen({
         e.type === "Prazo Definido" ||
         e.type === "Execução Mensal" ||
         e.type === "Prazo" ||
-        e.type === "Início e Fechamento de Atividades" ||
-        e.type === "Início e Fechamento de Atividade",
+        e.type === "Início e Fechamento de Actividades" ||
+        e.type === "Início e Fechamento de Actividade",
     );
 
-    const atividadesAExecutar = targetList.filter(
-      (e) => e.type === "Atividade a Executar" || e.type === "Atividade Aprovada",
+    const actividadesAExecutar = targetList.filter(
+      (e) => e.type === "Actividade a Executar" || e.type === "Actividade Aprovada",
     );
 
     const comemorativas = targetList.filter(
@@ -410,7 +410,7 @@ export default function LoginScreen({
 
     return {
       prazosEPublicacoes,
-      atividadesAExecutar,
+      actividadesAExecutar,
       comemorativas,
       feriadosNacionais,
       feriadosInstitucionais,
@@ -420,7 +420,7 @@ export default function LoginScreen({
 
   const {
     prazosEPublicacoes,
-    atividadesAExecutar,
+    actividadesAExecutar,
     comemorativas,
     feriadosNacionais,
     feriadosInstitucionais,
@@ -1311,13 +1311,13 @@ export default function LoginScreen({
                 </div>
               </div>
             )}
-            {atividadesAExecutar.length > 0 && (
+            {actividadesAExecutar.length > 0 && (
               <div>
                 <h2 className="text-[10px] font-black underline mt-3 mb-2 tracking-widest text-emerald-300 flex items-center gap-1">
-                  <span>⚡ Atividades a Executar no Mês</span>
+                  <span>⚡ Actividades a Executar no Mês</span>
                 </h2>
                 <div className="space-y-1">
-                  {atividadesAExecutar.map((e) => renderEvent(e))}
+                  {actividadesAExecutar.map((e) => renderEvent(e))}
                 </div>
               </div>
             )}
@@ -1352,7 +1352,7 @@ export default function LoginScreen({
               </div>
             )}
             {prazosEPublicacoes.length === 0 &&
-              atividadesAExecutar.length === 0 &&
+              actividadesAExecutar.length === 0 &&
               comemorativas.length === 0 &&
               feriadosNacionais.length === 0 &&
               feriadosInstitucionais.length === 0 && (
@@ -1767,7 +1767,7 @@ export default function LoginScreen({
         </div>
       )}
 
-      {/* Modal de Detalhes da Publicação / Evento / Atividade */}
+      {/* Modal de Detalhes da Publicação / Evento / Actividade */}
       {selectedEventDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-900 animate-scaleUp">
@@ -1897,10 +1897,10 @@ export default function LoginScreen({
                       selectedEventDetail.detalhes ||
                       selectedEventDetail.justificativa ||
                       (selectedEventDetail.type === "Publicação de Plano"
-                        ? "Publicação oficial do Plano Económico e Social e Orçamento do Exercício (PESOE). Todos os setores e unidades orgânicas devem consultar o plano aprovado para execução rigorosa das atividades calendarizadas."
+                        ? "Publicação oficial do Plano Económico e Social e Orçamento do Exercício (PESOE). Todos os setores e unidades orgânicas devem consultar o plano aprovado para execução rigorosa das actividades calendarizadas."
                         : selectedEventDetail.type === "Prazo Definido"
                         ? "Prazo regulamentar para submissão de relatórios de monitoria, ajustamentos e prestação de contas institucionais."
-                        : "Atividade aprovada do Plano Anual agendada para execução no período de referência sob responsabilidade do setor indicado.")}
+                        : "Actividade aprovada do Plano Anual agendada para execução no período de referência sob responsabilidade do setor indicado.")}
                   </p>
                 </div>
               </div>

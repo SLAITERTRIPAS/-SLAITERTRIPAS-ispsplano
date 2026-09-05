@@ -66,7 +66,7 @@ export default function StandardReportModel({
     const reportElement = document.getElementById("standard-report-content");
     if (reportElement) {
       openPrintDocumentWindow({
-        title: title || "Relatório de Atividades - Songo",
+        title: title || "Relatório de Actividades - Songo",
         orgao: user?.unidadeOrganica || user?.unidade || "UNIDADE ORGÂNICA",
         direcao: user?.direcao || "DICOSAFA",
         departamento: user?.departamento || "",

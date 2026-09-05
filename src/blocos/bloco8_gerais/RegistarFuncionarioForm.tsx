@@ -21,7 +21,7 @@ import {
   UNIDADES_ORGANICAS_SISTEMA,
   DEPARTAMENTOS,
   REPARTICOES,
-  SECTORES,
+  SETORES,
   CURSOS,
   NIVEIS_ACADEMICOS,
   CATEGORIAS_FUNCIONARIOS,
@@ -101,13 +101,13 @@ export default function RegistarFuncionarioForm({
     const reparticoes = DEPARTAMENTOS[dept] || [];
     let sectors: string[] = [];
     reparticoes.forEach((rep) => {
-      if (SECTORES[rep]) {
-        sectors = [...sectors, ...SECTORES[rep]];
+      if (SETORES[rep]) {
+        sectors = [...sectors, ...SETORES[rep]];
       }
       if (REPARTICOES[rep]) {
         REPARTICOES[rep].forEach((subRep) => {
-          if (SECTORES[subRep]) {
-            sectors = [...sectors, ...SECTORES[subRep]];
+          if (SETORES[subRep]) {
+            sectors = [...sectors, ...SETORES[subRep]];
           }
         });
       }
@@ -171,7 +171,7 @@ export default function RegistarFuncionarioForm({
       estadoMandato !== "Cessado" &&
       estadoMandato !== "Despromovido"
     ) {
-      setEstadoMandato("Em Atividade");
+      setEstadoMandato("Em Actividade");
     }
   };
   const [cargo, setCargo] = useState(initialData?.cargo || "");
@@ -223,7 +223,7 @@ export default function RegistarFuncionarioForm({
       setCargo(initialData.cargo || "");
       setCargoChefia(initialData.cargoChefia || "Nenhum");
       setEstado(initialData.estado || "Ativo");
-      setEstadoMandato(initialData.estadoMandato || "Em Atividade");
+      setEstadoMandato(initialData.estadoMandato || "Em Actividade");
     }
   }, [initialData]);
   const [disciplinas, setDisciplinas] = useState<string[]>(
@@ -231,7 +231,7 @@ export default function RegistarFuncionarioForm({
   );
   const [estado, setEstado] = useState(initialData?.estado || "Ativo");
   const [estadoMandato, setEstadoMandato] = useState(
-    initialData?.estadoMandato || "Em Atividade",
+    initialData?.estadoMandato || "Em Actividade",
   );
 
   // Lógica de Persistência (Memória do Sistema)
@@ -440,7 +440,7 @@ export default function RegistarFuncionarioForm({
     );
     setDisciplinas(docente.disciplinas || ["", "", "", ""]);
     setEstado(docente.estado || "Ativo");
-    setEstadoMandato(docente.estadoMandato || "Em Atividade");
+    setEstadoMandato(docente.estadoMandato || "Em Actividade");
 
     setSearchTerm(docente.nome);
     setShowSearchResults(false);
@@ -1285,7 +1285,7 @@ export default function RegistarFuncionarioForm({
                   />
                   <datalist id="sector-list">
                     {reparticao &&
-                      SECTORES[reparticao]?.map((s) => (
+                      SETORES[reparticao]?.map((s) => (
                         <option key={s + "-" + Math.random()} value={s}>
                           {s}
                         </option>
@@ -1455,7 +1455,7 @@ export default function RegistarFuncionarioForm({
                 value={estadoMandato}
                 onChange={handleEstadoMandatoChange}
               >
-                <option value="Em Atividade">Em Atividade</option>
+                <option value="Em Actividade">Em Actividade</option>
                 <option value="Cessado">Cessado</option>
                 <option value="Despromovido">Despromovido</option>
               </select>

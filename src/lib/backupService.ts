@@ -10,7 +10,7 @@ import {
   deleteDoc,
   writeBatch,
 } from "firebase/firestore";
-import { REPARTICOES, SECTORES, DEPARTAMENTOS } from "../constants/formOptions";
+import { REPARTICOES, SETORES, DEPARTAMENTOS } from "../constants/formOptions";
 
 interface BackupDocument {
   id: string;
@@ -207,13 +207,10 @@ export const COLLECTION_ALIASES: Record<string, string> = {
   "tb_matrix_activities": "matrix_activities",
   "Actividades": "actividades",
   "actividades": "actividades",
-  "atividades": "actividades",
   "tb_actividades": "actividades",
-  "tb_atividades": "actividades",
   "activities": "actividades",
   "Plano_Actividades_Det": "plano_actividades",
   "plano_actividades": "plano_actividades",
-  "plano_atividades": "plano_actividades",
   "tb_plano_actividades": "plano_actividades",
   "plan_schedules": "plan_schedules",
   "tb_plan_schedules": "plan_schedules",
@@ -347,7 +344,7 @@ export const COLLECTION_ALIASES: Record<string, string> = {
 };
 
 /**
- * Função utilitária para normalizar e garantir integridade das atividades planificadas por setor
+ * Função utilitária para normalizar e garantir integridade das actividades planificadas por setor
  */
 function normalizePlannedActivity(actData: any): any {
   if (!actData || typeof actData !== "object") return actData;
@@ -731,7 +728,7 @@ export function normalizeBackupPayload(rawInputData: any): BackupData {
       targetColl = "users";
     } else if (sample.fornecedor || sample.precoUnitario || sample.produto) {
       targetColl = "produtosUnificados";
-    } else if (sample.titulo || sample.descricaoAtividade) {
+    } else if (sample.titulo || sample.descricaoActividade) {
       targetColl = "actividades";
     } else if (sample.numeroRastreio || sample.remetente) {
       targetColl = "expedientes";
@@ -785,7 +782,7 @@ export function extractDocsForCollection(data: BackupData, targetColl: string): 
 
   // Map synonyms
   if (targetColl === "matrix_activities" || targetColl === "actividades" || targetColl === "plano_actividades") {
-    synonyms.push("matrix_activities", "actividades", "plano_actividades", "matrixActivities", "plano_actividades_det", "plano_atividades", "activities", "tb_matrix_activities", "tb_actividades", "tb_plano_actividades");
+    synonyms.push("matrix_activities", "actividades", "plano_actividades", "matrixActivities", "plano_actividades_det", "plano_actividades", "activities", "tb_matrix_activities", "tb_actividades", "tb_plano_actividades");
   } else if (targetColl === "produtosUnificados" || targetColl === "produtos_unificados") {
     synonyms.push("produtosUnificados", "produtos_unificados", "produtos", "sigep_unified_products", "tb_produtos", "tb_produtos_unificados");
   } else if (targetColl === "colaboradores") {

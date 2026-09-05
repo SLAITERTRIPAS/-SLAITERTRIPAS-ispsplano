@@ -262,7 +262,7 @@ export default function ServiceRequestForm({
       return `autorizar a concessão de Espaço para Acomodação/Residência Estudantil nas instalações do Instituto, com base no facto de residir fora do distrito de Songo e requerer apoio pelas razões de: ${data.descricao}`;
     }
     if (s.includes("esclarecimento")) {
-      return `se digne prestar Esclarecimento formal relativamente ao assunto de: ${data.descricao}, no âmbito das actividades académicas do Curso de ${data.curso}`;
+      return `se digne prestar Esclarecimento formal relativamente ao assunto de: ${data.descricao}, no âmbito das atividades académicas do Curso de ${data.curso}`;
     }
     if (s.includes("reclamação") || s.includes("reclamacao")) {
       return `se digne receber a Reclamação que respeitosamente apresenta nas linhas seguintes, solicitando a sua devida atenção e encaminhamento: ${data.descricao}`;
@@ -273,7 +273,7 @@ export default function ServiceRequestForm({
 
   const getFullPetitionText = (serviceName: string, data: typeof formData) => {
     const bodyText = getCustomPetitionBodyAndRequestType(serviceName, data);
-    return `Exmo. Senhor Director do Curso de Engenharia ${data.curso} do Instituto Superior Politécnico de Songo\n=Songo=\n\n${data.nome}, de nacionalidade ${data.nacionalidade}, nascido aos ${data.dataNascimento}, filho de ${data.nomePai} e ${data.nomeMae}, Portador de B.I. nº ${data.numeroBI}, emitido pêlo Arquivo de Identificação Civil da ${data.localEmissaoBI}, aos ${data.dataEmissaoBI}, estudante do Curso de Licenciatura em ${data.curso}, Período ${data.periodo}, inscrito sob o número ${data.numeroEstudante}, ${data.nivel} Nível, ${data.semestre}, com o contacto telefónico número ${data.contactoTelefonico}, vem mui respeitosamente rogar a V. Excia se digne ${bodyText}, pelo que\nPede Deferimento`;
+    return `Exmo. Senhor Diretor do Curso de Engenharia ${data.curso} do Instituto Superior Politécnico de Songo\n=Songo=\n\n${data.nome}, de nacionalidade ${data.nacionalidade}, nascido aos ${data.dataNascimento}, filho de ${data.nomePai} e ${data.nomeMae}, Portador de B.I. nº ${data.numeroBI}, emitido pelo Arquivo de Identificação Civil da ${data.localEmissaoBI}, aos ${data.dataEmissaoBI}, estudante do Curso de Licenciatura em ${data.curso}, Período ${data.periodo}, inscrito sob o número ${data.numeroEstudante}, ${data.nivel} Nível, ${data.semestre}, com o contacto telefónico número ${data.contactoTelefonico}, vem mui respeitosamente rogar a V. Excia se digne ${bodyText}, pelo que\nPede Deferimento`;
   };
 
   const [previewMode, setPreviewMode] = useState(false);
@@ -757,7 +757,7 @@ export default function ServiceRequestForm({
         "2º Semestre": [
           "Trabalho Científico de Licenciatura",
           "Estágio Tecnológico Industrial",
-          "Ética na Actividade Termoenergética",
+          "Ética na Atividade Termoenergética",
         ],
       },
     },
@@ -1319,7 +1319,7 @@ export default function ServiceRequestForm({
                           fontWeight: "bold",
                         }}
                       >
-                        Exmo. Senhor Director do Curso de Engenharia{" "}
+                        Exmo. Senhor Diretor do Curso de Engenharia{" "}
                         {formData.curso || "(nome do curso)"} do Instituto
                         Superior Politécnico de Songo
                         <br />
@@ -1337,7 +1337,7 @@ export default function ServiceRequestForm({
                           "___/___/___"}
                         , filho de {formData.nomePai || "(nome do pai)"} e{" "}
                         {formData.nomeMae || "(nome da mãe)"}, Portador de B.I.
-                        nº {formData.numeroBI || "(número de BI)"}, emitido pêlo
+                        nº {formData.numeroBI || "(número de BI)"}, emitido pelo
                         Arquivo de Identificação Civil da{" "}
                         {formData.localEmissaoBI || "(província)"}, aos{" "}
                         {formatEuropeanDate(formData.dataEmissaoBI) ||
@@ -2027,7 +2027,7 @@ export default function ServiceRequestForm({
               fontWeight: "bold",
             }}
           >
-            Exmo. Senhor Director do Curso de Engenharia{" "}
+            Exmo. Senhor Diretor do Curso de Engenharia{" "}
             {formData.curso || "(nome do curso)"} do Instituto Superior
             Politécnico de Songo
             <br />
@@ -2043,7 +2043,7 @@ export default function ServiceRequestForm({
             {formatEuropeanDate(formData.dataNascimento) || "___/___/___"},
             filho de {formData.nomePai || "(nome do pai)"} e{" "}
             {formData.nomeMae || "(nome da mãe)"}, Portador de B.I. nº{" "}
-            {formData.numeroBI || "(número de BI)"}, emitido pêlo Arquivo de
+            {formData.numeroBI || "(número de BI)"}, emitido pelo Arquivo de
             Identificação Civil da {formData.localEmissaoBI || "(província)"},
             aos {formatEuropeanDate(formData.dataEmissaoBI) || "___/___/___"},
             estudante do Curso de Licenciatura em{" "}

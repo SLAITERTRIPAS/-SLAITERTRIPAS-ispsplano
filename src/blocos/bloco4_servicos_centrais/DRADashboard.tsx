@@ -223,8 +223,8 @@ export default function DRADashboard({ user }: { user?: any }) {
   }).length;
   const ctaTotal = ctaH + ctaM;
 
-  // Planos de Atividades (Atividades planificadas do DRA)
-  const atividadesDRA = useMemo(() => {
+  // Planos de Actividades (Actividades planificadas do DRA)
+  const actividadesDRA = useMemo(() => {
     return matrixActivities.filter((act) => {
       const s = (act.setor || act.reparticao || act.departamento || act.direcao || "").toUpperCase();
       return s.includes("DRA") || s.includes("REGISTO ACADÉMICO") || s.includes("DICOSSER");
@@ -233,8 +233,8 @@ export default function DRADashboard({ user }: { user?: any }) {
 
   // Relatórios do departamento
   const relatoriosDRA = useMemo(() => {
-    return atividadesDRA.filter(act => act.estado === "Concluído" || act.relatorio || act.observacoes);
-  }, [atividadesDRA]);
+    return actividadesDRA.filter(act => act.estado === "Concluído" || act.relatorio || act.observacoes);
+  }, [actividadesDRA]);
 
   // Corpo Discente Totais
   const totalNovosIngressos = dbRecords
@@ -326,7 +326,7 @@ export default function DRADashboard({ user }: { user?: any }) {
           onClick={() => setActiveTab("planos")}
           className={`px-4 py-2 rounded-xl text-xs font-black  tracking-wider transition-all cursor-pointer ${activeTab === "planos" ? "bg-white text-blue-950 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
         >
-          Planos de Atividades ({atividadesDRA.length})
+          Planos de Actividades ({actividadesDRA.length})
         </button>
 
         {/* Relatórios with Dropdown */}
@@ -487,27 +487,27 @@ export default function DRADashboard({ user }: { user?: any }) {
         </div>
       )}
 
-      {/* Planos de Atividades Section (atividades planificadas (x)) */}
+      {/* Planos de Actividades Section (actividades planificadas (x)) */}
       {(activeTab === "geral" || activeTab === "planos") && (
         <div className="space-y-6 pt-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-black text-slate-800  tracking-tight flex items-center gap-2">
               <Calendar className="text-purple-600" size={20} />
-              2. Planos de Atividades • Atividades planificadas ({atividadesDRA.length})
+              2. Planos de Actividades • Actividades planificadas ({actividadesDRA.length})
             </h3>
           </div>
 
           <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
-            {atividadesDRA.length === 0 ? (
+            {actividadesDRA.length === 0 ? (
               <div className="text-center py-8 text-slate-400">
-                <p className="text-xs font-bold  tracking-wider">Nenhuma atividade planificada específica para o DRA no momento.</p>
+                <p className="text-xs font-bold  tracking-wider">Nenhuma actividade planificada específica para o DRA no momento.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {atividadesDRA.map((act, idx) => (
+                {actividadesDRA.map((act, idx) => (
                   <div key={act.id || idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div>
-                      <h4 className="text-xs font-black text-slate-900  tracking-tight">{act.nome || act.titulo || act.descricao || "Atividade Académica"}</h4>
+                      <h4 className="text-xs font-black text-slate-900  tracking-tight">{act.nome || act.titulo || act.descricao || "Actividade Académica"}</h4>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">Indicador: {act.indicador || "Plano Setorial DRA"} &bull; Orçamento: {Number(act.valorTotal || act.valor || 0).toLocaleString("pt-MZ")} MZN</p>
                     </div>
                     <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-[10px] font-bold  w-fit">
@@ -546,7 +546,7 @@ export default function DRADashboard({ user }: { user?: any }) {
           <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-4">
             <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
               <p className="text-xs font-bold text-blue-950  tracking-wide">
-                Relatório {relatorioSelecionado.charAt(0).toUpperCase() + relatorioSelecionado.slice(1)} de Desempenho e Atividades (DRA)
+                Relatório {relatorioSelecionado.charAt(0).toUpperCase() + relatorioSelecionado.slice(1)} de Desempenho e Actividades (DRA)
               </p>
               <p className="text-xs text-blue-700 mt-1">
                 Análise detalhada do efetivo discente, colaboradores, expediente e cumprimento de metas no período {relatorioSelecionado}.
@@ -562,7 +562,7 @@ export default function DRADashboard({ user }: { user?: any }) {
                 <p className="text-xl font-black text-slate-800 mt-1">{cursosUnicos}</p>
               </div>
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-bold text-slate-400 ">Atividades Concluídas</p>
+                <p className="text-[10px] font-bold text-slate-400 ">Actividades Concluídas</p>
                 <p className="text-xl font-black text-slate-800 mt-1">{relatoriosDRA.length}</p>
               </div>
             </div>

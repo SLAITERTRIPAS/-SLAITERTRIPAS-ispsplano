@@ -65,9 +65,9 @@ export const OFFICIAL_SISTAFE_RUBRICAS = [
   { code: "121028", name: "Sementes, plantas e insumos" },
   { code: "121029", name: "Material para conservação de estradas e vias" },
   { code: "121030", name: "Bandeiras e flâmulas" },
-  { code: "121031", name: "Material para conservação de rede de electrificação" },
+  { code: "121031", name: "Material para conservação de rede de eletrificação" },
   { code: "121032", name: "Material de aplicação restritiva" },
-  { code: "121033", name: "Material para aplicação em projectos sociais e assistência social" },
+  { code: "121033", name: "Material para aplicação em projetos sociais e assistência social" },
   { code: "121034", name: "Material para conservação de rede de água e esgoto" },
   { code: "121098", name: "Outros bens de consumo" },
   { code: "121099", name: "Outros bens duradouros" },
@@ -79,7 +79,7 @@ export const OFFICIAL_SISTAFE_RUBRICAS = [
   { code: "122007", name: "Manutenção e reparação de veículos" },
   { code: "122009", name: "Seguros" },
   { code: "122012", name: "Água" },
-  { code: "122013", name: "Energia eléctrica" },
+  { code: "122013", name: "Energia elétrica" },
   { code: "122021", name: "Limpeza e conservação" },
   { code: "122024", name: "Serviços gráficos" },
   { code: "122099", name: "Outros serviços" },
@@ -493,8 +493,8 @@ const isUgeaActivity = (act: any): boolean => {
   if (!act) return false;
   const dept = normalizeStr(act.departamento || act.solicitante || act.unidade || act.orgao || act.origem || "");
   const set = normalizeStr(act.setor || act.sector || act.reparticao || "");
-  const title = normalizeStr(act.nomeAtividade || act.designacao || act.title || act.atividade || "");
-  const code = normalizeStr(act.codigo || act.codigoAtividade || act.numProcesso || "");
+  const title = normalizeStr(act.nomeActividade || act.designacao || act.title || act.actividade || "");
+  const code = normalizeStr(act.codigo || act.codigoActividade || act.numProcesso || "");
 
   return (
     dept.includes("ugea") ||
@@ -599,7 +599,7 @@ export default function AcaoOrcamentalView({
       });
       // Atualizar localmente
       activity.sharedWith = updatedShares;
-      onShowAlert(`Permissões de partilha manual para "${activity.nome || activity.atividade || 'atividade'}" atualizadas com sucesso!`);
+      onShowAlert(`Permissões de partilha manual para "${activity.nome || activity.actividade || 'atividade'}" atualizadas com sucesso!`);
     } catch (err) {
       console.error("Erro ao atualizar partilha:", err);
       onShowAlert("Não foi possível atualizar as permissões de partilha.");
@@ -759,9 +759,9 @@ export default function AcaoOrcamentalView({
     }
   }, [selectedLevel, levelUnits]);
 
-  // Filtrar atividades conforme o Nível Estrutural e a Unidade Selecionada
+  // Filtrar actividades conforme o Nível Estrutural e a Unidade Selecionada
   const sectorActivities = useMemo(() => {
-    // Usar atividades já filtradas por autorização básica e que obrigatoriamente possuem setor planificado (Nível Setorial)
+    // Usar actividades já filtradas por autorização básica e que obrigatoriamente possuem setor planificado (Nível Setorial)
     let baseActivities = authorizedActivities.filter((act) => {
       const sector = String(act.setor || act.reparticao || act.solicitante || act.unidade || act.orgao || "").trim();
       return sector !== "";
@@ -773,7 +773,7 @@ export default function AcaoOrcamentalView({
         canAccessArea(user, act.direcao || "", act.departamento || "", act.setor || act.reparticao || "", act)
       );
     } else if (!isSuperBossUser(user)) {
-      // Para o DPEP/Planificação, apenas visualizar atividades de outros setores que tenham sido EFETIVAMENTE ENVIADAS/SUBMETIDAS pelos setores produtores
+      // Para o DPEP/Planificação, apenas visualizar actividades de outros setores que tenham sido EFETIVAMENTE ENVIADAS/SUBMETIDAS pelos setores produtores
       baseActivities = baseActivities.filter((act) => {
         const actDept = String(act.departamento || act.setor || act.reparticao || act.direcao || "").toUpperCase();
         const isOwnDPEP = actDept.includes("DPEP") || actDept.includes("PLANIFICAÇÃO") || actDept.includes("PLANIFICACAO");
@@ -863,7 +863,7 @@ export default function AcaoOrcamentalView({
     });
   }, [authorizedActivities, selectedLevel, selectedUnit, isPlanificacaoOrDPEP, user?.email, user?.role, user?.cargo, user?.title, user?.cargoChefia, userDirecao, userDepartamento]);
 
-  // Total Geral do valor de todas as atividades planificadas (Orçamento do Nível/Departamento)
+  // Total Geral do valor de todas as actividades planificadas (Orçamento do Nível/Departamento)
   const totalOrcamentadoSetor = useMemo(() => {
     return sectorActivities.reduce((sum, act) => {
       let actVal = 0;
@@ -897,7 +897,7 @@ export default function AcaoOrcamentalView({
   }, [sectorActivities]);
 
   // Coletânea completa e agrupamento detalhado por Rúbricas e Necessidades
-  // Total Geral de Absolutamente Todas as Atividades do Sistema (para o Teto Institucional)
+  // Total Geral de Absolutamente Todas as Actividades do Sistema (para o Teto Institucional)
   const totalGeralAbsoluto = useMemo(() => {
     // Para garantir a privacidade, se o utilizador não for DPEP/SuperBoss,
     // o "Total Geral" deve ser apenas o total do seu departamento, e não o institucional.
@@ -933,7 +933,7 @@ export default function AcaoOrcamentalView({
             nomeProduto?: string;
             quantidadeTotal: number;
             valorTotalNecessidade: number;
-            atividadesCount: number;
+            actividadesCount: number;
             precoUnitario?: number;
             especificacao?: string;
           };
@@ -996,18 +996,18 @@ export default function AcaoOrcamentalView({
               nomeProduto: productName,
               quantidadeTotal: 0,
               valorTotalNecessidade: 0,
-              atividadesCount: 0,
+              actividadesCount: 0,
               precoUnitario: pUnit,
               especificacao: String(r.especificacao || ""),
             };
           }
           rubricaMap[rubricaKey].necessidadesMap[canonicalKey].quantidadeTotal += qty;
           rubricaMap[rubricaKey].necessidadesMap[canonicalKey].valorTotalNecessidade += val;
-          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].atividadesCount += 1;
+          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].actividadesCount += 1;
         });
       }
 
-      // 3. Fallback para atividades que têm orçamento planificado no plano de atividades mas sem array de rubricas detalhado
+      // 3. Fallback para actividades que têm orçamento planificado no plano de actividades mas sem array de rubricas detalhado
       if (!hasProcessedRubrica) {
         const val = Number(
           act.valor ||
@@ -1049,12 +1049,12 @@ export default function AcaoOrcamentalView({
               nomeProduto: productName,
               quantidadeTotal: 0,
               valorTotalNecessidade: 0,
-              atividadesCount: 0,
+              actividadesCount: 0,
             };
           }
           rubricaMap[rubricaKey].necessidadesMap[canonicalKey].quantidadeTotal += qty;
           rubricaMap[rubricaKey].necessidadesMap[canonicalKey].valorTotalNecessidade += val;
-          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].atividadesCount += 1;
+          rubricaMap[rubricaKey].necessidadesMap[canonicalKey].actividadesCount += 1;
         }
       }
     });
@@ -1128,7 +1128,7 @@ export default function AcaoOrcamentalView({
     } = {};
 
     authorizedActivities.forEach((act) => {
-      // Filtragem estrita: Ignorar atividades sem valor ou título (fantasma)
+      // Filtragem estrita: Ignorar actividades sem valor ou título (fantasma)
       const hasContent = (act.titulo || act.descricao || Number(act.valor) > 0);
       if (!hasContent) return;
 
@@ -1675,7 +1675,7 @@ export default function AcaoOrcamentalView({
         });
       }
 
-      // 2. Fallback para atividades que têm orçamento geral sem array de rúbricas detalhado
+      // 2. Fallback para actividades que têm orçamento geral sem array de rúbricas detalhado
       if (!hasRubrica) {
         const val = Number(
           act.valor || act.orcamentoTotal || act.valorTotal || act.orcamento || act.custoTotal || 0
@@ -1768,7 +1768,7 @@ export default function AcaoOrcamentalView({
     );
   }, [sistafePivotData]);
 
-  // Cálculo de Orçamento por Departamento (Total de Atividades)
+  // Cálculo de Orçamento por Departamento (Total de Actividades)
   const departmentTotals = useMemo(() => {
     const totals: Record<string, number> = {};
     
@@ -1777,9 +1777,9 @@ export default function AcaoOrcamentalView({
       totals[dep] = 0;
     });
 
-    // Soma o valor de cada atividade ao seu departamento correspondente
+    // Soma o valor de cada actividade ao seu departamento correspondente
     authorizedActivities.forEach(act => {
-      // Se não tem atividade planificada a nível setorial, é igual a zero orçamento!
+      // Se não tem actividade planificada a nível setorial, é igual a zero orçamento!
       const sector = String(act.setor || act.reparticao || act.solicitante || act.unidade || act.orgao || "").trim();
       if (sector === "") return;
 
@@ -1911,7 +1911,7 @@ export default function AcaoOrcamentalView({
   const [isEditingTeto, setIsEditingTeto] = useState(false);
   const [tempTetoInput, setTempTetoInput] = useState<string>("");
 
-  // Determinar o teto orçamental dinâmico padrão baseado nas atividades planificadas
+  // Determinar o teto orçamental dinâmico padrão baseado nas actividades planificadas
   const defaultTeto = useMemo(() => {
     return totalOrcamentadoSetor;
   }, [totalOrcamentadoSetor]);
@@ -2392,7 +2392,7 @@ export default function AcaoOrcamentalView({
                         {rub.totalValor.toLocaleString("pt-MZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] font-sans font-normal text-slate-500">MZN</span>
                       </div>
                       <div className="flex justify-between items-center text-[10px] text-slate-500 mt-3 pt-3 border-t border-slate-100 font-medium">
-                        <span>{rub.itemsCount} rúbricas e atividades</span>
+                        <span>{rub.itemsCount} rubricas e atividades</span>
                         <span className="font-bold text-sky-800">{pct.toFixed(1)}% do total</span>
                       </div>
                     </div>
@@ -2493,7 +2493,7 @@ export default function AcaoOrcamentalView({
                   📊 Matriz Tabela Dinâmica - Ação Orçamental (SISTAFE)
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Resumo das rúbricas oficiais e necessidades agrupadas por código, quantitativos e valores acumulados.
+                  Resumo das rubricas oficiais e necessidades agrupadas por código, quantitativos e valores acumulados.
                 </p>
               </div>
 
@@ -2708,7 +2708,7 @@ export default function AcaoOrcamentalView({
               </div>
               <h3 className="text-xl font-black text-slate-900 tracking-tight">Sem Dados de Rúbricas</h3>
               <p className="text-slate-500 text-sm max-w-md mx-auto mt-2 leading-relaxed">
-                As rúbricas e despesas só são geradas após a inserção de atividades e rúbricas na matriz orçamental.
+                As rubricas e despesas só são geradas após a inserção de atividades e rubricas na matriz orçamental.
               </p>
             </div>
           )}
@@ -2781,7 +2781,7 @@ export default function AcaoOrcamentalView({
                 <textarea
                   required
                   rows={4}
-                  placeholder="Justifique detalhadamente a necessidade do reforço de crédito para as actividades do setor..."
+                  placeholder="Justifique detalhadamente a necessidade do reforço de crédito para as atividades do setor..."
                   className="w-full text-xs px-3.5 py-2.5 border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-semibold leading-relaxed"
                   value={reforcoForm.justificativa}
                   onChange={(e) =>

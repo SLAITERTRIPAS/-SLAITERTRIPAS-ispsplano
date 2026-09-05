@@ -45,7 +45,7 @@ export function canManagePeriodoPlanificacao(user: any): boolean {
     cargoChefia.includes("DPEP") ||
     cargo.includes("DPEP") ||
     title.includes("DPEP") ||
-    cargoChefia.includes("PLANIFICAÇÃO, ESTUDOS E PROJECTOS") ||
+    cargoChefia.includes("PLANIFICAÇÃO, ESTUDOS E PROJETOS") ||
     cargoChefia.includes("PLANIFICACAO, ESTUDOS E PROJECTOS") ||
     cargo.includes("CHEFE DO DPEP") ||
     cargo.includes("CHEFE DO DEPARTAMENTO DE PLANIFICAÇÃO") ||
@@ -79,7 +79,7 @@ export function isPlanificacaoAberta(periodo: PeriodoPlanificacao | null): { abe
   if (periodo.status === "fechado") {
     return {
       aberta: false,
-      motivo: "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral.",
+      motivo: "O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral.",
     };
   }
 
@@ -88,13 +88,13 @@ export function isPlanificacaoAberta(periodo: PeriodoPlanificacao | null): { abe
     if (today < periodo.dataInicioPlanificacao) {
       return {
         aberta: false,
-        motivo: `O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral.`,
+        motivo: `O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral.`,
       };
     }
     if (today > periodo.dataFimPlanificacao) {
       return {
         aberta: false,
-        motivo: "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral.",
+        motivo: "O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral.",
       };
     }
   }
@@ -328,7 +328,7 @@ export function getCicloPlanoEstrutura(ano: number = currentYear): EstagioCiclo[
       fase: "Submissão, Aprovação e Publicação",
       descricao: "Submissão formal, aprovação pelas instâncias superiores e publicação oficial do Plano.",
       responsavel: "Direção Geral & DPEP",
-      acaoEsperada: "Aprovação do Plano de Actividades e publicação para execução.",
+      acaoEsperada: "Aprovação do Plano de Atividades e publicação para execução.",
     },
   ];
 }

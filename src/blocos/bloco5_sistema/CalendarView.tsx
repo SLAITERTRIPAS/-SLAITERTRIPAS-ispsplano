@@ -766,7 +766,7 @@ export default function CalendarView({
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Título da Actividade
+                    Título da Atividade
                   </label>
                   <input
                     required
@@ -1005,7 +1005,7 @@ export default function CalendarView({
                 {/* Ciclo de 3 Meses do Plano de Atividades */}
                 <div className="space-y-2 pt-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-purple-900 block">
-                    Trajetória do Ciclo do Plano de Actividades (3 Meses):
+                    Trajetória do Ciclo do Plano de Atividades (3 Meses):
                   </span>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     {getCicloPlanoEstrutura().map((estagio) => (

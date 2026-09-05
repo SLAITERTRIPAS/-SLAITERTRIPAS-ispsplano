@@ -3,7 +3,7 @@ import {
   UNIDADES_ORGANICAS_SISTEMA,
   DEPARTAMENTOS,
   REPARTICOES,
-  SECTORES,
+  SETORES,
   CATEGORIAS_DOCENTES,
 } from "../constants/formOptions";
 import { classifyTipo, hasChefiaPosition } from "./utils";
@@ -453,8 +453,8 @@ export function getUserAllocatedDetails(
 
     // Normalizar setor
     let setorNormalized = setor;
-    if (setorNormalized && repNormalized && SECTORES[repNormalized]) {
-      const secs = SECTORES[repNormalized];
+    if (setorNormalized && repNormalized && SETORES[repNormalized]) {
+      const secs = SETORES[repNormalized];
       const matchedSecObj = secs.find(
         (s) =>
           s.toLowerCase().trim() === setorNormalized.toLowerCase().trim() ||
@@ -920,7 +920,7 @@ export function getUserAllocatedDetails(
   }
 
   if (uSetor) {
-    for (const [rep, sectors] of Object.entries(SECTORES)) {
+    for (const [rep, sectors] of Object.entries(SETORES)) {
       const foundSector = sectors.find((s) => looseMatch(s, uSetor));
       if (foundSector) {
         matchedSetor = foundSector;

@@ -173,7 +173,7 @@ export default function GestaoTransporteView({
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-xl font-black text-slate-900 tracking-tighter">
-              Actividades da Frota
+              Atividades da Frota
             </h3>
             <History className="text-slate-400" />
           </div>
@@ -213,7 +213,7 @@ export default function GestaoTransporteView({
               </div>
             </div>
             <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-slate-400 italic">
-              <p className="text-xs">Outras actividades em processamento...</p>
+              <p className="text-xs">Outras atividades em processamento...</p>
             </div>
           </div>
         </div>

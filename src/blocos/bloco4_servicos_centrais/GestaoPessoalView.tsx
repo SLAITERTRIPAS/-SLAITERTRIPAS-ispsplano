@@ -129,7 +129,7 @@ import {
   UNIDADES_ORGANICAS_SISTEMA,
   DEPARTAMENTOS,
   REPARTICOES,
-  SECTORES,
+  SETORES,
   CURSOS,
   NIVEIS_ACADEMICOS,
   ESTADOS_CIVIS,
@@ -188,7 +188,7 @@ export default function GestaoPessoalView({
     | "assinatura_digital"
     | "plano"
     | "plano_setorial"
-    | "plano_atividade"
+    | "plano_actividade"
     | "plano_individual"
     | "caixa_mensagens"
     | "estatistica_reparticao"
@@ -412,7 +412,7 @@ export default function GestaoPessoalView({
     },
     { id: "relatorios", title: "Relatórios", icon: BarChart3 },
     { id: "balanco", title: "Balanço", icon: PieChart },
-    { id: "atribuir_actividade", title: "Atribuir Actividade", icon: CheckSquare },
+    { id: "atribuir_actividade", title: "Atribuir Atividade", icon: CheckSquare },
     ...(canSeeSalaries ? [{
       id: "remuneracoes",
       title: "Remunerações",
@@ -3018,7 +3018,7 @@ export default function GestaoPessoalView({
     if (
       view === "plano" ||
       view === "plano_setorial" ||
-      view === "plano_atividade" ||
+      view === "plano_actividade" ||
       view === "plano_individual"
     ) {
       return (
@@ -4927,12 +4927,12 @@ export default function GestaoPessoalView({
                                 ].includes(editFormData.departamento)
                               ) ||
                               !editFormData?.reparticao ||
-                              !SECTORES[editFormData.reparticao]
+                              !SETORES[editFormData.reparticao]
                             }
                           >
                             <option value=""></option>
                             {editFormData?.reparticao &&
-                              SECTORES[editFormData.reparticao]?.map((s) => (
+                              SETORES[editFormData.reparticao]?.map((s) => (
                                 <option key={s + "-" + Math.random()} value={s}>
                                   {s}
                                 </option>
@@ -6620,16 +6620,16 @@ export default function GestaoPessoalView({
                         >
                           <option value="">Selecione...</option>
                           {(
-                            SECTORES[
-                              selectedColaborador.reparticao as keyof typeof SECTORES
+                            SETORES[
+                              selectedColaborador.reparticao as keyof typeof SETORES
                             ] || []
                           )?.map((s) => (
                             <option key={s} value={s}>
                               {s}
                             </option>
                           ))}
-                          {!SECTORES[
-                            selectedColaborador.reparticao as keyof typeof SECTORES
+                          {!SETORES[
+                            selectedColaborador.reparticao as keyof typeof SETORES
                           ] && (
                             <>
                               <option value="Serviços Gerais">
@@ -6767,8 +6767,8 @@ export default function GestaoPessoalView({
                       selectedColaborador.cargoChefia === "Técnico do Setor" ||
                       (selectedColaborador.cargo || "").toLowerCase().includes("tecnico do setor") ||
                       (selectedColaborador.cargo || "").toLowerCase().includes("técnico do setor") ||
-                      (selectedColaborador.cargo || "").toLowerCase().includes("tecnico do sector") ||
-                      (selectedColaborador.cargo || "").toLowerCase().includes("técnico do sector")) && (
+                      (selectedColaborador.cargo || "").toLowerCase().includes("tecnico do setor") ||
+                      (selectedColaborador.cargo || "").toLowerCase().includes("técnico do setor")) && (
                       <div className="mt-4 p-4 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-200/60 pb-2">
                           <div>

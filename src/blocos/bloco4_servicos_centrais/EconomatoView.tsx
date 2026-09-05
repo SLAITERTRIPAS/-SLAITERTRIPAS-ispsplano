@@ -45,7 +45,7 @@ import GestaoDocumentosView from "../bloco4_servicos_centrais/GestaoDocumentosVi
 import ReportsView from "../bloco7_relatorios/ReportsView";
 import { Pen, Calendar, FileText, FolderOpen } from "lucide-react";
 import BalancoMensalView from "../bloco4_servicos_centrais/BalancoMensalView";
-import BalancoActividadesView from "../bloco4_servicos_centrais/BalancoActividadesView";
+import BalancoAtividadesView from "../bloco4_servicos_centrais/BalancoAtividadesView";
 import { isSuperBossUser, isPatrimonioBossOrAdmin } from "../../lib/auth";
 import ConsultarEstoqueModal from "../../components/ConsultarEstoqueModal";
 import EstoqueCompletoView from "./EstoqueCompletoView";
@@ -502,7 +502,7 @@ export default function EconomatoView({
         return <AssinaturaDigitalView user={user} onBack={() => {}} />;
       case "balanco":
         return (
-          <BalancoActividadesView
+          <BalancoAtividadesView
             activities={matrixActivities}
             user={user}
             onBack={() => setActiveSubView("plano")}

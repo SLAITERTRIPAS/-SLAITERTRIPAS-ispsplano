@@ -83,7 +83,7 @@ const TEMPLATES_ASSUNTO: Record<CategoriaAssunto, AssuntoTemplate> = {
     textoCorpo2:
       "A participação nesta capacitação visa o aprimoramento das competências técnicas do quadro de pessoal, promovendo a inovação dos processos de trabalho e a elevação da qualidade dos serviços prestados por esta instituição.",
     justificacao:
-      "A capacitação técnica do(s) colaborador(es) é determinante para a melhoria dos procedimentos internos e a sustentabilidade das atividades institucionais do Songo.",
+      "A capacitação técnica do(s) colaborador(es) é determinante para a melhoria dos procedimentos internos e a sustentabilidade das actividades institucionais do Songo.",
     anexos: [
       "Programa / Termos da Capacitação",
       "Proposta de Inscrição",
@@ -105,7 +105,7 @@ const TEMPLATES_ASSUNTO: Record<CategoriaAssunto, AssuntoTemplate> = {
       "O intercâmbio de experiências é fundamental para a adoção de soluções eficientes e modernização do trabalho técnico e administrativo do setor.",
     anexos: [
       "Plano de Visita / Troca de Experiência",
-      "Programa da Atividade",
+      "Programa da Actividade",
       "Documento de Suporte",
     ],
     isConvite: false,
@@ -136,14 +136,14 @@ const TEMPLATES_ASSUNTO: Record<CategoriaAssunto, AssuntoTemplate> = {
     assunto:
       "Pedido de Autorização para Deslocação em Atendimento a Convite Institucional e Pagamento dos Respetivos Abonos de Ajudas de Custos.",
     textoCorpo1:
-      "Tendo sido endereçado ao Instituto Superior Politécnico de Songo o convite formal pela instituição [nome da instituição que faz o convite] para participação na atividade [nome da atividade], a realizar-se em [local], entre os dias [datas], venho, por este meio, solicitar a devida autorização para a representação institucional por parte de [participantes], bem como o processamento dos respetivos abonos de ajudas de custo, em conformidade com os regulamentos internos e a legislação aplicável.",
+      "Tendo sido endereçado ao Instituto Superior Politécnico de Songo o convite formal pela instituição [nome da instituição que faz o convite] para participação na actividade [nome da actividade], a realizar-se em [local], entre os dias [datas], venho, por este meio, solicitar a devida autorização para a representação institucional por parte de [participantes], bem como o processamento dos respetivos abonos de ajudas de custo, em conformidade com os regulamentos internos e a legislação aplicável.",
     textoCorpo2:
-      "A presença no evento em resposta ao convite recebido assegura a devida representatividade institucional do Songo, promovendo a visibilidade académica e científica e o fortalecimento de redes de cooperação interinstitucional.",
+      "A presença no evento em resposta ao convite recebido assegura a devida representactividade institucional do Songo, promovendo a visibilidade académica e científica e o fortalecimento de redes de cooperação interinstitucional.",
     justificacao:
       "O atendimento ao convite formal reforça os laços de parceria e a imagem institucional junto de órgãos governamentais, parceiros e comunidade académica.",
     anexos: [
       "Convite Formal / Carta Convocatória da Instituição",
-      "Programa da Atividade",
+      "Programa da Actividade",
       "Credencial de Representação",
     ],
     isConvite: true,
@@ -344,7 +344,7 @@ function ModalDespachoAssinatura({
           textoCurrent: formData.parecerDpep,
           assinaturaCurrent: formData.assinaturaChefeDpep,
           positivoLabel: "Planificada",
-          positivoTexto: `Favorável. Trata-se de uma actividade planificada, ref. ${formData.codigoAtividade || "[código da atividade]"}, programada para o mês de [mês de realização].`,
+          positivoTexto: `Favorável. Trata-se de uma actividade planificada, ref. ${formData.codigoActividade || "[código da actividade]"}, programada para o mês de [mês de realização].`,
           negativoLabel: "Não Planificada",
           negativoTexto: "Atenção: A execução desta actividade não está planificada no exercício corrente.",
         };
@@ -835,7 +835,7 @@ export default function InformacaoPropostaForm({
     tituloAutoridade: "Diretor-Geral",
 
     // Detalhes da deslocação
-    codigoAtividade: "",
+    codigoActividade: "",
     nomeActividade: "[nome da actividade]",
     nomeInstituicaoConvidante: "",
     convocatoria: "",
@@ -1502,7 +1502,7 @@ export default function InformacaoPropostaForm({
                   titulo: "4. Parecer do DPEP",
                   responsavel: "Chefe do Departamento de Planificação (DPEP)",
                   status: submittedInfo?.etapaIndex === 3 ? "atual" : (submittedInfo?.etapaIndex ?? 0) > 3 ? "concluido" : "proximo",
-                  desc: "Parecer sobre o alinhamento com o Plano de Atividades anual.",
+                  desc: "Parecer sobre o alinhamento com o Plano de Actividades anual.",
                 },
                 {
                   id: 5,
@@ -1807,11 +1807,11 @@ export default function InformacaoPropostaForm({
                     <input
                       type="text"
                       placeholder="Ex: 01.DPEP"
-                      value={formData.codigoAtividade}
+                      value={formData.codigoActividade}
                       onChange={(e) =>
                         setFormData((p) => ({
                           ...p,
-                          codigoAtividade: e.target.value,
+                          codigoActividade: e.target.value,
                         }))
                       }
                       className="w-full p-3 bg-white border-2 border-slate-300 rounded-xl text-xs text-slate-900 font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 shadow-sm"
@@ -2318,7 +2318,7 @@ export default function InformacaoPropostaForm({
                             setFormData((p) => ({
                               ...p,
                               parecerDpep:
-                                `Favorável. Trata-se de uma actividade planificada, ref. ${formData.codigoAtividade || "[código da atividade]"}, programada para o mês de [mês de realização].`,
+                                `Favorável. Trata-se de uma actividade planificada, ref. ${formData.codigoActividade || "[código da actividade]"}, programada para o mês de [mês de realização].`,
                             }))
                           }
                           className="px-2.5 py-1 bg-indigo-700 hover:bg-indigo-800 text-white text-[9px] font-extrabold rounded-lg shadow-sm transition-all"

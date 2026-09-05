@@ -81,13 +81,13 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
     | "docentes"
     | "cta"
     | "estudantes"
-    | "actividades"
+    | "atividades"
     | "recursos_financeiros"
     | "relatorios"
   >("overview");
   const [colaboradores, setColaboradores] = useState<any[]>(EFETIVO_GERAL_DATA);
   const [estudantes, setEstudantes] = useState<any[]>([]);
-  const [actividades, setActividades] = useState<any[]>([]);
+  const [atividades, setAtividades] = useState<any[]>([]);
   const [bolsas, setBolsas] = useState<any[]>([]);
   const [financialData, setFinancialData] = useState<any[]>([]);
   const [selectedCourseForLevels, setSelectedCourseForLevels] = useState<{
@@ -103,7 +103,7 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
       },
     );
     const unsubEst = firestoreService.efetivo_escolar.subscribe(setEstudantes);
-    const unsubAtiv = firestoreService.actividades.subscribe(setActividades);
+    const unsubAtiv = firestoreService.actividades.subscribe(setAtividades);
     const unsubBolsa = firestoreService.bolsas.subscribe(setBolsas);
     const unsubFin = firestoreService.financialData.subscribe(setFinancialData);
     return () => {
@@ -802,7 +802,7 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
     );
   }
 
-  if (viewState === "actividades") {
+  if (viewState === "atividades") {
     return (
       <div className="w-full max-w-7xl mx-auto space-y-6 pb-10">
         <button
@@ -836,7 +836,7 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
               </tr>
             </thead>
             <tbody className="text-gray-600">
-              {actividades.map((row, idx) => (
+              {atividades.map((row, idx) => (
                 <tr key={idx} className="hover:bg-gray-50">
                   <td className="p-4 border-b border-gray-100 font-medium text-gray-900">
                     {row.name}
@@ -1049,10 +1049,10 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
               Grau de Execução de Actividades
             </h3>
             <p className="text-xs text-slate-500">
-              Percentual de actividades executadas vs não executadas.
+              Percentual de atividades executadas vs não executadas.
             </p>
             <button
-              onClick={() => setViewState("actividades")}
+              onClick={() => setViewState("atividades")}
               className="text-xs font-bold text-blue-600 hover:underline text-left"
             >
               Visualizar Dados &rarr;
@@ -1083,7 +1083,7 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
     (acc, curr) => acc + (curr.total || 0),
     0,
   );
-  const totalActividades = actividades.length;
+  const totalAtividades = atividades.length;
 
   const colaboradoresGenero = [
     {
@@ -1125,8 +1125,8 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
         <CardKPI
           label="Planos de Atividades"
           onClick={() => {
-            if (onNavigate) onNavigate("Plano de Actividades");
-            else setViewState("actividades");
+            if (onNavigate) onNavigate("Plano de Atividades");
+            else setViewState("atividades");
           }}
         />
         <CardKPI
@@ -1222,7 +1222,7 @@ export default function BoardOverview({ boardName, onNavigate }: { boardName: st
         </h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={actividades}>
+            <BarChart data={atividades}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" />
               <YAxis />

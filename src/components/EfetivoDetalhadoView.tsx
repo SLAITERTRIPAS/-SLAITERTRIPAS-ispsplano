@@ -38,7 +38,7 @@ export default function EfetivoDetalhadoView({ colaboradores, onBack }: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const detailsRef = useRef<HTMLDivElement>(null);
 
-  // Inatividade
+  // Inactividade
   const isColaboradorInactive = (estado?: string) => {
     if (!estado) return false;
     const e = estado.toLowerCase().trim();
@@ -429,7 +429,7 @@ export default function EfetivoDetalhadoView({ colaboradores, onBack }: Props) {
               {selectedRect === "docente_nao_quadro" && "Detalhamento: Corpo Docente Contratado (Fora do Quadro)"}
               {selectedRect === "cta_quadro" && "Detalhamento: Corpo Técnico Administrativo (CTA) do Quadro"}
               {selectedRect === "cta_nao_quadro" && "Detalhamento: Corpo Técnico Administrativo Contratado (Fora do Quadro)"}
-              {selectedRect === "fora_songo" && "Detalhamento: Colaboradores Fora de Atividade no Songo (Inativos)"}
+              {selectedRect === "fora_songo" && "Detalhamento: Colaboradores Fora de Actividade no Songo (Inativos)"}
               {selectedRect === "chefia" && "Detalhamento: Colaboradores com Cargos de Chefia"}
               {!selectedRect && "Efetivo Geral Completo (Todos os Colaboradores)"}
             </h3>

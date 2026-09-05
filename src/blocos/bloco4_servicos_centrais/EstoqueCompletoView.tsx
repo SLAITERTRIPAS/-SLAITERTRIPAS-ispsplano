@@ -479,7 +479,7 @@ export default function EstoqueCompletoView({
           requisitante: r.nomeRequisitante || r.nomeSolicitante || r.requisitante || "Requisitante do Setor",
           produto: prodName,
           quantidade: qtd,
-          finalidade: r.finalidade || r.justificativa || "Atividades do Setor",
+          finalidade: r.finalidade || r.justificativa || "Actividades do Setor",
           dateInfo,
         });
       });
@@ -546,7 +546,7 @@ export default function EstoqueCompletoView({
       return rubricaGroups.get(key);
     };
 
-    // 1. Processar Atividades da Matriz
+    // 1. Processar Actividades da Matriz
     activities.forEach((act) => {
       const actDepto = (act.unidade || act.departamento || act.setor || "").toLowerCase();
       const actDirecao = (act.direcao || "").toLowerCase();
@@ -559,7 +559,7 @@ export default function EstoqueCompletoView({
       if (matchesDepto) {
         const actTitle = act.actividade || act.descricao || "Plano de Suprimentos do Setor";
 
-        // Extrair rubricas internas da atividade
+        // Extrair rubricas internas da actividade
         const subRubricas = act.rubricas && act.rubricas.length > 0
           ? act.rubricas
           : [{

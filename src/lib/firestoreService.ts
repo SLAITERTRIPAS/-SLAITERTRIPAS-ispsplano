@@ -813,7 +813,7 @@ export async function resequenceActivitiesAfterDelete(
     if (match) {
       return parseInt(match[1], 10);
     }
-    const rawNo = act.no || act.numeroAtividade || act.numeroActividade;
+    const rawNo = act.no || act.numeroActividade || act.numeroActividade;
     if (rawNo) {
       const parsed = parseInt(rawNo, 10);
       if (!isNaN(parsed)) return parsed;
@@ -839,7 +839,7 @@ export async function resequenceActivitiesAfterDelete(
 
     if (currentNumStr !== newNumStr) {
       updates.no = newNumStr;
-      updates.numeroAtividade = newNumStr;
+      updates.numeroActividade = newNumStr;
       updates.numeroActividade = newNumStr;
       hasChanges = true;
     }
@@ -1058,7 +1058,7 @@ export const ensureCloudDataInitialized = async () => {
     } catch (_) {}
 
     const snap = await getDocs(collection(db, "matrix_activities"));
-    console.log(`☁️ Nuvem conectada: ${snap.size} atividades presentes no Firestore.`);
+    console.log(`☁️ Nuvem conectada: ${snap.size} actividades presentes no Firestore.`);
 
     // Executar limpeza automática de duplicados no Firestore
     try {
@@ -1314,7 +1314,7 @@ export const firestoreService = {
 
   cleanAndResequenceMatrixActivities: async () => {
     try {
-      console.log("Iniciando limpeza de duplicados e resequenciação de atividades na base de dados...");
+      console.log("Iniciando limpeza de duplicados e resequenciação de actividades na base de dados...");
       const { databaseMaintenance } = await import("./databaseMaintenance");
       const result = await databaseMaintenance.removeDuplicateActivitiesAndFixNumbering();
       return {
@@ -1323,7 +1323,7 @@ export const firestoreService = {
         totalUnique: result.updatedCount,
       };
     } catch (err) {
-      console.error("Erro ao limpar e resequenciar atividades:", err);
+      console.error("Erro ao limpar e resequenciar actividades:", err);
       return { success: false, error: err };
     }
   },
@@ -1476,8 +1476,8 @@ export const firestoreService = {
       const seenActs = new Set<string>();
       let actDeletedCount = 0;
       for (const act of allActs) {
-        const name = (act.title || act.designacao || act.nomeAtividade || "").trim().toLowerCase();
-        const code = (act.codigoAtividade || act.referencia || "").trim().toLowerCase();
+        const name = (act.title || act.designacao || act.nomeActividade || "").trim().toLowerCase();
+        const code = (act.codigoActividade || act.referencia || "").trim().toLowerCase();
         const key = `${code}::${name}`;
         if (name && code && seenActs.has(key)) {
           await deleteDoc(doc(db, "actividades", act.id));
@@ -2479,7 +2479,7 @@ export async function resetUserPasswordToDefault(
 }
 
 /**
- * Limpa com segurança todas as atividades de um departamento específico no Firestore e no cache local
+ * Limpa com segurança todas as actividades de um departamento específico no Firestore e no cache local
  */
 export async function clearDepartmentActivities(departmentName: string): Promise<{ success: boolean; deletedCount: number; error?: string }> {
   try {
@@ -2546,7 +2546,7 @@ export async function clearDepartmentActivities(departmentName: string): Promise
 
     return { success: true, deletedCount };
   } catch (error: any) {
-    console.error(`Erro ao limpar atividades do departamento ${departmentName}:`, error);
+    console.error(`Erro ao limpar actividades do departamento ${departmentName}:`, error);
     return { success: false, deletedCount: 0, error: error?.message };
   }
 }

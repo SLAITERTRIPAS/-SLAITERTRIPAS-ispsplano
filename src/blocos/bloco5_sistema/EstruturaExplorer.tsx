@@ -44,14 +44,14 @@ export const EstruturaExplorer = () => {
               title: "Departamento de Controlo Técnico e de Qualidade",
               reparticoes: [
                 "Chefe do DCTQ",
-                "Sector de Controlo Técnico",
+                "Setor de Controlo Técnico",
               ],
             },
             {
               title: "Departamento Jurídico",
               reparticoes: [
                 "Chefe do DJ",
-                "Sector de Pareceres",
+                "Setor de Pareceres",
               ],
             },
           ],

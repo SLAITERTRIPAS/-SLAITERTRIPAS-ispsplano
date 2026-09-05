@@ -94,7 +94,7 @@ export default function FormularioRequisicaoInterna({
       initialData?.departamento ||
       user?.departamento ||
       "",
-    codigoAtividade: initialData?.codigoAtividade || "",
+    codigoActividade: initialData?.codigoActividade || "",
     classeMaterial: initialData?.classeMaterial || "Material de Consumo",
     descricaoMaterial:
       initialData?.descricaoMaterial ||
@@ -922,13 +922,13 @@ export default function FormularioRequisicaoInterna({
           {/* CÓDIGO DA ATIVIDADE NO PLANO */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-black tracking-wider text-slate-500  flex items-center gap-1">
-              <ClipboardList size={12} className="text-blue-500" /> Cód. Atividade (Plano)
+              <ClipboardList size={12} className="text-blue-500" /> Cód. Actividade (Plano)
             </label>
             <input
               type="text"
               placeholder="Ex: 01.DPEP (Ref. de rastreio)"
-              value={formData.codigoAtividade || ""}
-              onChange={(e) => updateField("codigoAtividade", e.target.value)}
+              value={formData.codigoActividade || ""}
+              onChange={(e) => updateField("codigoActividade", e.target.value)}
               className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             />
           </div>

@@ -555,7 +555,7 @@ export default function SistemaView({
     { title: "Diagnóstico & Autocura", icon: Sparkles, hidden: !canManageUsers },
     { title: "Centro de Mensagens", icon: MessageSquare },
     { title: "Sessões Ativas", icon: UserCheck, hidden: !canManageUsers },
-    { title: "Log de Atividade", icon: Clock },
+    { title: "Log de Actividade", icon: Clock },
     { title: "Gestão de Utilizadores", icon: Users, hidden: !canManageUsers },
     { title: "Gestão de Produtos e Preços", icon: Box, hidden: !(canManageUsers || isUGEAUser) },
     { title: "Histórico de Chefias", icon: Clock },
@@ -622,7 +622,7 @@ export default function SistemaView({
 
   const handleGeneralSystemCleanup = async () => {
     const confirmMsg =
-      "⚠️ LIMPEZA GERAL DE REPETIÇÃO E SOBREPOSIÇÃO: Esta ação varrerá a base de dados para detetar e remover colaboradores duplicados, atividades duplicadas (resequenciando os códigos) e fornecedores duplicados, preservando rigorosamente todas as informações essenciais. Deseja continuar?";
+      "⚠️ LIMPEZA GERAL DE REPETIÇÃO E SOBREPOSIÇÃO: Esta ação varrerá a base de dados para detetar e remover colaboradores duplicados, actividades duplicadas (resequenciando os códigos) e fornecedores duplicados, preservando rigorosamente todas as informações essenciais. Deseja continuar?";
     if (!window.confirm(confirmMsg)) return;
 
     setIsCleaning(true);
@@ -632,7 +632,7 @@ export default function SistemaView({
       alert(
         `Limpeza Geral Concluída com Sucesso!\n\n` +
           `- Colaboradores duplicados removidos: ${res.colaboradoresRemoved}\n` +
-          `- Atividades removidas/consolidadas: ${res.activitiesRemoved}\n\n` +
+          `- Actividades removidas/consolidadas: ${res.activitiesRemoved}\n\n` +
           `A base de dados foi higienizada eliminando sobreposições de nomes e códigos obsoletos.`,
       );
       window.location.reload();
@@ -647,7 +647,7 @@ export default function SistemaView({
 
   const handleFullSystemReset = async () => {
     const confirmMsg =
-      "🚨 LIMPEZA TOTAL DA BASE DE DADOS: Esta ação irá apagar TODOS os dados do sistema (planos, atividades, orçamentos, arquivos, etc.), PRESERVANDO APENAS a lista de colaboradores e utilizadores. Esta é uma ação irreversível usada para iniciar um novo ciclo real. Deseja continuar?";
+      "🚨 LIMPEZA TOTAL DA BASE DE DADOS: Esta ação irá apagar TODOS os dados do sistema (planos, actividades, orçamentos, arquivos, etc.), PRESERVANDO APENAS a lista de colaboradores e utilizadores. Esta é uma ação irreversível usada para iniciar um novo ciclo real. Deseja continuar?";
     if (!window.confirm(confirmMsg)) return;
 
     const secondConfirm = prompt(
@@ -1086,7 +1086,7 @@ export default function SistemaView({
                     acessos funcional, o SIGEP fortalece a transição digital do
                     Songo, alinhando a instituição com padrões internacionais de
                     gestão académica sustentável e em sintonia com os desafios
-                    do sector energético nacional e internacional.
+                    do setor energético nacional e internacional.
                   </p>
                 </div>
               </div>
@@ -1299,7 +1299,7 @@ export default function SistemaView({
             title="Sistema"
           />
         );
-      case "Log de Atividade":
+      case "Log de Actividade":
       case "Log de Actividade":
         return <RecentActivityLog colaboradores={colaboradores} />;
       case "Atualização":
@@ -1637,7 +1637,7 @@ export default function SistemaView({
                     Limpeza Geral: Excluir Repetição e Sobreposição de Nome e Código
                   </h3>
                   <p className="text-blue-200 text-xs font-medium">
-                    Remove duplicados de colaboradores, atividades, matrizes e fornecedores, resequenciando códigos e unificando dados sem perder nenhuma informação essencial.
+                    Remove duplicados de colaboradores, actividades, matrizes e fornecedores, resequenciando códigos e unificando dados sem perder nenhuma informação essencial.
                   </p>
                 </div>
                 <button
@@ -1730,7 +1730,7 @@ export default function SistemaView({
                       Reinício Total do Sistema
                     </h3>
                     <p className="text-red-200 text-sm font-bold">
-                      Esta opção limpa TODA a base de dados de atividades e
+                      Esta opção limpa TODA a base de dados de actividades e
                       planos (exceto colaboradores e usuários).
                     </p>
                   </div>

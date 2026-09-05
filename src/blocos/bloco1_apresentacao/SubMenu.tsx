@@ -482,7 +482,7 @@ export default function SubMenu({
                 className="flex-1 flex items-center justify-center gap-2 bg-purple-700 text-white px-4 py-3 rounded-2xl font-black text-xs tracking-wider hover:bg-purple-800 active:scale-95 touch-manipulation transition-all shadow-md cursor-pointer"
               >
                 <LayoutGrid size={18} />
-                <span>Plano Setorial ({totalActivitiesCount} Atividades)</span>
+                <span>Plano Setorial ({totalActivitiesCount} Actividades)</span>
               </button>
             </div>
           </div>

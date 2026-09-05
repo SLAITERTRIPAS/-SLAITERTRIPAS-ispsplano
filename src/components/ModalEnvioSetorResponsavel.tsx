@@ -43,7 +43,7 @@ export const ModalEnvioSetorResponsavel: React.FC<ModalEnvioSetorResponsavelProp
   defaultToStatus = "",
   customTitle = "Enviar e Encaminhar ao Setor",
   itemCount = 1,
-  itemDescription = "Atividade de Planificação",
+  itemDescription = "Actividade de Planificação",
   isLoading = false,
 }) => {
   const [selectedSetorStr, setSelectedSetorStr] = useState<string>(

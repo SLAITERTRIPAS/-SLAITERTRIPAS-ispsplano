@@ -510,7 +510,7 @@ export function isMatch(input: string, compareTo: string): boolean {
     DICOSAFA: "servicos de administracao e financas",
     DICOSSER: "servicos academicos e registo",
     GDG: "direcao e gestao",
-    DPEP: "planificacao estudos e projetos",
+    DPEP: "planificação estudos e projetos",
     UGEA: "unidade gestora e executora de aquisicoes",
     DCRE: "cooperacao e relacoes exteriores",
     DCTQ: "controlo tecnico e de qualidade",
@@ -1656,7 +1656,7 @@ export const checkIsSystemAdmin = (c: any): boolean => {
 };
 
 /**
- * Retorna as 3 iniciais da atividade com base no nome
+ * Retorna as 3 iniciais da actividade com base no nome
  */
 export function getActivityInitials(nome: string): string {
   if (!nome || typeof nome !== "string") return "ACT";

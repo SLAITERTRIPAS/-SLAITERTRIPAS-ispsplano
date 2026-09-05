@@ -60,7 +60,7 @@ export const InstitutionalHeader = ({
   isOwner,
   isPlanificacaoHeader,
   unidadeName,
-  title = "Plano de Atividade",
+  title = "Plano de Actividade",
 }: {
   direcaoName?: string;
   departamentoName?: string;
@@ -96,17 +96,17 @@ export const InstitutionalHeader = ({
   }
 
   // Título dinâmico em tempo real
-  let displayTitle = tc(String(title || "Plano de Atividade").trim());
-  if (displayTitle.toLowerCase() === "plano de atividade" || displayTitle.toLowerCase() === "plano de atividades") {
+  let displayTitle = tc(String(title || "Plano de Actividade").trim());
+  if (displayTitle.toLowerCase() === "plano de actividade" || displayTitle.toLowerCase() === "plano de actividades") {
     if (lowestLevelName) {
-      displayTitle = `Plano de Atividade de ${lowestLevelName}`;
+      displayTitle = `Plano de Actividade de ${lowestLevelName}`;
     }
   } else if (
-    displayTitle.toLowerCase().startsWith("plano de atividade de ") ||
-    displayTitle.toLowerCase().startsWith("plano de atividades de ")
+    displayTitle.toLowerCase().startsWith("plano de actividade de ") ||
+    displayTitle.toLowerCase().startsWith("plano de actividades de ")
   ) {
     if (lowestLevelName && !displayTitle.includes(lowestLevelName)) {
-      displayTitle = `Plano de Atividade de ${lowestLevelName}`;
+      displayTitle = `Plano de Actividade de ${lowestLevelName}`;
     }
   }
 

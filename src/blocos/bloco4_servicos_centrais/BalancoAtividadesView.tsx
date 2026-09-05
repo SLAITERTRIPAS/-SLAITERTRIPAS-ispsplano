@@ -3,19 +3,19 @@ import { motion } from "motion/react";
 import { Printer } from "lucide-react";
 import { printElementById } from "../../lib/printUtils";
 
-interface BalancoActividadesViewProps {
+interface BalancoAtividadesViewProps {
   activities: any[];
   user: any;
   onBack?: () => void;
   sectorTitle?: string;
 }
 
-export default function BalancoActividadesView({
+export default function BalancoAtividadesView({
   activities = [],
   user,
   onBack,
   sectorTitle,
-}: BalancoActividadesViewProps) {
+}: BalancoAtividadesViewProps) {
   const [periodType, setPeriodType] = useState<"Trimestre" | "Semestre">(
     "Trimestre",
   );
@@ -130,7 +130,7 @@ export default function BalancoActividadesView({
 
   const handlePrint = () => {
     printElementById(
-      "balanco-actividades-area",
+      "balanco-atividades-area",
       `Balanço de Atividades - ${specificEntity} (${periodText})`,
       "landscape",
       "A4",
@@ -214,7 +214,7 @@ export default function BalancoActividadesView({
 
       {/* Document Pages Container */}
       <div
-        id="balanco-actividades-area"
+        id="balanco-atividades-area"
         data-print-type="balanco"
         className="flex-1 overflow-y-auto print:overflow-visible pb-12 font-serif"
       >
@@ -301,7 +301,7 @@ export default function BalancoActividadesView({
 
             <div className="space-y-6 mt-16">
               <h1 className="text-4xl font-black  text-slate-900 leading-tight">
-                Balanço {periodText} de Actividades
+                Balanço {periodText} de Atividades
               </h1>
               <div className="text-lg font-bold text-slate-700 py-3 px-8 rounded-full inline-block bg-slate-50 border border-slate-100 mt-2">
                 {specificEntity}
@@ -329,7 +329,7 @@ export default function BalancoActividadesView({
             <div className="mb-8 border-b-2 border-blue-900 pb-4 mt-4 flex justify-between items-end">
               <div>
                 <h2 className="text-2xl font-black text-blue-900  tracking-tight">
-                  Detalhamento das Actividades
+                  Detalhamento das Atividades
                 </h2>
                 <p className="text-slate-500 font-medium mt-1">
                   {specificEntity} - {periodText}
@@ -351,7 +351,7 @@ export default function BalancoActividadesView({
                       Código
                     </th>
                     <th className="border border-slate-300 py-2.5 px-3">
-                      Nome da Actividade
+                      Nome da Atividade
                     </th>
                     <th className="border border-slate-300 py-2.5 px-3 w-28">
                       Mês de Realização
@@ -389,7 +389,7 @@ export default function BalancoActividadesView({
                         a.nomeActividade ||
                         a.title ||
                         a.nome ||
-                        "Actividade sem nome";
+                        "Atividade sem nome";
                       const mes =
                         a.mesRealizacao || a.mes || a.dataMes || monthName;
                       const data =
@@ -497,7 +497,7 @@ export default function BalancoActividadesView({
                         colSpan={9}
                         className="border border-slate-200 py-12 text-center text-slate-400 italic font-medium"
                       >
-                        Nenhuma actividade registada neste período.
+                        Nenhuma atividade registada neste período.
                       </td>
                     </tr>
                   )}

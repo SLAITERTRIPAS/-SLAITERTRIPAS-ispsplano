@@ -93,7 +93,7 @@ export default function MonitoriaView({
         id: a.id,
         referencia:
           a.codigoActividade || a.referencia || `ACT-P-${a.id.substring(0, 4)}`,
-        title: a.nomeActividade || a.title || "Actividade Planificada",
+        title: a.nomeActividade || a.title || "Atividade Planificada",
         setor: a.unidadeSelecionada || a.direcao || a.setor || "-",
         mes: a.mesRealizacao || a.dataMes || "N/A",
         orcamento: a.valorTotal || a.orcamento || 0,
@@ -124,7 +124,7 @@ export default function MonitoriaView({
       const formatted = filtered.map((a) => ({
         id: a.id,
         referencia: a.referencia || `ACT-NP-${a.id.substring(0, 4)}`,
-        title: a.nomeActividade || a.title || "Actividade",
+        title: a.nomeActividade || a.title || "Atividade",
         setor: a.unidadeSelecionada || a.direcao || a.setor || "-",
         mes: a.mesRealizacao || a.dataMes || "N/A",
         orcamento: a.valorTotal || a.orcamento || 0,
@@ -183,10 +183,10 @@ export default function MonitoriaView({
       };
       await firestoreService.actividades.add(activityData);
       setShowForm(false);
-      alert("Actividade não planificada registada com sucesso na monitoria!");
+      alert("Atividade não planificada registada com sucesso na monitoria!");
     } catch (error) {
       console.error(error);
-      alert("Erro ao registar actividade.");
+      alert("Erro ao registar atividade.");
     }
   };
 
@@ -216,7 +216,7 @@ export default function MonitoriaView({
         necessidade: "Logística",
         status: "agendada",
         detalhes:
-          "Actividade importada automaticamente do plano para os próximos 6 dias.",
+          "Atividade importada automaticamente do plano para os próximos 6 dias.",
         isPlanificada: true,
       },
       {
@@ -230,7 +230,7 @@ export default function MonitoriaView({
         necessidade: "Materiais Didáticos",
         status: "em_execucao",
         detalhes:
-          "Actividade já movida automaticamente do campo Agendado para Em Realização.",
+          "Atividade já movida automaticamente do campo Agendado para Em Realização.",
         isPlanificada: true,
       },
     ];
@@ -248,7 +248,7 @@ export default function MonitoriaView({
 
   const handleManualImport = () => {
     const month = prompt(
-      "Digite o mês de realização para importar actividades:",
+      "Digite o mês de realização para importar atividades:",
       "Agosto",
     );
     if (!month) return; // User cancelled
@@ -257,24 +257,24 @@ export default function MonitoriaView({
       {
         id: `manual-import-${Date.now()}`,
         referencia: `ACT-IMPORT-${Math.floor(Math.random() * 1000)}`,
-        title: `Actividade Importada do Plano (${month})`,
+        title: `Atividade Importada do Plano (${month})`,
         setor: "Repartição de Planificação",
         mes: month,
         orcamento: 5000,
         status: "em_realizacao",
-        detalhes: `Actividade importada manualmente pelo utilizador a partir do Plano de Actividades para o mês de ${month}.`,
+        detalhes: `Atividade importada manualmente pelo utilizador a partir do Plano de Atividades para o mês de ${month}.`,
         isPlanificada: true,
       },
     ];
     setMonitoriaActivities((prev: any) => [...(importActivities as any), ...prev]);
     alert(
-      `Actividade(s) planificada(s) importada(s) para o mês de ${month} com sucesso!`,
+      `Atividade(s) planificada(s) importada(s) para o mês de ${month} com sucesso!`,
     );
   };
 
   const handleSaveUnplanned = () => {
     if (!newActivity.title || !newActivity.setor) {
-      alert("Por favor preencha os campos obrigatórios (Actividade e Setor).");
+      alert("Por favor preencha os campos obrigatórios (Atividade e Setor).");
       return;
     }
     const activity = {
@@ -294,7 +294,7 @@ export default function MonitoriaView({
       motivo: "",
       isPlanificada: false,
     });
-    alert("Actividade não planificada registada com sucesso na monitoria!");
+    alert("Atividade não planificada registada com sucesso na monitoria!");
   };
 
   const handleSearch = () => {
@@ -356,7 +356,7 @@ export default function MonitoriaView({
             onClick={() => setActiveTab("tracking")}
             className={`px-6 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === "tracking" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
           >
-            <Search size={16} /> Rastrear Actividade
+            <Search size={16} /> Rastrear Atividade
           </button>
           <button
             onClick={() => setActiveTab("report")}
@@ -392,7 +392,7 @@ export default function MonitoriaView({
               onClick={() => setShowForm(true)}
               className="bg-orange-600 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-bold text-sm hover:bg-orange-700 transition-colors shadow-sm"
             >
-              <Plus size={16} /> Registar Actividade Não Planificada
+              <Plus size={16} /> Registar Atividade Não Planificada
             </button>
             <button
               onClick={handleManualImport}
@@ -511,7 +511,7 @@ export default function MonitoriaView({
                       <div className="space-y-8">
                         <div>
                           <h4 className="text-sm font-black text-gray-400 tracking-widest mb-2">
-                            Actividade
+                            Atividade
                           </h4>
                           <p className="text-2xl font-bold text-gray-900 leading-tight">
                             {searchResult.title}
@@ -558,7 +558,7 @@ export default function MonitoriaView({
                       <div className="space-y-8">
                         <div>
                           <h4 className="text-sm font-black text-gray-400 tracking-widest mb-2">
-                            Detalhes da Actividade
+                            Detalhes da Atividade
                           </h4>
                           <p className="text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl italic">
                             "
@@ -591,7 +591,7 @@ export default function MonitoriaView({
                         <Search size={40} className="text-gray-400" />
                       </div>
                       <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                        Actividade não encontrada
+                        Atividade não encontrada
                       </h3>
                       <p className="text-gray-500">
                         Verifique se a referência está correta e tente
@@ -615,7 +615,7 @@ export default function MonitoriaView({
                       Relatório de Monitoria
                     </h2>
                     <p className="text-gray-500 font-medium">
-                      Resumo do estado das actividades planificadas
+                      Resumo do estado das atividades planificadas
                     </p>
                   </div>
                   <button
@@ -645,10 +645,10 @@ export default function MonitoriaView({
 
                     <div className="space-y-6">
                       <h2 className="text-4xl font-black text-blue-900 tracking-tighter ">
-                        Relatório de Monitoria de Actividades
+                        Relatório de Monitoria de Atividades
                       </h2>
                       <p className="text-xl font-medium text-gray-500 italic">
-                        "Uma escola superior de engenharia para o sector de
+                        "Uma escola superior de engenharia para o setor de
                         energia"
                       </p>
                     </div>
@@ -691,7 +691,7 @@ export default function MonitoriaView({
                   <div className="report-table-container print-landscape">
                     <div className="mb-6 border-b-2 border-blue-900 pb-2 flex justify-between items-center">
                       <h3 className="text-lg font-black text-blue-900 ">
-                        Detalhamento das Actividades
+                        Detalhamento das Atividades
                       </h3>
                       <span className="text-[10px] font-bold text-gray-400">
                         SIGEP - Sistema Integrado de Gestão
@@ -773,10 +773,10 @@ export default function MonitoriaView({
                 <div className="p-10 border-b border-gray-100 flex justify-between items-center bg-blue-50/30">
                   <div>
                     <h2 className="text-3xl font-black text-blue-900 tracking-tighter font-serif">
-                      Actividades em Realização
+                      Atividades em Realização
                     </h2>
                     <p className="text-gray-500 font-medium">
-                      Actividades atualmente em execução
+                      Atividades atualmente em execução
                     </p>
                   </div>
                 </div>
@@ -976,7 +976,7 @@ export default function MonitoriaView({
                       Monitoria Setorial
                     </h2>
                     <p className="text-gray-500 font-medium">
-                      Actividades e orçamentos do seu setor
+                      Atividades e orçamentos do seu setor
                     </p>
                   </div>
                 </div>

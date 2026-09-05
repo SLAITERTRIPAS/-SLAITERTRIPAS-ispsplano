@@ -178,7 +178,7 @@ export default function DocumentosView({ title = "Documentos Normativos", user }
 
   return (
     <div className="space-y-10 pb-20">
-      {/* Cabeçalho Institucional Oficial (Idêntico ao Plano de Atividade) */}
+      {/* Cabeçalho Institucional Oficial (Idêntico ao Plano de Actividade) */}
       <InstitutionalHeader
         unidadeName={user?.unidadeOrganica || user?.unidade}
         direcaoName={user?.direcao}
@@ -309,7 +309,7 @@ export default function DocumentosView({ title = "Documentos Normativos", user }
                 <h4 className="font-bold text-xs text-amber-950 uppercase tracking-tight">
                   Informação Proposta
                 </h4>
-                <p className="text-[11px] text-amber-700">Deslocações & Atividades</p>
+                <p className="text-[11px] text-amber-700">Deslocações & Actividades</p>
               </div>
             </div>
           </div>

@@ -46,7 +46,7 @@ export const SHARABLE_AREAS = [
   "Departamento de Assuntos Estudantis",
 ];
 
-interface ConsultarPlanoAtividadesModalProps {
+interface ConsultarPlanoActividadesModalProps {
   isOpen: boolean;
   onClose: () => void;
   activities: any[];
@@ -62,19 +62,19 @@ interface ConsultarPlanoAtividadesModalProps {
 
 type GroupMode = "trimestre" | "rubrica" | "setor" | "lista";
 
-export default function ConsultarPlanoAtividadesModal({
+export default function ConsultarPlanoActividadesModal({
   isOpen,
   onClose,
   activities = [],
-  title = "Consulta do Plano de Atividades",
-  subtitle = "Visualização e organização de todas as atividades planificadas",
+  title = "Consulta do Plano de Actividades",
+  subtitle = "Visualização e organização de todas as actividades planificadas",
   selectedSectorName,
   onShowAlert,
   onToggleShare,
   isSavingShare,
   sharingActivityId,
   onSetSharingActivityId,
-}: ConsultarPlanoAtividadesModalProps) {
+}: ConsultarPlanoActividadesModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTrimestre, setSelectedTrimestre] = useState("todos");
   const [selectedRubricaFilter, setSelectedRubricaFilter] = useState("todos");
@@ -89,27 +89,27 @@ export default function ConsultarPlanoAtividadesModal({
   const currentSharingId = sharingActivityId !== undefined ? sharingActivityId : localSharingId;
   const setSharingId = onSetSharingActivityId || setLocalSharingId;
 
-  // Normalização de atividade
+  // Normalização de actividade
   const normalizedActivities = useMemo(() => {
     return (activities || []).map((act, index) => {
       const code =
-        act.codigoAtividade ||
+        act.codigoActividade ||
         act.referencia ||
         act.codigo ||
-        act.numeroAtividade ||
+        act.numeroActividade ||
         act.no ||
         `ACT-${String(index + 1).padStart(3, "0")}`;
 
       const name =
-        act.nomeAtividade ||
+        act.nomeActividade ||
         act.title ||
         act.nome ||
-        act.atividade ||
+        act.actividade ||
         act.designacao ||
-        "Atividade sem título";
+        "Actividade sem título";
 
       const objective =
-        act.objetivoAtividade ||
+        act.objetivoActividade ||
         act.objetivo ||
         act.detalhes ||
         act.descricao ||
@@ -268,7 +268,7 @@ export default function ConsultarPlanoAtividadesModal({
     return stats;
   }, [filteredActivities]);
 
-  // Agrupamento de Atividades conforme o Modo Selecionado
+  // Agrupamento de Actividades conforme o Modo Selecionado
   const groupedData = useMemo(() => {
     if (groupMode === "trimestre") {
       const groups: Record<string, typeof filteredActivities> = {
@@ -330,7 +330,7 @@ export default function ConsultarPlanoAtividadesModal({
     // Modo lista completa
     return [
       {
-        groupTitle: "Todas as Atividades Planificadas",
+        groupTitle: "Todas as Actividades Planificadas",
         items: filteredActivities,
         groupTotal: totalOrcamento,
       },
@@ -357,14 +357,14 @@ export default function ConsultarPlanoAtividadesModal({
   // Exportar Excel
   const handleExportExcel = () => {
     if (filteredActivities.length === 0) {
-      if (onShowAlert) onShowAlert("Não existem atividades para exportar.", "warning");
+      if (onShowAlert) onShowAlert("Não existem actividades para exportar.", "warning");
       return;
     }
 
     const excelRows = filteredActivities.map((act, index) => ({
       "Nº": index + 1,
       "Código / Referência": act.normalizedCode,
-      "Designação da Atividade": act.normalizedName,
+      "Designação da Actividade": act.normalizedName,
       "Objetivo / Justificação": act.normalizedObjective,
       "Direção": act.normalizedDir,
       "Departamento": act.normalizedDept,
@@ -384,8 +384,8 @@ export default function ConsultarPlanoAtividadesModal({
 
     const ws = XLSX.utils.json_to_sheet(excelRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Plano de Atividades");
-    XLSX.writeFile(wb, `Plano_Atividades_${new Date().getFullYear()}_Consulta.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Plano de Actividades");
+    XLSX.writeFile(wb, `Plano_Actividades_${new Date().getFullYear()}_Consulta.xlsx`);
 
     if (onShowAlert) {
       onShowAlert("Ficheiro Excel exportado com sucesso!", "success");
@@ -395,7 +395,7 @@ export default function ConsultarPlanoAtividadesModal({
   // Impressão Oficial do Plano
   const handlePrint = () => {
     if (filteredActivities.length === 0) {
-      if (onShowAlert) onShowAlert("Não existem atividades para imprimir.", "warning");
+      if (onShowAlert) onShowAlert("Não existem actividades para imprimir.", "warning");
       return;
     }
 
@@ -431,7 +431,7 @@ export default function ConsultarPlanoAtividadesModal({
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 11px; background: #f8fafc; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;">
-          <div><strong>Total de Atividades:</strong> ${filteredActivities.length}</div>
+          <div><strong>Total de Actividades:</strong> ${filteredActivities.length}</div>
           <div><strong>Setor / Unidade:</strong> ${selectedSectorName || "Todos"}</div>
           <div><strong>Orçamento Global:</strong> <span style="color: #065f46; font-weight: bold;">${totalOrcamento.toLocaleString("pt-MZ", { minimumFractionDigits: 2 })} MZN</span></div>
         </div>
@@ -441,7 +441,7 @@ export default function ConsultarPlanoAtividadesModal({
             <tr style="background-color: #1e293b; color: #ffffff; font-size: 10px; text-transform: uppercase;">
               <th style="padding: 8px 6px; width: 30px; text-align: center;">Nº</th>
               <th style="padding: 8px 6px; width: 90px;">Código</th>
-              <th style="padding: 8px 6px;">Atividade & Descrição</th>
+              <th style="padding: 8px 6px;">Actividade & Descrição</th>
               <th style="padding: 8px 6px; width: 110px;">Setor</th>
               <th style="padding: 8px 6px; width: 85px; text-align: center;">Trimestre</th>
               <th style="padding: 8px 6px; width: 75px; text-align: center;">Mês</th>
@@ -526,7 +526,7 @@ export default function ConsultarPlanoAtividadesModal({
         <div className="bg-slate-50 border-b border-slate-200 p-4 sm:p-5 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
             <div className="flex justify-between items-center text-slate-500 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-wider">Total Atividades</span>
+              <span className="text-[10px] font-black uppercase tracking-wider">Total Actividades</span>
               <ListOrdered size={16} className="text-blue-600" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
@@ -580,7 +580,7 @@ export default function ConsultarPlanoAtividadesModal({
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
               <input
                 type="text"
-                placeholder="Pesquisar por código, nome da atividade, objetivo, responsável, rúbrica..."
+                placeholder="Pesquisar por código, nome da actividade, objetivo, responsável, rúbrica..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
@@ -733,14 +733,14 @@ export default function ConsultarPlanoAtividadesModal({
           </div>
         </div>
 
-        {/* Corpo com Atividades Organizadas */}
+        {/* Corpo com Actividades Organizadas */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-slate-100/70">
           {filteredActivities.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 p-8 shadow-xs">
               <AlertCircle size={44} className="mx-auto text-amber-500 mb-3" />
-              <h4 className="text-lg font-black text-slate-900">Nenhuma Atividade Encontrada</h4>
+              <h4 className="text-lg font-black text-slate-900">Nenhuma Actividade Encontrada</h4>
               <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-                Não foram localizadas atividades planificadas com os critérios e filtros selecionados no momento.
+                Não foram localizadas actividades planificadas com os critérios e filtros selecionados no momento.
               </p>
             </div>
           ) : (
@@ -754,7 +754,7 @@ export default function ConsultarPlanoAtividadesModal({
                       {group.groupTitle}
                     </h4>
                     <span className="text-[11px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
-                      {group.items.length} {group.items.length === 1 ? "atividade" : "atividades"}
+                      {group.items.length} {group.items.length === 1 ? "actividade" : "actividades"}
                     </span>
                   </div>
 
@@ -763,7 +763,7 @@ export default function ConsultarPlanoAtividadesModal({
                   </div>
                 </div>
 
-                {/* Lista de Atividades do Grupo */}
+                {/* Lista de Actividades do Grupo */}
                 <div className="space-y-3">
                   {group.items.map((act, idx) => {
                     const isExpanded = !!expandedActivityIds[act.id] || allExpanded;
@@ -773,7 +773,7 @@ export default function ConsultarPlanoAtividadesModal({
                         key={act.id || idx}
                         className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:border-blue-300 transition-all overflow-hidden"
                       >
-                        {/* Linha Principal da Atividade */}
+                        {/* Linha Principal da Actividade */}
                         <div className="p-4 sm:p-5 space-y-3">
                           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div className="flex flex-wrap items-center gap-2">
@@ -933,7 +933,7 @@ export default function ConsultarPlanoAtividadesModal({
                                 </div>
                               ) : null}
 
-                              {/* Partilha Manual de Atividade */}
+                              {/* Partilha Manual de Actividade */}
                               {onToggleShare && (
                                 <div className="pt-2 flex flex-col gap-2">
                                   <div className="flex justify-between items-center text-[11px]">
@@ -948,7 +948,7 @@ export default function ConsultarPlanoAtividadesModal({
                                       <span>
                                         {Array.isArray(act.sharedWith) && act.sharedWith.length > 0
                                           ? `Partilhada com ${act.sharedWith.length} departamento(s)`
-                                          : "Atividade estritamente privada"}
+                                          : "Actividade estritamente privada"}
                                       </span>
                                     </div>
 
@@ -972,7 +972,7 @@ export default function ConsultarPlanoAtividadesModal({
                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                                       <div>
                                         <h5 className="text-[11px] font-black text-slate-800">
-                                          Selecione as áreas que poderão visualizar esta atividade
+                                          Selecione as áreas que poderão visualizar esta actividade
                                         </h5>
                                         <p className="text-[10px] text-slate-400 font-medium">
                                           Controle total manual de comunicação e partilha orçamental.
@@ -1025,7 +1025,7 @@ export default function ConsultarPlanoAtividadesModal({
         {/* Rodapé do Modal */}
         <div className="p-4 bg-white border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="text-xs text-slate-500 font-medium">
-            Exibindo <strong>{filteredActivities.length}</strong> de <strong>{normalizedActivities.length}</strong> atividades planificadas
+            Exibindo <strong>{filteredActivities.length}</strong> de <strong>{normalizedActivities.length}</strong> actividades planificadas
           </div>
 
           <div className="flex items-center gap-3">

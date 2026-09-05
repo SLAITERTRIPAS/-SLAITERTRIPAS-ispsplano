@@ -150,9 +150,9 @@ export default function DICOSSEROverview({
   }, [estudantesDb]);
 
   // -------------------------------------------------------------
-  // 3. PLANOS DE ATIVIDADES (Atividades planificadas e Orçamento Proposto)
+  // 3. PLANOS DE ATIVIDADES (Actividades planificadas e Orçamento Proposto)
   // -------------------------------------------------------------
-  const atividadesDICOSSER = useMemo(() => {
+  const actividadesDICOSSER = useMemo(() => {
     return matrixActivities.filter((a) => {
       const d = (a.direcao || a.departamento || "").toUpperCase();
       const ref = (a.referencia || "").toUpperCase();
@@ -168,10 +168,10 @@ export default function DICOSSEROverview({
     });
   }, [matrixActivities]);
 
-  const totalAtividadesPlanificadas = atividadesDICOSSER.length;
+  const totalActividadesPlanificadas = actividadesDICOSSER.length;
   const orcamentoTotalProposto = useMemo(() => {
-    if (atividadesDICOSSER.length > 0) {
-      return atividadesDICOSSER.reduce((acc, act) => {
+    if (actividadesDICOSSER.length > 0) {
+      return actividadesDICOSSER.reduce((acc, act) => {
         const val =
           parseFloat(act.orcamentoProposto) ||
           parseFloat(act.orcamento) ||
@@ -182,33 +182,33 @@ export default function DICOSSEROverview({
       }, 0);
     }
     return 0;
-  }, [atividadesDICOSSER]);
+  }, [actividadesDICOSSER]);
 
   const planosPorDepartamento = useMemo(() => {
     return [
       {
         nome: "Departamento de Registo Académico",
-        atividades: atividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("REGISTO")).length,
-        orcamento: atividadesDICOSSER
+        actividades: actividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("REGISTO")).length,
+        orcamento: actividadesDICOSSER
           .filter((a) => (a.departamento || "").toUpperCase().includes("REGISTO"))
           .reduce((s, a) => s + (parseFloat(a.orcamentoProposto || a.orcamento || a.valorTotal || a.valor) || 0), 0),
       },
       {
         nome: "Departamento de Assuntos Estudantis",
-        atividades: atividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("ESTUDANTIS")).length,
-        orcamento: atividadesDICOSSER
+        actividades: actividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("ESTUDANTIS")).length,
+        orcamento: actividadesDICOSSER
           .filter((a) => (a.departamento || "").toUpperCase().includes("ESTUDANTIS"))
           .reduce((s, a) => s + (parseFloat(a.orcamentoProposto || a.orcamento || a.valorTotal || a.valor) || 0), 0),
       },
       {
         nome: "Departamento de Biblioteca",
-        atividades: atividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("BIBLIOTECA")).length,
-        orcamento: atividadesDICOSSER
+        actividades: actividadesDICOSSER.filter((a) => (a.departamento || "").toUpperCase().includes("BIBLIOTECA")).length,
+        orcamento: actividadesDICOSSER
           .filter((a) => (a.departamento || "").toUpperCase().includes("BIBLIOTECA"))
           .reduce((s, a) => s + (parseFloat(a.orcamentoProposto || a.orcamento || a.valorTotal || a.valor) || 0), 0),
       },
     ];
-  }, [atividadesDICOSSER]);
+  }, [actividadesDICOSSER]);
 
   // -------------------------------------------------------------
   // 4. RELATÓRIOS (Por Departamentos)
@@ -440,8 +440,8 @@ export default function DICOSSEROverview({
         <div className="flex items-center justify-between bg-slate-50/50 p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div>
             <span className="text-[10px] font-black tracking-widest text-blue-600">DICOSSER • Planificação Anual</span>
-            <h2 className="text-xl font-black text-slate-900 font-serif">Planos de Atividades e Orçamento Proposto</h2>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Consolidação de atividades planificadas e proposta orçamental dos departamentos da DICOSSER</p>
+            <h2 className="text-xl font-black text-slate-900 font-serif">Planos de Actividades e Orçamento Proposto</h2>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Consolidação de actividades planificadas e proposta orçamental dos departamentos da DICOSSER</p>
           </div>
           <button
             onClick={() => setActiveView("overview")}
@@ -458,8 +458,8 @@ export default function DICOSSEROverview({
               <FileText size={32} />
             </div>
             <div>
-              <span className="text-[10px] font-black tracking-wider text-slate-500">Total de Atividades Planificadas</span>
-              <div className="text-3xl font-black text-slate-900 mt-1 font-serif">{totalAtividadesPlanificadas} Atividades</div>
+              <span className="text-[10px] font-black tracking-wider text-slate-500">Total de Actividades Planificadas</span>
+              <div className="text-3xl font-black text-slate-900 mt-1 font-serif">{totalActividadesPlanificadas} Actividades</div>
               <p className="text-xs text-slate-500 mt-1">Ações aprovadas para execução no plano corrente</p>
             </div>
           </div>
@@ -480,7 +480,7 @@ export default function DICOSSEROverview({
         {/* Repartição por Departamento */}
         <div className="bg-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-sm">
           <h3 className="text-sm font-black text-slate-900 tracking-wider mb-4 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-blue-600" /> Atividades e Orçamento Proposto por Departamento
+            <Building2 className="w-4 h-4 text-blue-600" /> Actividades e Orçamento Proposto por Departamento
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {planosPorDepartamento.map((p, idx) => (
@@ -490,8 +490,8 @@ export default function DICOSSEROverview({
                     {p.nome}
                   </span>
                   <div className="mt-4">
-                    <span className="text-xs text-slate-500 font-medium">Atividades Planificadas:</span>
-                    <p className="text-xl font-black text-slate-900 mt-0.5">{p.atividades} Ações</p>
+                    <span className="text-xs text-slate-500 font-medium">Actividades Planificadas:</span>
+                    <p className="text-xl font-black text-slate-900 mt-0.5">{p.actividades} Ações</p>
                   </div>
                 </div>
                 <div className="pt-3 border-t border-slate-200/80">
@@ -632,7 +632,7 @@ export default function DICOSSEROverview({
     if (onNavigate) {
       if (id === "efetivo") onNavigate("Repartição de Pessoal");
       else if (id === "estudantes") onNavigate("Estatística");
-      else if (id === "planos") onNavigate("Plano de Actividades");
+      else if (id === "planos") onNavigate("Plano de Atividades");
       else if (id === "relatorios") onNavigate("Relatórios");
       else if (id === "expediente") onNavigate("Gestão de Expediente");
       else setActiveView(id as any);
@@ -652,7 +652,7 @@ export default function DICOSSEROverview({
     },
     {
       id: "estudantes",
-      title: "Estudantes por Curso e Gênero",
+      title: "Estudantes por Curso e Género",
       sub: `${cursosEstudantes.length} Cursos • M: ${estudantesStats.homens} | F: ${estudantesStats.mulheres}`,
       icon: GraduationCap,
       color: "border-indigo-900 bg-indigo-50/30 text-indigo-950 hover:bg-indigo-50",
@@ -661,7 +661,7 @@ export default function DICOSSEROverview({
     {
       id: "planos",
       title: "Planos de Atividades",
-      sub: `${totalAtividadesPlanificadas} Atividades Planificadas • ${orcamentoTotalProposto.toLocaleString("pt-MZ", { minimumFractionDigits: 2 })} MZN`,
+      sub: `${totalActividadesPlanificadas} Atividades Planificadas • ${orcamentoTotalProposto.toLocaleString("pt-MZ", { minimumFractionDigits: 2 })} MZN`,
       icon: FileText,
       color: "border-emerald-900 bg-emerald-50/30 text-emerald-950 hover:bg-emerald-50",
       action: () => handleCardClick("planos"),

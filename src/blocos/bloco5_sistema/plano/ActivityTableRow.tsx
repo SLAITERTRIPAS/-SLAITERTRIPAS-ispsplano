@@ -155,7 +155,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                         sectorOrDept,
                       ).toUpperCase();
                       const actInitials = getActivityInitials(
-                        activity.nomeAtividade ||
+                        activity.nomeActividade ||
                           activity.title ||
                           activity.designacao ||
                           "",
@@ -174,9 +174,9 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                         activity.id,
                         {
                           no: newNo,
-                          numeroAtividade: newNo,
-                          nAtividade: newNo,
-                          codigoAtividade: newCode,
+                          numeroActividade: newNo,
+                          nActividade: newNo,
+                          codigoActividade: newCode,
                           referencia: newCode,
                         },
                       );
@@ -286,9 +286,9 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
               rowSpan={rubricas.length}
               hidden={rIdx > 0}
             >
-              {activity.codigoAtividade ||
+              {activity.codigoActividade ||
                 activity.referencia ||
-                activity.nAtividade ||
+                activity.nActividade ||
                 "-"}
             </td>
             <td
@@ -499,7 +499,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
               rowSpan={rubricas.length}
               hidden={rIdx > 0}
             >
-              {activity.objetivoAtividade || activity.objetivo || activity.especificacoes || "-"}
+              {activity.objetivoActividade || activity.objetivo || activity.especificacoes || "-"}
             </td>
 
             {/* V. TEMPO E DURAÇÃO */}

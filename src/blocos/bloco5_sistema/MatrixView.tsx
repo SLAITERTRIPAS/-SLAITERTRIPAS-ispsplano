@@ -105,12 +105,12 @@ export default function MatrixView({
   const nextYear = new Date().getFullYear() + 1;
   const viewTitle =
     title === "Matriz"
-      ? `Matriz de Actividades - Ano ${nextYear} (Ano +1)`
+      ? `Matriz de Atividades - Ano ${nextYear} (Ano +1)`
       : title.startsWith("Plano") || title.startsWith("Matriz")
         ? title
         : isDepartment
-          ? `Plano de Actividades - para ${nextYear}`
-          : `Matriz de Actividades - Ano ${nextYear} (Ano +1)`;
+          ? `Plano de Atividades - para ${nextYear}`
+          : `Matriz de Atividades - Ano ${nextYear} (Ano +1)`;
 
   const [localActivities, setLocalActivities] = useState<MatrixActivity[]>([]);
   const activities = externalActivities || localActivities;
@@ -185,7 +185,7 @@ export default function MatrixView({
               "title",
               "description",
             ],
-            "Actividade Importada",
+            "Atividade Importada",
           ),
           localRealizacao: getExcelValue(item, [
             "local",
@@ -385,7 +385,7 @@ export default function MatrixView({
       orcamento: data.fonteReceita || "",
       nivel: data.prioridade || "Média",
       no: data.numeroActividade || data.nActividade || "1",
-      title: data.nomeActividade || "Nova Actividade",
+      title: data.nomeActividade || "Nova Atividade",
       localRealizacao:
         data.trabalhoProvincia && data.trabalhoDistrito
           ? `${data.trabalhoProvincia} - ${data.trabalhoDistrito}`
@@ -493,7 +493,7 @@ export default function MatrixView({
           if (match) {
             return parseInt(match[1], 10);
           }
-          const rawNo = act.no || act.numeroAtividade || act.numeroActividade;
+          const rawNo = act.no || act.numeroActividade || act.numeroActividade;
           if (rawNo) {
             const parsed = parseInt(rawNo, 10);
             if (!isNaN(parsed)) return parsed;
@@ -536,7 +536,6 @@ export default function MatrixView({
           const updated = {
             ...act,
             no: newNumStr,
-            numeroAtividade: newNumStr,
             numeroActividade: newNumStr,
           };
 
@@ -657,7 +656,7 @@ export default function MatrixView({
                         ...editingActivity,
                         ...data,
                         title:
-                          data.nomeAtividade ||
+                          data.nomeActividade ||
                           data.nomeActividade ||
                           data.title ||
                           "",
@@ -710,7 +709,7 @@ export default function MatrixView({
                           title ||
                           "Setor Geral",
                         no:
-                          data.numeroAtividade ||
+                          data.numeroActividade ||
                           data.nActividade ||
                           data.no ||
                           "",
@@ -729,8 +728,8 @@ export default function MatrixView({
                         necessitaAquisicao: data.necessitaAquisicao || "Não",
                         necessitaContratacao:
                           data.necessitaContratacao || "Não",
-                        referencia: data.codigoAtividade
-                          ? data.codigoAtividade.toUpperCase()
+                        referencia: data.codigoActividade
+                          ? data.codigoActividade.toUpperCase()
                           : editingActivity.referencia || "",
                         ano: Number(
                           data.ano ||
@@ -799,7 +798,7 @@ export default function MatrixView({
                       Direção
                     </th>
                     <th className="p-4 font-black border-r border-blue-800">
-                      Actividade/Tarefa
+                      Atividade/Tarefa
                     </th>
                     <th className="p-4 font-black border-r border-blue-800">
                       Responsável
@@ -955,7 +954,7 @@ export default function MatrixView({
                       Nível de Prioridade
                     </th>
                     <th className="p-4 font-black border-r border-blue-800">
-                      Nome da Actividade
+                      Nome da Atividade
                     </th>
                     <th className="p-4 font-black border-r border-blue-800">
                       Local de Realização
@@ -1258,7 +1257,7 @@ export default function MatrixView({
                   <button
                     onClick={() => setEditingActivity(activity)}
                     className="p-3 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
-                    title="Editar Actividade"
+                    title="Editar Atividade"
                   >
                     <Edit size={20} />
                   </button>
@@ -1288,13 +1287,13 @@ export default function MatrixView({
             <Target size={48} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 font-medium">
               {isDepartment
-                ? `Nenhuma actividade definida para o plano de ${nextYear}.`
+                ? `Nenhuma atividade definida para o plano de ${nextYear}.`
                 : `Nenhuma diretriz estratégica definida para ${nextYear}.`}
             </p>
             <p className="text-gray-400 text-sm">
               {isDepartment
-                ? "Comece adicionando as actividades do seu departamento."
-                : "Comece adicionando actividades para orientar as direções."}
+                ? "Comece adicionando as atividades do seu departamento."
+                : "Comece adicionando atividades para orientar as direções."}
             </p>
           </div>
         )}

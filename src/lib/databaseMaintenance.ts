@@ -15,19 +15,19 @@ import {
 
 export const databaseMaintenance = {
   /**
-   * Remove atividades duplicadas na base de dados (matrix_activities) e corrige
-   * a ordem de numeração sequencial das atividades (no, numeroDirecao, codigoAtividade)
+   * Remove actividades duplicadas na base de dados (matrix_activities) e corrige
+   * a ordem de numeração sequencial das actividades (no, numeroDirecao, codigoActividade)
    * sem repetições ou saltos (gaps).
    */
   async removeDuplicateActivitiesAndFixNumbering() {
     console.log(
-      "Iniciando remoção de duplicatas por fusão/substituição e correção da numeração das atividades...",
+      "Iniciando remoção de duplicatas por fusão/substituição e correção da numeração das actividades...",
     );
     try {
       const colRef = collection(db, "matrix_activities");
       const snapshot = await getDocs(colRef);
       if (snapshot.empty) {
-        console.log("Nenhuma atividade encontrada em matrix_activities.");
+        console.log("Nenhuma actividade encontrada em matrix_activities.");
         return { deletedCount: 0, updatedCount: 0 };
       }
 
@@ -36,7 +36,7 @@ export const databaseMaintenance = {
         ...(document.data() as any),
       }));
 
-      // 1. Agrupar e Consolidar Atividades Duplicadas (por Nome, por Código ou por Sobreposição) e eliminar registos não utilizados/órfãos
+      // 1. Agrupar e Consolidar Actividades Duplicadas (por Nome, por Código ou por Sobreposição) e eliminar registos não utilizados/órfãos
       const normalize = (str: string) =>
         String(str || "")
           .trim()
@@ -67,11 +67,11 @@ export const databaseMaintenance = {
       const orphanIdsToDelete: string[] = [];
 
       rawDocs.forEach((act, idx) => {
-        const title = normalize(act.nomeAtividade || act.title || act.designacao || "");
+        const title = normalize(act.nomeActividade || act.title || act.designacao || "");
         const dept = normalize(act.departamento || act.unidadeOrganica || act.direcao || "GERAL");
         const year = String(act.ano || act.year || act.selectedYear || "2027");
         const code = normalize(
-          act.codigoAtividade || act.numeroAtividade || act.nAtividade || act.no || act.referencia || ""
+          act.codigoActividade || act.numeroActividade || act.nActividade || act.no || act.referencia || ""
         );
 
         // Se o registo estiver vazio (sem título e sem código útil), marcar para remoção completa
@@ -195,12 +195,12 @@ export const databaseMaintenance = {
         }
       }
 
-      // 2. Apagar Duplicatas, Registos Órfãos/Não Utilizados e Atividades Redundantes no Firestore (em matrix_activities e actividades)
+      // 2. Apagar Duplicatas, Registos Órfãos/Não Utilizados e Actividades Redundantes no Firestore (em matrix_activities e actividades)
       const allIdsToDelete = Array.from(new Set([...duplicatesIds, ...orphanIdsToDelete]));
       let deletedCount = 0;
       if (allIdsToDelete.length > 0) {
         console.log(
-          `Encontradas ${allIdsToDelete.length} atividades para eliminação (duplicadas/sobrepostas/órfãos). A remover do Firestore...`,
+          `Encontradas ${allIdsToDelete.length} actividades para eliminação (duplicadas/sobrepostas/órfãos). A remover do Firestore...`,
         );
         for (let i = 0; i < allIdsToDelete.length; i += 500) {
           const batch = writeBatch(db);
@@ -217,7 +217,7 @@ export const databaseMaintenance = {
         );
       }
 
-      // 3. Reordenar e Renumerar Atividades Únicas Restantes STRICTLY POR DEPARTAMENTO (A COMEÇAR EM 001)
+      // 3. Reordenar e Renumerar Actividades Únicas Restantes STRICTLY POR DEPARTAMENTO (A COMEÇAR EM 001)
       const deptGroups: Record<string, any[]> = {};
       uniqueDocs.forEach((act) => {
         const deptKey = (
@@ -234,10 +234,10 @@ export const databaseMaintenance = {
 
       Object.keys(deptGroups).forEach((deptKey) => {
         const deptActs = deptGroups[deptKey];
-        // Ordena internamente por título/nome da atividade
+        // Ordena internamente por título/nome da actividade
         deptActs.sort((a, b) => {
-          const titleA = String(a.nomeAtividade || a.title || a.designacao || "");
-          const titleB = String(b.nomeAtividade || b.title || b.designacao || "");
+          const titleA = String(a.nomeActividade || a.title || a.designacao || "");
+          const titleB = String(b.nomeActividade || b.title || b.designacao || "");
           return titleA.localeCompare(titleB);
         });
 
@@ -257,7 +257,7 @@ export const databaseMaintenance = {
             act.departamento,
           );
           const actInitials = getActivityInitials(
-            act.nomeAtividade || act.title || act.designacao || "",
+            act.nomeActividade || act.title || act.designacao || "",
           );
 
           const newCode = [
@@ -273,9 +273,9 @@ export const databaseMaintenance = {
             id: act.id,
             data: {
               no: newNo,
-              numeroAtividade: newNo,
-              nAtividade: newNo,
-              codigoAtividade: newCode,
+              numeroActividade: newNo,
+              nActividade: newNo,
+              codigoActividade: newCode,
               referencia: newCode,
               numeroDirecao: newNumeroDirecao,
               numeroDepartamento: newNo,
@@ -302,20 +302,20 @@ export const databaseMaintenance = {
       );
       return { deletedCount, updatedCount: updates.length };
     } catch (err) {
-      console.error("Erro ao remover duplicatas e renumerar atividades:", err);
+      console.error("Erro ao remover duplicatas e renumerar actividades:", err);
       throw err;
     }
   },
 
   /**
-   * Executa a limpeza específica de departamentos e atividades solicitada pelo usuário
+   * Executa a limpeza específica de departamentos e actividades solicitada pelo usuário
    */
   async cleanupDatabaseForUser() {
     console.log(
-      "Iniciando limpeza e exclusão de departamentos e atividades solicitadas pelo usuário...",
+      "Iniciando limpeza e exclusão de departamentos e actividades solicitadas pelo usuário...",
     );
 
-    // Coleções para limpar atividades
+    // Coleções para limpar actividades
     const activityCollections = ["actividades", "matrix_activities"];
     let deletedActivitiesCount = 0;
 
@@ -348,7 +348,7 @@ export const databaseMaintenance = {
 
             let shouldDelete = false;
 
-            // 1. "excluir o DEPARTAMENTO DAI e todas as suas atividades"
+            // 1. "excluir o DEPARTAMENTO DAI e todas as suas actividades"
             if (
               dept === "DAI" ||
               sector === "DAI" ||
@@ -359,7 +359,7 @@ export const databaseMaintenance = {
               shouldDelete = true;
             }
 
-            // 2. "excluir todas as atividade que estao na direcao geral, mantedo as atividade da UGEA"
+            // 2. "excluir todas as actividade que estao na direcao geral, mantedo as actividade da UGEA"
             const isDirecaoGeral =
               dir === "DIREÇÃO GERAL" ||
               dir === "DIREÇÃO-GERAL" ||
@@ -440,7 +440,7 @@ export const databaseMaintenance = {
           }
         }
       } catch (err) {
-        console.error(`Erro ao limpar atividades na coleção ${colName}:`, err);
+        console.error(`Erro ao limpar actividades na coleção ${colName}:`, err);
       }
     }
 
@@ -515,17 +515,17 @@ export const databaseMaintenance = {
     // A limpeza de cache local agora é gerida de forma segura pela lógica de fusão do firestoreService
     // preservando itens com prefixo 'local_' que ainda não foram sincronizados.
     console.log(
-      `Limpeza concluída! Atividades deletadas: ${deletedActivitiesCount}. Colaboradores/Usuários deletados: ${deletedEntitiesCount}`,
+      `Limpeza concluída! Actividades deletadas: ${deletedActivitiesCount}. Colaboradores/Usuários deletados: ${deletedEntitiesCount}`,
     );
     return { deletedActivitiesCount, deletedEntitiesCount };
   },
 
   /**
-   * Migra todas as atividades existentes para o status 'submitted'.
+   * Migra todas as actividades existentes para o status 'submitted'.
    * Garante que os dados já planificados não sejam perdidos ao implementar o workflow de submissão.
    */
   async migrateActivitiesToSubmitted() {
-    console.log("Iniciando migração de atividades existentes para o status 'submitted'...");
+    console.log("Iniciando migração de actividades existentes para o status 'submitted'...");
     let updatedCount = 0;
     const collections = ["matrix_activities", "actividades"];
 
@@ -564,11 +564,11 @@ export const databaseMaintenance = {
           }
         }
       } catch (err) {
-        console.error(`Erro ao migrar atividades na coleção ${colName}:`, err);
+        console.error(`Erro ao migrar actividades na coleção ${colName}:`, err);
       }
     }
 
-    console.log(`Migração concluída. ${updatedCount} atividades marcadas como 'submitted'.`);
+    console.log(`Migração concluída. ${updatedCount} actividades marcadas como 'submitted'.`);
     return updatedCount;
   },
   async clearCollection(collectionName: string) {
@@ -605,7 +605,7 @@ export const databaseMaintenance = {
    */
 
   /**
-   * Limpa todos os dados de atividades e fluxos de teste do sistema,
+   * Limpa todos os dados de actividades e fluxos de teste do sistema,
    * preservando estritamente a lista de colaboradores e contas de utilizador.
    * Atende ao pedido: "LIMPEZA NA BASE DE DADOS, SÓ DEVE TER LISTA DE TODOS OS COLABORADORES"
    */
@@ -899,7 +899,7 @@ export const databaseMaintenance = {
         }
       } catch (e) {}
 
-      // 6. Limpar atividades atribuídas a Recursos Humanos e DICOSAFA (que ainda não planificaram nada)
+      // 6. Limpar actividades atribuídas a Recursos Humanos e DICOSAFA (que ainda não planificaram nada)
       for (const colName of ["matrix_activities", "actividades"]) {
         try {
           const actRef = collection(db, colName);
@@ -937,15 +937,15 @@ export const databaseMaintenance = {
             });
             if (cleanedCount > 0) {
               await batch.commit();
-              console.log(`Limpas ${cleanedCount} atividades de RH/DICOSAFA em ${colName}`);
+              console.log(`Limpas ${cleanedCount} actividades de RH/DICOSAFA em ${colName}`);
             }
           }
         } catch (e) {
-          console.warn(`Aviso ao limpar atividades de RH/DICOSAFA em ${colName}:`, e);
+          console.warn(`Aviso ao limpar actividades de RH/DICOSAFA em ${colName}:`, e);
         }
       }
 
-      // 7. Chamar a remoção de duplicados de atividades e correção de numeração
+      // 7. Chamar a remoção de duplicados de actividades e correção de numeração
       const actRes = await this.removeDuplicateActivitiesAndFixNumbering();
       results.activitiesRemoved = actRes.deletedCount;
 

@@ -47,7 +47,7 @@ import {
   DEPARTAMENTOS,
   REPARTICOES,
   CURSOS,
-  SECTORES,
+  SETORES,
   getSetoresByDepartamento,
 } from "../../constants/formOptions";
 import MainHeader from "../bloco1_apresentacao/MainHeader";
@@ -220,7 +220,7 @@ const initialData: IndividualProcessData = {
   cargoChefia: "Nenhum",
   vinculoContractual: "",
   cargo: "",
-  estadoMandato: "Em Atividade",
+  estadoMandato: "Em Actividade",
   dataAdmissao: "",
   anoIngresso: "",
   categoria: "",
@@ -699,7 +699,7 @@ export default function IndividualProcessForm({
       cargoChefia: col.cargoChefia || "Nenhum",
       vinculoContractual: col.vinculoContractual || "",
       cargo: col.cargo || "",
-      estadoMandato: col.estadoMandato || "Em Atividade",
+      estadoMandato: col.estadoMandato || "Em Actividade",
       tipoContrato: col.tipoContrato || "Efetivo",
       dataAdmissao: col.dataAdmissao || "",
       anoIngresso: (col as any).anoIngresso
@@ -2277,16 +2277,16 @@ export default function IndividualProcessForm({
                     >
                       <option value="">Selecione...</option>
                       {(
-                        SECTORES[
-                          formData.reparticao as keyof typeof SECTORES
+                        SETORES[
+                          formData.reparticao as keyof typeof SETORES
                         ] || []
                       )?.map((s) => (
                         <option key={s + "-" + Math.random()} value={s}>
                           {s}
                         </option>
                       ))}
-                      {!SECTORES[
-                        formData.reparticao as keyof typeof SECTORES
+                      {!SETORES[
+                        formData.reparticao as keyof typeof SETORES
                       ] && (
                         <>
                           <option value="Serviços Gerais">
@@ -2467,7 +2467,7 @@ export default function IndividualProcessForm({
                 </span>
                 <select
                   className="flex-grow border-b border-black outline-none bg-transparent font-medium"
-                  value={formData.estadoMandato || "Em Atividade"}
+                  value={formData.estadoMandato || "Em Actividade"}
                   onChange={(e) => {
                     handleInputChange("estadoMandato", e.target.value);
                     if (validationErrors.estadoMandato)
@@ -2477,7 +2477,7 @@ export default function IndividualProcessForm({
                       }));
                   }}
                 >
-                  <option value="Em Atividade">Em Atividade</option>
+                  <option value="Em Actividade">Em Actividade</option>
                   <option value="Cessado">Cessado</option>
                   <option value="Despromovido">Despromovido</option>
                 </select>

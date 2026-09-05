@@ -81,7 +81,7 @@ import CaixaMensagensView from "../bloco5_sistema/CaixaMensagensView";
 import BalancoMensalView from "../bloco4_servicos_centrais/BalancoMensalView";
 import BalancoCombustivelView from "../bloco4_servicos_centrais/BalancoCombustivelView";
 import BalancoInventarioView from "../bloco4_servicos_centrais/BalancoInventarioView";
-import BalancoActividadesView from "../bloco4_servicos_centrais/BalancoActividadesView";
+import BalancoAtividadesView from "../bloco4_servicos_centrais/BalancoAtividadesView";
 import GestaoTransporteView from "../bloco4_servicos_centrais/GestaoTransporteView";
 import PlanoWorkflowView from "../bloco5_sistema/PlanoWorkflowView";
 import AcaoOrcamentalView from "../../components/AcaoOrcamentalView";
@@ -247,7 +247,7 @@ export default function DirectorDashboard({
     ]);
     if (type === "Nova matriz") {
       setShowActivityForm(true);
-    } else if (type === "Plano de Actividades") {
+    } else if (type === "Plano de Atividades") {
       setSelectedPlanType("NOVA_ATIVIDADE");
     } else {
       setSelectedPlanType(type);
@@ -280,7 +280,7 @@ export default function DirectorDashboard({
     upperTitle.includes("GDG");
 
   const nextYear = new Date().getFullYear() + 1;
-  const planLabel = isDepartment ? "Plano de Actividades" : "Matriz";
+  const planLabel = isDepartment ? "Plano de Atividades" : "Matriz";
 
   const hasExpediente = ["SECRETARIA EXECUTIVA", "SECRETARIA GERAL"].includes(
     upperTitle,
@@ -307,7 +307,7 @@ export default function DirectorDashboard({
     upperTitle.includes("ESTATISTICA") ||
     upperTitle.includes("RELATÓRIO") ||
     upperTitle.includes("RELATORIO") ||
-    upperTitle.includes("PLANO DE ACTIVIDADE");
+    upperTitle.includes("PLANO DE ATIVIDADE");
 
   const {
     isDG,
@@ -389,7 +389,7 @@ export default function DirectorDashboard({
           { title: "Assinatura Digital", icon: Pen },
         ],
       },
-      { title: "Atribuir Actividade", icon: CheckSquare },
+      { title: "Atribuir Atividade", icon: CheckSquare },
     ];
 
     if (isReparticaoPessoal) {
@@ -428,7 +428,7 @@ export default function DirectorDashboard({
             { title: "Assinatura Digital", icon: Pen },
           ],
         },
-        { title: "Atribuir Actividade", icon: CheckSquare },
+        { title: "Atribuir Atividade", icon: CheckSquare },
         { title: "Gestão de Produtos e Preços", icon: Box },
         { title: "Gestão de Fornecedores", icon: Users },
         { title: "Plano de Aquisição", icon: FileText },
@@ -607,7 +607,7 @@ export default function DirectorDashboard({
     if (showActivityForm)
       path.push(
         activeItem === "Matriz" || activeItem === "Plano"
-          ? "Registo de Actividade"
+          ? "Registo de Atividade"
           : "Formulário",
       );
     onPathChange?.(path);
@@ -973,7 +973,7 @@ export default function DirectorDashboard({
       );
     }
 
-    if (activeItem === "Atribuir Actividade") {
+    if (activeItem === "Atribuir Atividade") {
       return (
         <AssignActivityView
           directorTitle={title}
@@ -986,10 +986,10 @@ export default function DirectorDashboard({
       activeItem === "Gestão de Planos" ||
       activeItem === "Matriz" ||
       activeItem === "Plano" ||
-      activeItem === "Plano de Actividades" ||
+      activeItem === "Plano de Atividades" ||
       activeItem === "Planos de Atividades" ||
       activeItem === "Plano de Atividades" ||
-      activeItem === "Plano de Actividade" ||
+      activeItem === "Plano de Atividade" ||
       activeItem === "Plano de Atividade" ||
       activeItem === "Plano da Direção" ||
       activeItem === "Meu Plano Individual" ||
@@ -1088,7 +1088,7 @@ export default function DirectorDashboard({
 
     if (activeItem === "Balanço") {
       return (
-        <BalancoActividadesView
+        <BalancoAtividadesView
           activities={activities || []}
           user={user}
           onBack={() => setActiveItem("Visão Geral")}
@@ -1390,7 +1390,7 @@ export default function DirectorDashboard({
           ? "p-0"
           : "p-4 md:p-8"
       }`}>
-        {(activeItem === "Plano de Actividades" ||
+        {(activeItem === "Plano de Atividades" ||
           activeItem === "Plano da Direção") &&
           selectedPlanType &&
           selectedPlanType !== "Plano Individual" && (

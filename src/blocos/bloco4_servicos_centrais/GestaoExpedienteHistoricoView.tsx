@@ -38,7 +38,7 @@ import FormularioExpediente from "../bloco6_documentos/FormularioExpediente";
 import DocumentReaderModal from "../../components/DocumentReaderModal";
 import DocumentosView from "../bloco6_documentos/DocumentosView";
 import ReportsView from "../bloco7_relatorios/ReportsView";
-import BalancoActividadesView from "./BalancoActividadesView";
+import BalancoAtividadesView from "./BalancoAtividadesView";
 import AssinaturaDigitalView from "../bloco5_sistema/AssinaturaDigitalView";
 import MainHeader from "../bloco1_apresentacao/MainHeader";
 import FluxogramaTramitacaoExpediente from "../../components/FluxogramaTramitacaoExpediente";
@@ -974,7 +974,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
         novoStatus = "Devolvido ao Remetente";
         proximoDestino = selectedDoc.remetente || "Remetente";
       } else {
-        proximoDestino = isViagemDoc ? "DPEP - Planificação, Estudos e Projectos" : destinatario || "Setor Técnico / Administrativo";
+        proximoDestino = isViagemDoc ? "DPEP - Planificação, Estudos e Projetos" : destinatario || "Setor Técnico / Administrativo";
         acaoTitulo = `Protocolado & Encaminhado para ${proximoDestino}`;
         parecerFinal = parecerTexto || `Documento protocolado na Secretaria Geral e encaminhado para ${proximoDestino}.`;
         novoStatus = `Em Análise - ${proximoDestino}`;
@@ -985,10 +985,10 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
       parecerFinal = parecerTexto ? `Parecer Técnico: ${parecerTexto}` : "Documento analisado e parecer técnico favorável registrado pelo Setor Técnico/Administrativo.";
       novoStatus = `Em Análise - ${proximoDestino}`;
     } else if (setorAtuante.includes("DPEP") && !setorAtuante.includes("Retorno")) {
-      const conf = decisaoSetor === "planificada" ? "Actividade Planificada no PAO" : "Actividade Não Planificada";
+      const conf = decisaoSetor === "planificada" ? "Atividade Planificada no PAO" : "Atividade Não Planificada";
       proximoDestino = isViagemDoc ? "Departamento de Administração e Finanças (DAF)" : destinatario || "DAF";
       acaoTitulo = `Parecer DPEP: Conformidade (${conf})`;
-      parecerFinal = parecerTexto ? `Parecer de Conformidade DPEP [${conf}]: ${parecerTexto}` : `Parecer de Conformidade da Actividade DPEP: ${conf}.`;
+      parecerFinal = parecerTexto ? `Parecer de Conformidade DPEP [${conf}]: ${parecerTexto}` : `Parecer de Conformidade da Atividade DPEP: ${conf}.`;
       novoStatus = `Em Análise - ${proximoDestino}`;
     } else if (setorAtuante.includes("DAF") && !setorAtuante.includes("Retorno")) {
       const fin = decisaoSetor === "com_cabimento" ? "Com Disponibilidade Financeira / Cabimento" : "Sem Disponibilidade Financeira";
@@ -1882,7 +1882,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
         {/* SUBVIEW: BALANÇO */}
         {activeMenuItem === "Balanço" && (
           <section className="flex-1 overflow-y-auto bg-slate-900/95 p-4 md:p-6 text-slate-100">
-            <BalancoActividadesView
+            <BalancoAtividadesView
               activities={activities || []}
               user={user}
               onBack={() => setActiveMenuItem("Histórico de Documentos")}
@@ -2025,7 +2025,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
                     <option value="Gabinete do Diretor-Geral">4. Gabinete do Diretor-Geral (Despacho Oficial)</option>
                   </optgroup>
                   <optgroup label="--- FLUXO ESPECIAL DE VIAGENS ---">
-                    <option value="DPEP - Direção de Planificação">DPEP (Parecer de Conformidade PAO)</option>
+                    <option value="DPEP - Departamento de Planificação Estudos e Projetos">DPEP (Parecer de Conformidade PAO)</option>
                     <option value="DAF - Direção de Administração e Finanças">DAF (Parecer de Disponibilidade Financeira)</option>
                     <option value="Repartição de Transporte">Repartição de Transporte (Parecer de Meios)</option>
                     <option value="Direção da DICOSAFA">Direção da DICOSAFA (Parecer Operacional)</option>
@@ -2079,14 +2079,14 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
                         onClick={() => setDecisaoSetor("planificada")}
                         className={`p-2.5 rounded-lg border text-left font-bold transition-all text-xs ${decisaoSetor === "planificada" ? "bg-emerald-600/20 border-emerald-500 text-emerald-300" : "bg-slate-950 border-slate-800 text-slate-400"}`}
                       >
-                        ✓ Actividade Planificada
+                        ✓ Atividade Planificada
                       </button>
                       <button
                         type="button"
                         onClick={() => setDecisaoSetor("nao_planificada")}
                         className={`p-2.5 rounded-lg border text-left font-bold transition-all text-xs ${decisaoSetor === "nao_planificada" ? "bg-amber-600/20 border-amber-500 text-amber-300" : "bg-slate-950 border-slate-800 text-slate-400"}`}
                       >
-                        ⚠ Actividade Não Planificada
+                        ⚠ Atividade Não Planificada
                       </button>
                     </div>
                   </div>
@@ -2251,7 +2251,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all appearance-none"
                   >
                     <option value="">Selecione o destino institucional...</option>
-                    <option value="DPEP - Planificação, Estudos e Projectos">DPEP - Planificação e Projectos</option>
+                    <option value="DPEP - Planificação, Estudos e Projetos">DPEP - Planificação e Projetos</option>
                     <option value="Departamento de Administração e Finanças (DAF)">DAF - Administração e Finanças</option>
                     <option value="Repartição de Transporte">Repartição de Transporte</option>
                     <option value="Direção da DICOSAFA">Direção da DICOSAFA</option>

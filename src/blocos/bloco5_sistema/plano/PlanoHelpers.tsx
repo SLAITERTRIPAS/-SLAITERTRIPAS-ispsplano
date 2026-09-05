@@ -63,8 +63,8 @@ export const compareActivitiesNumericOrder = (a: any, b: any): number => {
   if (!b) return -1;
 
   const getNumericSeq = (x: any): number => {
-    // 1. Tentar campos diretos de número sequencial (no, numeroAtividade, nAtividade, ordem)
-    const directVals = [x.no, x.numeroAtividade, x.nAtividade, x.ordem, x.numeroDirecao];
+    // 1. Tentar campos diretos de número sequencial (no, numeroActividade, nActividade, ordem)
+    const directVals = [x.no, x.numeroActividade, x.nActividade, x.ordem, x.numeroDirecao];
     for (const v of directVals) {
       if (v !== undefined && v !== null && String(v).trim() !== "") {
         const parsed = parseInt(String(v).replace(/[^\d]/g, ""), 10);
@@ -73,7 +73,7 @@ export const compareActivitiesNumericOrder = (a: any, b: any): number => {
     }
 
     // 2. Tentar extrair do código da atividade ou referência (ex: DPEP/PLAN/001/..., SDG/UGEA/1/...)
-    const ref = String(x.codigoAtividade || x.referencia || "");
+    const ref = String(x.codigoActividade || x.referencia || "");
     const matchSlash = ref.match(/\/(\d+)(\/|$)/);
     if (matchSlash) {
       const parsed = parseInt(matchSlash[1], 10);
@@ -101,8 +101,8 @@ export const compareActivitiesNumericOrder = (a: any, b: any): number => {
   }
 
   // Desempate por texto de N/O (ex: 1A vs 1B)
-  const strNoA = String(a.no ?? a.numeroAtividade ?? a.nAtividade ?? a.numeroDirecao ?? "");
-  const strNoB = String(b.no ?? b.numeroAtividade ?? b.nAtividade ?? b.numeroDirecao ?? "");
+  const strNoA = String(a.no ?? a.numeroActividade ?? a.nActividade ?? a.numeroDirecao ?? "");
+  const strNoB = String(b.no ?? b.numeroActividade ?? b.nActividade ?? b.numeroDirecao ?? "");
   if (strNoA && strNoB && strNoA !== strNoB) {
     const compNo = strNoA.localeCompare(strNoB, undefined, { numeric: true });
     if (compNo !== 0) return compNo;
@@ -113,8 +113,8 @@ export const compareActivitiesNumericOrder = (a: any, b: any): number => {
   const dateB = new Date(b.createdAt || b.dataEnvio || 0).getTime();
   if (dateA !== dateB) return dateA - dateB;
 
-  return String(a.designacao || a.title || a.nomeAtividade || "").localeCompare(
-    String(b.designacao || b.title || b.nomeAtividade || ""),
+  return String(a.designacao || a.title || a.nomeActividade || "").localeCompare(
+    String(b.designacao || b.title || b.nomeActividade || ""),
   );
 };
 
@@ -151,7 +151,7 @@ export const compareActivitiesStandardOrder = (
 
   // 4. Ordem Numérica / N/O (Número de Ordem - N.º Sequencial da Atividade: 001, 002, 003...)
   const getNoNum = (x: any) => {
-    const val = x.no ?? x.numeroAtividade ?? x.nAtividade ?? x.numeroDirecao;
+    const val = x.no ?? x.numeroActividade ?? x.nActividade ?? x.numeroDirecao;
     if (val !== undefined && val !== null && val !== "") {
       const parsed = parseInt(String(val).replace(/[^\d]/g, ""), 10);
       if (!isNaN(parsed)) return parsed;
@@ -162,8 +162,8 @@ export const compareActivitiesStandardOrder = (
   const noB = getNoNum(b);
   if (noA !== noB) return noA - noB;
 
-  const strNoA = String(a.no ?? a.numeroAtividade ?? a.nAtividade ?? a.numeroDirecao ?? "");
-  const strNoB = String(b.no ?? b.numeroAtividade ?? b.nAtividade ?? b.numeroDirecao ?? "");
+  const strNoA = String(a.no ?? a.numeroActividade ?? a.nActividade ?? a.numeroDirecao ?? "");
+  const strNoB = String(b.no ?? b.numeroActividade ?? b.nActividade ?? b.numeroDirecao ?? "");
   const compNo = strNoA.localeCompare(strNoB, undefined, { numeric: true });
   if (compNo !== 0) return compNo;
 
@@ -213,8 +213,8 @@ export const compareActivitiesStandardOrder = (
   if (monthA !== monthB) return monthA - monthB;
 
   // 4. Código da Atividade
-  const codA = String(a.codigoAtividade || a.referencia || a.codigo || "");
-  const codB = String(b.codigoAtividade || b.referencia || b.codigo || "");
+  const codA = String(a.codigoActividade || a.referencia || a.codigo || "");
+  const codB = String(b.codigoActividade || b.referencia || b.codigo || "");
   const compCod = codA.localeCompare(codB, undefined, {
     numeric: true,
     sensitivity: "base",
@@ -412,7 +412,7 @@ export const getLatestWorkflowActivities = (activities: any[]) => {
   activities.forEach((act) => {
     if (!act) return;
     const actId = String(act.id || "").trim();
-    const codigo = String(act.codigoAtividade || act.codigo || "").trim().toLowerCase();
+    const codigo = String(act.codigoActividade || act.codigo || "").trim().toLowerCase();
     const referencia = String(act.referencia || "").trim().toLowerCase();
     const titulo = String(act.title || act.descricao || "").trim().toLowerCase();
     const dept = String(act.departamento || act.direcao || "").trim().toLowerCase();
@@ -450,8 +450,8 @@ export const getLatestWorkflowActivities = (activities: any[]) => {
 export const getActivityDisplayNo = (activity: any): string | null => {
   if (!activity) return null;
 
-  // 1. Procurar por campos numéricos diretos (no, numeroAtividade, nAtividade)
-  const directVals = [activity.no, activity.numeroAtividade, activity.nAtividade];
+  // 1. Procurar por campos numéricos diretos (no, numeroActividade, nActividade)
+  const directVals = [activity.no, activity.numeroActividade, activity.nActividade];
   for (const v of directVals) {
     if (v !== undefined && v !== null && String(v).trim() !== "") {
       const parsed = parseInt(String(v).replace(/[^\d]/g, ""), 10);
@@ -462,7 +462,7 @@ export const getActivityDisplayNo = (activity: any): string | null => {
   }
 
   const code = String(
-    activity.codigoAtividade ||
+    activity.codigoActividade ||
       activity.referencia ||
       "",
   );
@@ -524,10 +524,10 @@ export const getActivityGroup = (activity: any, list: any[]) => {
       a.referencia &&
       String(activity.referencia).trim() === String(a.referencia).trim();
     const sameCode =
-      activity.codigoAtividade &&
-      a.codigoAtividade &&
-      String(activity.codigoAtividade).trim() ===
-        String(a.codigoAtividade).trim();
+      activity.codigoActividade &&
+      a.codigoActividade &&
+      String(activity.codigoActividade).trim() ===
+        String(a.codigoActividade).trim();
     if (sameRef || sameCode) return true;
 
     // Se pertencerem ao mesmo departamento/repartição
@@ -566,12 +566,12 @@ export const ActivitySelectionContext = React.createContext<{
 export function isValidActivity(a: any): boolean {
   if (!a) return false;
   const name = String(
-    a.nomeAtividade ||
+    a.nomeActividade ||
       a.designacao ||
-      a.designacaoAtividade ||
+      a.designacaoActividade ||
       a.title ||
       a.descricao ||
-      a.atividade ||
+      a.actividade ||
       "",
   ).trim();
 
@@ -587,7 +587,7 @@ export function isValidActivity(a: any): boolean {
     name.toLowerCase() === "null" ||
     name.toLowerCase() === "undefined"
   ) {
-    const obj = String(a.objetivo || a.objetivoAtividade || "").trim();
+    const obj = String(a.objetivo || a.objetivoActividade || "").trim();
     const hasValidObj = obj && obj !== "-" && obj !== "--" && obj !== "---";
     const hasRubricas =
       Array.isArray(a.rubricas) &&
@@ -638,13 +638,13 @@ export function isDuplicateActivity(act: any, allActs: any[]): boolean {
   if (!act || !allActs || allActs.length <= 1) return false;
 
   const getNormName = (a: any) =>
-    (a.descricao || a.designacaoAtividade || a.nomeAtividade || a.title || a.atividade || "")
+    (a.descricao || a.designacaoActividade || a.nomeActividade || a.title || a.actividade || "")
       .toString()
       .trim()
       .toLowerCase();
 
   const getNormCode = (a: any) =>
-    (a.codigoAtividade || a.referencia || a.nAtividade || a.numeroAtividade || a.no || a.codigo || "")
+    (a.codigoActividade || a.referencia || a.nActividade || a.numeroActividade || a.no || a.codigo || "")
       .toString()
       .trim()
       .toLowerCase();

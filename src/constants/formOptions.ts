@@ -216,14 +216,14 @@ export const REPARTICOES: Record<string, string[]> = {
   ],
   "Departamento de Controlo Técnico e de Qualidade": [
     "Chefe do DCTQ",
-    "Sector de Controlo Técnico",
+    "Setor de Controlo Técnico",
   ],
-  "Departamento Jurídico": ["Chefe do DJ", "Sector de Pareceres"],
-  "Departamento de práticas de geração de negócio e desenvolvimento empresarial (DPGNDE)":
+  "Departamento Jurídico": ["Chefe do DJ", "Setor de Pareceres"],
+  "Departamento de Práticas de Geração de Negócio e Desenvolvimento Empresarial (DPGNDE)":
     [],
-  "Departamento de consultoria, estudos, projetos e angariação de fundos (DCPAF)":
+  "Departamento de Consultoria, Estudos, Projetos e Angariação de Fundos (DCPAF)":
     [],
-  "Departamento de prospecção de oportunidade de negócio (DPONE)": [],
+  "Departamento de Prospecção de Oportunidade de Negócio (DPONE)": [],
   "Diretor do CIE": [],
   "Departamento de Pesquisa e Extensão": [
     "Repartição de Pesquisa",
@@ -257,35 +257,35 @@ export const REPARTICOES: Record<string, string[]> = {
   ],
 };
 
-export const SECTORES: Record<string, string[]> = {
+export const SETORES: Record<string, string[]> = {
   "Repartição de Gestão de Carreiras e Remunerações": [
-    "Sector de Processamento de Salários",
-    "Sector de Carreiras",
+    "Setor de Processamento de Salários",
+    "Setor de Carreiras",
   ],
   "Repartição de Formação e Desenvolvimento": [
-    "Sector de Capacitação",
-    "Sector de Estágios",
+    "Setor de Capacitação",
+    "Setor de Estágios",
   ],
   "Repartição de Contabilidade": [
-    "Sector de Controlo de Gastos",
-    "Sector de Reconciliação",
+    "Setor de Controlo de Gastos",
+    "Setor de Reconciliação",
   ],
-  "Repartição de Tesouraria": ["Sector de Pagamentos", "Sector de Cobranças"],
+  "Repartição de Tesouraria": ["Setor de Pagamentos", "Setor de Cobranças"],
   "Repartição de Inventário": [
-    "Sector de Tombagem",
-    "Sector de Auditoria de Bens",
+    "Setor de Tombagem",
+    "Setor de Auditoria de Bens",
   ],
   "Repartição de Admissão e Matrículas": [
-    "Sector de Graduação",
-    "Sector de Pós-Graduação",
+    "Setor de Graduação",
+    "Setor de Pós-Graduação",
   ],
   "Repartição de Infraestruturas e Redes": [
-    "Sector de Hardware",
-    "Sector de Redes",
+    "Setor de Hardware",
+    "Setor de Redes",
   ],
-  "Secretaria Geral": ["Sector de Protocolo", "Sector de Arquivo Geral"],
+  "Secretaria Geral": ["Setor de Protocolo", "Setor de Arquivo Geral"],
   "Repartição de Planificação": ["Setor de Relatório", "Setor de Monitoria"],
-  "Repartição de Estatística": ["Sector de Estatística Geral"],
+  "Repartição de Estatística": ["Setor de Estatística Geral"],
   "Chefe do DPEP": ["Único"],
   "Setor de Relatório": ["Relatório Periódico", "Relatório Anual"],
   "Setor de Monitoria": ["Monitoria de Atividades"],
@@ -371,8 +371,8 @@ export function getSetoresByDepartamento(dept?: string | null): string[] {
     if (lowerKey === lowerDept || lowerKey.includes(lowerDept) || lowerDept.includes(lowerKey)) {
       items.forEach((item) => {
         results.push(item);
-        if (SECTORES[item]) {
-          results.push(...SECTORES[item]);
+        if (SETORES[item]) {
+          results.push(...SETORES[item]);
         }
       });
     }
@@ -385,14 +385,14 @@ export function getSetoresByDepartamento(dept?: string | null): string[] {
       if (match && REPARTICOES[match]) {
         results.push(...REPARTICOES[match]);
         REPARTICOES[match].forEach((r) => {
-          if (SECTORES[r]) results.push(...SECTORES[r]);
+          if (SETORES[r]) results.push(...SETORES[r]);
         });
       }
     }
   });
 
-  // 3. Procurar em SECTORES
-  Object.entries(SECTORES).forEach(([secKey, secItems]) => {
+  // 3. Procurar em SETORES
+  Object.entries(SETORES).forEach(([secKey, secItems]) => {
     const lowerSecKey = secKey.toLowerCase();
     if (lowerSecKey.includes(lowerDept) || lowerDept.includes(lowerSecKey)) {
       results.push(...secItems);
@@ -599,7 +599,7 @@ const BENS_LIST = [
   "121030 - Bandeiras e flâmulas",
   "121031 - Material para conservação de rede de electrificação",
   "121032 - Material de aplicação restritiva",
-  "121033 - Material para aplicação em projectos sociais e assistência social",
+  "121033 - Material para aplicação em projetos sociais e assistência social",
   "121034 - Material para conservação de rede de água e esgoto",
   "121098 - Outros bens de consumo",
   "121099 - Outros bens duradouros",
@@ -623,7 +623,7 @@ const SERVICOS_LIST = [
   "122022 - Serviços de segurança",
   "122023 - Transporte de funcionários",
   "122024 - Serviços gráficos",
-  "122025 - Serviços para atender a projectos sociais e assistência social",
+  "122025 - Serviços para atender a projetos sociais e assistência social",
   "122026 - Manutenção e reparação de estradas e pontes",
   "122027 - Manutenção e reparação de rede de electrificação",
   "122028 - Manutenção e reparação de rede de água e esgoto",

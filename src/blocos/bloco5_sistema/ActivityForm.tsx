@@ -27,7 +27,7 @@ import {
   UNIDADES_ORGANICAS_SERVICOS,
   DEPARTAMENTOS,
   REPARTICOES,
-  SECTORES,
+  SETORES,
   CURSOS,
   PROVINCIAS,
   DISTANCIAS_SONGO,
@@ -182,7 +182,7 @@ function calculateNextNum(acts: any[], targetSector?: string, currentUserArea?: 
     const norm = normalizeStr(s);
     return (
       !norm ||
-      norm === "plano de atividades" ||
+      norm === "plano de actividades" ||
       norm === "plano setorial" ||
       norm === "plano institucional" ||
       norm === "geral" ||
@@ -221,7 +221,7 @@ function calculateNextNum(acts: any[], targetSector?: string, currentUserArea?: 
         }
       }
 
-      const directVals = [act.numeroAtividade, act.nAtividade, act.no, act.ordem];
+      const directVals = [act.numeroActividade, act.nActividade, act.no, act.ordem];
       let foundNum = 0;
       for (const val of directVals) {
         if (val !== undefined && val !== null && String(val).trim() !== "") {
@@ -235,7 +235,7 @@ function calculateNextNum(acts: any[], targetSector?: string, currentUserArea?: 
       if (foundNum > 0) {
         if (foundNum > maxNum) maxNum = foundNum;
       } else {
-        const ref = String(act.codigoAtividade || act.referencia || "");
+        const ref = String(act.codigoActividade || act.referencia || "");
         const match = ref.match(/\/(\d+)(\/|$)/);
         if (match) {
           const parsed = parseInt(match[1], 10);
@@ -276,12 +276,12 @@ const checkActivityDuplicates = (
   currentEditingId?: string
 ) => {
   const candName = normalizeStr(
-    candidate.nomeAtividade || candidate.title || candidate.designacao
+    candidate.nomeActividade || candidate.title || candidate.designacao
   );
   const candCode = normalizeStr(
-    candidate.codigoAtividade ||
-      candidate.numeroAtividade ||
-      candidate.nAtividade ||
+    candidate.codigoActividade ||
+      candidate.numeroActividade ||
+      candidate.nActividade ||
       candidate.no ||
       candidate.referencia
   );
@@ -298,12 +298,12 @@ const checkActivityDuplicates = (
     }
 
     const actName = normalizeStr(
-      act.nomeAtividade || act.title || act.designacao
+      act.nomeActividade || act.title || act.designacao
     );
     const actCode = normalizeStr(
-      act.codigoAtividade ||
-        act.numeroAtividade ||
-        act.nAtividade ||
+      act.codigoActividade ||
+        act.numeroActividade ||
+        act.nActividade ||
         act.no ||
         act.referencia
     );
@@ -332,9 +332,9 @@ const checkActivityDuplicates = (
           isDuplicate: true,
           type: "ABORT_DUPLICATE",
           existingActivity: act,
-          candName: candidate.nomeAtividade || candidate.title,
-          actName: act.nomeAtividade || act.title,
-          candCode: candidate.numeroAtividade || candidate.codigoAtividade || candidate.no,
+          candName: candidate.nomeActividade || candidate.title,
+          actName: act.nomeActividade || act.title,
+          candCode: candidate.numeroActividade || candidate.codigoActividade || candidate.no,
           months: candMonths.length > 0 ? candMonths : actMonths,
         };
       } else {
@@ -342,8 +342,8 @@ const checkActivityDuplicates = (
           isDuplicate: false,
           isDifferentMonth: true,
           existingActivity: act,
-          candName: candidate.nomeAtividade || candidate.title,
-          candCode: candidate.numeroAtividade || candidate.codigoAtividade || candidate.no,
+          candName: candidate.nomeActividade || candidate.title,
+          candCode: candidate.numeroActividade || candidate.codigoActividade || candidate.no,
           candMonths,
           actMonths,
         };
@@ -394,7 +394,7 @@ export default function ActivityForm({
 
   useEffect(() => {
     if (plannedActivitiesProp && plannedActivitiesProp.length > 0) {
-      // Privacidade de Atividades: Cada setor vê apenas as suas próprias atividades
+      // Privacidade de Actividades: Cada setor vê apenas as suas próprias actividades
       // O filtro prioriza o setor que está sendo planejado (sectorName) para garantir isolamento
       const isSuperUser = 
         user?.role === "admin" || 
@@ -595,20 +595,20 @@ export default function ActivityForm({
           initialData.prioridade ||
           initialData.nivel ||
           "Média",
-        numeroAtividade:
-          initialData.numeroAtividade ||
-          initialData.nAtividade ||
+        numeroActividade:
+          initialData.numeroActividade ||
+          initialData.nActividade ||
           initialData.no ||
           String(nextNum).padStart(3, "0"),
-        codigoAtividade:
-          initialData.codigoAtividade || initialData.referencia || "",
+        codigoActividade:
+          initialData.codigoActividade || initialData.referencia || "",
         tipoPlano: initialData.tipoPlano || "Setorial",
 
         necessitaAquisicao: initialData.necessitaAquisicao || "Não",
         necessitaContratacao: initialData.necessitaContratacao || "Não",
-        nomeAtividade: initialData.nomeAtividade || initialData.title || "",
-        objetivoAtividade:
-          initialData.objetivoAtividade || initialData.objetivoActividade || "",
+        nomeActividade: initialData.nomeActividade || initialData.title || "",
+        objetivoActividade:
+          initialData.objetivoActividade || initialData.objetivoActividade || "",
 
         realizacaoProvincia:
           initialData.realizacaoProvincia ||
@@ -681,7 +681,7 @@ export default function ActivityForm({
                 },
               ],
         observacoes: initialData.observacoes || "",
-        situacaoAtividade: initialData.situacaoAtividade || "Planificada",
+        situacaoActividade: initialData.situacaoActividade || "Planificada",
         comissaoServico: initialData.comissaoServico || "",
         categoria: initialData.categoria || "",
         carreira: initialData.carreira || "",
@@ -700,15 +700,15 @@ export default function ActivityForm({
       fonteReceita: "Receitas Próprias",
       prioridade: "Média",
       prioridadeProposta: "Média",
-      numeroAtividade: String(nextNum).padStart(3, "0"),
-      codigoAtividade: "",
+      numeroActividade: String(nextNum).padStart(3, "0"),
+      codigoActividade: "",
       tipoPlano: "Setorial",
 
-      // Step 2: Atividade
+      // Step 2: Actividade
       necessitaAquisicao: "Não",
       necessitaContratacao: "Não",
-      nomeAtividade: "",
-      objetivoAtividade: "",
+      nomeActividade: "",
+      objetivoActividade: "",
 
       // Step 3: Localização
       realizacaoProvincia: "Tete",
@@ -747,7 +747,7 @@ export default function ActivityForm({
       // Step 6: Rubricas
       rubricas: [],
       observacoes: "",
-      situacaoAtividade: "Planificada",
+      situacaoActividade: "Planificada",
       comissaoServico: "",
       categoria: "",
       carreira: "",
@@ -1153,7 +1153,7 @@ export default function ActivityForm({
     const targetMeses =
       currentMesesRealizacao || formData.mesesRealizacao || [];
 
-    // Sincronizar para as datas gerais da atividade
+    // Sincronizar para as datas gerais da actividade
     let minDateStr = "";
     let maxDateStr = "";
     let minDate: Date | null = null;
@@ -1394,12 +1394,12 @@ export default function ActivityForm({
     }
   }, [formData.mesesRealizacao, nextYear]);
 
-  // Preencher automaticamente o tipo de plano baseado em necessidades e nome de atividade
+  // Preencher automaticamente o tipo de plano baseado em necessidades e nome de actividade
   useEffect(() => {
     if (!formData) return;
 
     // Check both the name of the activity and the necessity fields in all rubrics
-    const actNameLower = (formData.nomeAtividade || "").toLowerCase();
+    const actNameLower = (formData.nomeActividade || "").toLowerCase();
     const rubricasTexts = (formData.rubricas || []).map((r) =>
       (r.necessidade || "").toLowerCase(),
     );
@@ -1451,7 +1451,7 @@ export default function ActivityForm({
       }));
     }
   }, [
-    formData.nomeAtividade,
+    formData.nomeActividade,
     formData.rubricas,
     formData.necessitaAquisicao,
     formData.necessitaContratacao,
@@ -1497,7 +1497,7 @@ export default function ActivityForm({
       "VALOR TOTAL GERAL (MZM)"
     ];
 
-    // Dados de exemplo baseados na imagem (1 atividade com 3 rubricas)
+    // Dados de exemplo baseados na imagem (1 actividade com 3 rubricas)
     const sampleRows = [
       [
         "4", "4", "ODG", "GDG", "UGEA", "G/UGEA/004/P", "Plano de procuriment", 
@@ -1529,13 +1529,13 @@ export default function ActivityForm({
       { s: { r: 0, c: 10 }, e: { r: 1, c: 10 } }, // VI. TRANS
       { s: { r: 0, c: 11 }, e: { r: 0, c: 15 } }, // VII. RUBRICAS E NECESSIDADES
 
-      // Corpo (Mesclagem vertical para a mesma atividade - Linhas 3 a 5 da planilha)
+      // Corpo (Mesclagem vertical para a mesma actividade - Linhas 3 a 5 da planilha)
       { s: { r: 2, c: 0 }, e: { r: 4, c: 0 } }, // N/O
       { s: { r: 2, c: 1 }, e: { r: 4, c: 1 } }, // Nº Direção
       { s: { r: 2, c: 2 }, e: { r: 4, c: 2 } }, // ÓRGÃO
       { s: { r: 2, c: 3 }, e: { r: 4, c: 3 } }, // DIREÇÃO
       { s: { r: 2, c: 4 }, e: { r: 4, c: 4 } }, // DEPARTAMENTO
-      { s: { r: 2, c: 5 }, e: { r: 4, c: 5 } }, // Cód./Atividade
+      { s: { r: 2, c: 5 }, e: { r: 4, c: 5 } }, // Cód./Actividade
       { s: { r: 2, c: 6 }, e: { r: 4, c: 6 } }, // Nome
       { s: { r: 2, c: 7 }, e: { r: 4, c: 7 } }, // Objetivo
       { s: { r: 2, c: 8 }, e: { r: 4, c: 8 } }, // Trimestre
@@ -1604,7 +1604,7 @@ export default function ActivityForm({
         let cur = "";
         let rec = "Receitas Próprias";
         let prio = "Média";
-        let nome = "Nova Atividade Importada";
+        let nome = "Nova Actividade Importada";
         let obj = "";
         let prov = "Tete";
         let dist = "Songo";
@@ -1700,8 +1700,8 @@ export default function ActivityForm({
           curso: cur,
           fonteReceita: rec,
           prioridade: prio,
-          nomeAtividade: nome,
-          objetivoAtividade: obj,
+          nomeActividade: nome,
+          objetivoActividade: obj,
           realizacaoProvincia: prov,
           realizacaoDistrito: dist,
           responsavel: resp || user?.nome || "",
@@ -1738,7 +1738,7 @@ export default function ActivityForm({
         // Se houver mais de uma linha de dados, salvar todas e fechar o formulário (Plano Completo)
         const allDataRows = rows.slice(dataRowIndex);
         if (allDataRows.length > 1) {
-           const confirmSave = confirm(`Foram detectadas ${allDataRows.length} atividades no ficheiro. Deseja importar todas e fechar o formulário?`);
+           const confirmSave = confirm(`Foram detectadas ${allDataRows.length} actividades no ficheiro. Deseja importar todas e fechar o formulário?`);
            if (confirmSave) {
               const activitiesToSave = allDataRows.map((row, idx) => {
                  const getRowVal = (col: number) => String(row[col] || "").trim();
@@ -1750,7 +1750,7 @@ export default function ActivityForm({
                     id: Math.random().toString(36).substr(2, 9),
                     no: getRowVal(0) || (idx + 1).toString(),
                     referencia: getRowVal(5) || `ACT-${nextYear}-${Math.floor(Math.random() * 10000)}`,
-                    title: getRowVal(6) || "Atividade Importada",
+                    title: getRowVal(6) || "Actividade Importada",
                     unidadeOrganica: getRowVal(2) || "Songo",
                     direcao: getRowVal(3) || user?.direcao || "",
                     departamento: getRowVal(4) || user?.departamento || "",
@@ -1774,7 +1774,7 @@ export default function ActivityForm({
 
               // Guardar em lote
               await Promise.all(activitiesToSave.map(act => firestoreService.matrixActivities.add(act)));
-              alert(`${activitiesToSave.length} atividades importadas com sucesso!`);
+              alert(`${activitiesToSave.length} actividades importadas com sucesso!`);
               onClose(); // Fechar o formulário
               return;
            }
@@ -1806,11 +1806,11 @@ export default function ActivityForm({
       formData.departamento ||
       (user ? getUserWorkspace(user) : "");
     const rawNum =
-      formData.numeroAtividade || String(calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : ""));
+      formData.numeroActividade || String(calculateNextNum(plannedActivitiesProp, targetArea, user ? getUserWorkspace(user) : ""));
     const parsedNum = parseInt(rawNum, 10);
     const num = isNaN(parsedNum) ? rawNum : String(parsedNum).padStart(3, "0");
 
-    const actInitials = getActivityInitials(formData.nomeAtividade || "");
+    const actInitials = getActivityInitials(formData.nomeActividade || "");
 
     // Formato solicitado: INICIAIS DIREÇÃO / INICIAIS DEPARTAMENTO / NÚMERO / 3 INICIAIS DA ATIVIDADE
     // EX: GDG/DPEP/001/IRA
@@ -1820,16 +1820,16 @@ export default function ActivityForm({
       num,
       actInitials,
     ].filter(Boolean);
-    const codigoAtividade = parts.join("/");
+    const codigoActividade = parts.join("/");
 
     setFormData((prev) => {
       // Evitar re-renderização infinita comparando valores primitivos
       if (
-        prev.codigoAtividade === codigoAtividade &&
-        prev.numeroAtividade === num
+        prev.codigoActividade === codigoActividade &&
+        prev.numeroActividade === num
       )
         return prev;
-      return { ...prev, codigoAtividade, numeroAtividade: num };
+      return { ...prev, codigoActividade, numeroActividade: num };
     });
   }, [
     formData.unidadeSelecionada,
@@ -1837,8 +1837,8 @@ export default function ActivityForm({
     formData.departamento,
     formData.curso,
     formData.reparticao,
-    formData.nomeAtividade,
-    formData.numeroAtividade,
+    formData.nomeActividade,
+    formData.numeroActividade,
     plannedActivitiesProp,
   ]);
 
@@ -2136,8 +2136,8 @@ export default function ActivityForm({
 
       // Normalizar setor
       let setorNormalized = setor;
-      if (setorNormalized && repNormalized && SECTORES[repNormalized]) {
-        const secs = SECTORES[repNormalized];
+      if (setorNormalized && repNormalized && SETORES[repNormalized]) {
+        const secs = SETORES[repNormalized];
         const matchedSecObj = secs.find(
           (s) =>
             s.toLowerCase().trim() === setorNormalized.toLowerCase().trim() ||
@@ -2591,7 +2591,7 @@ export default function ActivityForm({
 
     // Trace sector
     if (uSetor) {
-      for (const [rep, sectors] of Object.entries(SECTORES)) {
+      for (const [rep, sectors] of Object.entries(SETORES)) {
         const foundSector = sectors.find((s) => looseMatch(s, uSetor));
         if (foundSector) {
           matchedSetor = foundSector;
@@ -2888,7 +2888,7 @@ export default function ActivityForm({
           // Desativado
         }
 
-        if (!formData.numeroAtividade) {
+        if (!formData.numeroActividade) {
           const targetArea =
             formData.setor ||
             formData.reparticao ||
@@ -2901,7 +2901,7 @@ export default function ActivityForm({
           const numStr = String(nextNum).padStart(3, "0");
           setFormData((prev) => ({
             ...prev,
-            numeroAtividade: numStr,
+            numeroActividade: numStr,
           }));
         }
         return true;
@@ -2911,11 +2911,11 @@ export default function ActivityForm({
           setError("Selecione a prioridade");
           return false;
         }
-        if (!formData.nomeAtividade) {
+        if (!formData.nomeActividade) {
           setError("Insira o nome da atividade");
           return false;
         }
-        if (!formData.objetivoAtividade) {
+        if (!formData.objetivoActividade) {
           setError("Insira o objetivo da atividade");
           return false;
         }
@@ -3310,7 +3310,7 @@ export default function ActivityForm({
   ]);
 
   const handleActivityNameChange = (val: string) => {
-    setFormData((prev) => ({ ...prev, nomeAtividade: val }));
+    setFormData((prev) => ({ ...prev, nomeActividade: val }));
 
     if (!val || val.length < 3) return;
 
@@ -3336,10 +3336,10 @@ export default function ActivityForm({
     if (pastActivity) {
       setFormData((prev) => ({
         ...prev,
-        objetivoAtividade:
+        objetivoActividade:
           pastActivity.objetivoActividade ||
           pastActivity.objetivo ||
-          prev.objetivoAtividade,
+          prev.objetivoActividade,
         realizacaoProvincia:
           pastActivity.localRealizacao?.split(" - ")[0] ||
           pastActivity.trabalhoProvincia ||
@@ -3951,7 +3951,7 @@ export default function ActivityForm({
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-blue-900 mb-1">
-                      Sector
+                      Setor
                     </label>
                     <select
                       value={formData.setor || ""}
@@ -3971,11 +3971,11 @@ export default function ActivityForm({
                             </option>
                           );
 
-                        const correctKey = Object.keys(SECTORES).find(
+                        const correctKey = Object.keys(SETORES).find(
                           (k) => k.toLowerCase() === rep.toLowerCase(),
                         );
                         const finalSectors = correctKey
-                          ? SECTORES[correctKey]
+                          ? SETORES[correctKey]
                           : [];
                         if (finalSectors.length === 0) {
                           return (
@@ -4012,8 +4012,8 @@ export default function ActivityForm({
                 <input
                   type="text"
                   value={String(
-                    formData.codigoAtividade ||
-                      formData.numeroAtividade ||
+                    formData.codigoActividade ||
+                      formData.numeroActividade ||
                       ""
                   ).toUpperCase()}
                   readOnly
@@ -4091,22 +4091,22 @@ export default function ActivityForm({
                 </div>
               )}
 
-              {/* Dropdown de Actividades Anteriores do Departamento para Nova Planificação */}
+              {/* Dropdown de Atividades Anteriores do Departamento para Nova Planificação */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-5 rounded-2xl shadow-sm mb-6">
                 <label className="block text-xs font-black text-blue-950  tracking-widest mb-2 flex items-center gap-2">
-                  <span>📦 Reutilizar Actividade Anterior do Departamento (Preenchimento Automático)</span>
+                  <span>📦 Reutilizar Atividade Anterior do Departamento (Preenchimento Automático)</span>
                 </label>
                 <select
                   className="w-full px-4 py-3 bg-white border border-blue-300 rounded-xl text-sm font-bold text-blue-950 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm"
                   onChange={(e) => {
                     const selectedId = e.target.value;
                     if (!selectedId) return;
-                    const chosen = deptStoredActs.find((a: any) => String(a?.id || a?.nomeAtividade) === String(selectedId));
+                    const chosen = deptStoredActs.find((a: any) => String(a?.id || a?.nomeActividade) === String(selectedId));
                     if (chosen) {
                       setFormData((prev) => ({
                         ...prev,
-                        nomeAtividade: chosen.nomeAtividade || chosen.title || prev.nomeAtividade,
-                        objetivoAtividade: chosen.objetivoAtividade || chosen.objetivoActividade || chosen.objetivo || prev.objetivoAtividade,
+                        nomeActividade: chosen.nomeActividade || chosen.title || prev.nomeActividade,
+                        objetivoActividade: chosen.objetivoActividade || chosen.objetivoActividade || chosen.objetivo || prev.objetivoActividade,
                         fonteReceita: chosen.fonteReceita || chosen.orcamento || prev.fonteReceita,
                         prioridade: chosen.prioridade || prev.prioridade,
                         responsavel: chosen.responsavel || prev.responsavel,
@@ -4118,13 +4118,13 @@ export default function ActivityForm({
                   }}
                   defaultValue=""
                 >
-                  <option value="">Selecione uma actividade armazenada do departamento para reutilizar...</option>
+                  <option value="">Selecione uma atividade armazenada do departamento para reutilizar...</option>
                   {deptStoredActs.map((act: any, i: number) => {
                     if (!act) return null;
-                    const actName = String(act.nomeAtividade || act.title || `Atividade ${i + 1}`);
+                    const actName = String(act.nomeActividade || act.title || `Atividade ${i + 1}`);
                     const actMes = act.mesRealizacao ? `(${act.mesRealizacao})` : "";
                     const actDept = String(act.departamento || currentSector || "");
-                    const actVal = act.id || act.nomeAtividade || `act-${i}`;
+                    const actVal = act.id || act.nomeActividade || `act-${i}`;
                     return (
                       <option key={String(act.id || `${actName}-${i}`)} value={String(actVal)}>
                         {actName} {actMes} - {actDept}
@@ -4133,7 +4133,7 @@ export default function ActivityForm({
                   })}
                 </select>
                 <p className="text-[11px] text-blue-700/80 mt-1.5 italic">
-                  💡 Ao selecionar, o sistema aplica todos os dados e rubricas da actividade anterior, bastando ao utilizador atualizar o necessário para a nova planificação.
+                  💡 Ao selecionar, o sistema aplica todos os dados e rubricas da atividade anterior, bastando ao utilizador atualizar o necessário para a nova planificação.
                 </p>
               </div>
 
@@ -4154,16 +4154,16 @@ export default function ActivityForm({
                         const objectiveVal =
                           actObj.objetivoActividade ||
                           actObj.objetivo ||
-                          actObj.objetivoAtividade ||
+                          actObj.objetivoActividade ||
                           "";
                         setFormData((prev) => ({
                           ...prev,
-                          nomeAtividade: selectedActTitle,
-                          objetivoAtividade: String(objectiveVal),
+                          nomeActividade: selectedActTitle,
+                          objetivoActividade: String(objectiveVal),
                         }));
                       }
                     }}
-                    value={formData.nomeAtividade || ""}
+                    value={formData.nomeActividade || ""}
                     className="w-full p-2.5 border border-blue-900/20 rounded-xl text-xs bg-white text-gray-800 outline-none focus:ring-2 focus:ring-blue-500/20 font-bold transition-all"
                   >
                     <option value="">
@@ -4178,7 +4178,7 @@ export default function ActivityForm({
                       const objText = act
                         ? act.objetivoActividade ||
                           act.objetivo ||
-                          act.objetivoAtividade ||
+                          act.objetivoActividade ||
                           ""
                         : "";
                       const preview = objText
@@ -4201,7 +4201,7 @@ export default function ActivityForm({
                 <input
                   type="text"
                   list="past-activities"
-                  value={formData.nomeAtividade || ""}
+                  value={formData.nomeActividade || ""}
                   onChange={(e) => handleActivityNameChange(e.target.value)}
                   placeholder="Escreva o nome da atividade..."
                   className="w-full p-3 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
@@ -4224,11 +4224,11 @@ export default function ActivityForm({
                 </label>
                 <textarea
                   rows={4}
-                  value={String(formData.objetivoAtividade || "")}
+                  value={String(formData.objetivoActividade || "")}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      objetivoAtividade: e.target.value,
+                      objetivoActividade: e.target.value,
                     })
                   }
                   placeholder="Escreva o objetivo..."
@@ -6450,7 +6450,7 @@ export default function ActivityForm({
                       Título da Atividade
                     </span>
                     <p className="text-sm font-bold text-slate-900 ">
-                      {formData.nomeAtividade || "NÃO DEFINIDO"}
+                      {formData.nomeActividade || "NÃO DEFINIDO"}
                     </p>
                   </div>
                   <div>
@@ -6566,8 +6566,8 @@ export default function ActivityForm({
       formData.orcamentoTotal ||
       0;
     const totalGeral = Number(totalCalculadoFinal || 0);
-    const code = formData.codigoAtividade || `ACT-${formData.numeroAtividade}`;
-    const name = formData.nomeAtividade || "Atividade Sem Nome";
+    const code = formData.codigoActividade || `ACT-${formData.numeroActividade}`;
+    const name = formData.nomeActividade || "Atividade Sem Nome";
     const sector =
       formData.setor ||
       formData.reparticao ||
@@ -6610,7 +6610,7 @@ export default function ActivityForm({
             <span style="font-size: 14px; font-weight: bold; color: #1e3a8a; margin-left: 6px; font-family: monospace;">${code}</span>
           </div>
           <div>
-            <span style="font-size: 11px; font-weight: bold; text-transform: ; color: #64748b;">Unidade / Sector:</span>
+            <span style="font-size: 11px; font-weight: bold; text-transform: ; color: #64748b;">Unidade / Setor:</span>
             <span style="font-size: 12px; font-weight: bold; color: #0f172a; margin-left: 6px;">${sector}</span>
           </div>
         </div>
@@ -6623,7 +6623,7 @@ export default function ActivityForm({
             </tr>
             <tr>
               <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; background-color: #f1f5f9;">Objetivo / Descrição</td>
-              <td style="border: 1px solid #cbd5e1; padding: 8px;">${formData.objetivoAtividade || "Não especificado."}</td>
+              <td style="border: 1px solid #cbd5e1; padding: 8px;">${formData.objetivoActividade || "Não especificado."}</td>
             </tr>
             <tr>
               <td style="border: 1px solid #cbd5e1; padding: 8px; font-weight: bold; background-color: #f1f5f9;">Responsável</td>
@@ -6869,7 +6869,7 @@ export default function ActivityForm({
                   if (!statusPeriodo.aberta) {
                     setSubmissionError(
                       statusPeriodo.motivo ||
-                        "O perido de planificacao enxerado, agurde a a atualizacao do calendario, assim como o relatorio semestral."
+                        "O período de planificação encerrado, aguarde a atualização do calendário, assim como o relatório semestral."
                     );
                     return;
                   }
@@ -6887,8 +6887,8 @@ export default function ActivityForm({
 
                   const previewSubData: any = {
                     ...formData,
-                    title: formData.nomeAtividade,
-                    nAtividade: formData.numeroAtividade,
+                    title: formData.nomeActividade,
+                    nActividade: formData.numeroActividade,
                     selectedCategory,
                     ano: nextYear,
                     mesesRealizacao: months,
@@ -7069,8 +7069,8 @@ export default function ActivityForm({
                   const submissionData: any = {
                     ...formData,
                     ...calculateTotalActivityData(months, formData),
-                    title: formData.nomeAtividade,
-                    nAtividade: formData.numeroAtividade,
+                    title: formData.nomeActividade,
+                    nActividade: formData.numeroActividade,
                     selectedCategory,
                     ano: nextYear,
                     mesesRealizacao: months,
@@ -7089,6 +7089,13 @@ export default function ActivityForm({
                     dataAtualizacao: new Date().toISOString(),
                     criadoPor: user?.nome || user?.name || user?.email || "Colaborador",
                     criadoPorCargo: user?.cargo || user?.cargoChefia || "Responsável",
+                    createdBy: user?.email || user?.nome || "Colaborador",
+                    createdByName: user?.nome || user?.name || user?.displayName || "Colaborador",
+                    emailCriador: user?.email || "",
+                    userId: user?.uid || user?.id || "",
+                    userUid: user?.uid || user?.id || "",
+                    nuit: user?.nuit || "",
+                    nuitCriador: user?.nuit || "",
                   };
 
                   persistDepartmentAndProducts(submissionData);
@@ -7179,10 +7186,10 @@ export default function ActivityForm({
                       Registo Existente no Sistema:
                     </span>
                     <div className="text-red-950 font-bold text-sm">
-                      • {duplicateAlert.existingActivity.nomeAtividade || duplicateAlert.existingActivity.title || duplicateAlert.existingActivity.designacao}
+                      • {duplicateAlert.existingActivity.nomeActividade || duplicateAlert.existingActivity.title || duplicateAlert.existingActivity.designacao}
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-slate-600 font-medium text-[11px] pt-1">
-                      <span>Código: <strong className="text-slate-800">{duplicateAlert.existingActivity.codigoAtividade || duplicateAlert.existingActivity.numeroAtividade || duplicateAlert.existingActivity.no || 'Sem código'}</strong></span>
+                      <span>Código: <strong className="text-slate-800">{duplicateAlert.existingActivity.codigoActividade || duplicateAlert.existingActivity.numeroActividade || duplicateAlert.existingActivity.no || 'Sem código'}</strong></span>
                       <span>Mês: <strong className="text-slate-800">{extractMonthsFromActivity(duplicateAlert.existingActivity).join(", ") || 'Mesmo Mês'}</strong></span>
                       <span>Departamento: <strong className="text-slate-800">{duplicateAlert.existingActivity.departamento || duplicateAlert.existingActivity.unidadeOrganica || 'Geral'}</strong></span>
                     </div>
