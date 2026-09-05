@@ -1759,3 +1759,43 @@ export function isCycleOfficiallyStarted(year: number): boolean {
   const firstMonday = getFirstMondayOfYear(year);
   return now >= firstMonday;
 }
+
+/**
+ * Helper to retry dynamic imports (lazy modules) in case of intermittent network/cache errors
+ */
+export function lazyRetry<T extends React.ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>,
+  retriesLeft = 2,
+  interval = 500
+): Promise<{ default: T }> {
+  return new Promise((resolve, reject) => {
+    componentImport()
+      .then(resolve)
+      .catch((error) => {
+        const errorMsg = String(error?.message || error || "").toLowerCase();
+        const isFetchOrChunkError =
+          errorMsg.includes("dynamically imported module") ||
+          errorMsg.includes("failed to fetch") ||
+          errorMsg.includes("loading chunk") ||
+          errorMsg.includes("error loading dynamically imported module");
+
+        if (retriesLeft <= 0) {
+          // If chunk failed after retries and hasn't reloaded page in this session, trigger a smooth reload
+          if (isFetchOrChunkError && typeof window !== "undefined") {
+            const hasReloaded = sessionStorage.getItem("sigep_chunk_reload_triggered");
+            if (!hasReloaded) {
+              sessionStorage.setItem("sigep_chunk_reload_triggered", "true");
+              window.location.reload();
+              return;
+            }
+          }
+          reject(error);
+          return;
+        }
+
+        setTimeout(() => {
+          lazyRetry(componentImport, retriesLeft - 1, interval).then(resolve, reject);
+        }, interval);
+      });
+  });
+}

@@ -4574,7 +4574,7 @@ export const EFETIVO_GERAL_DATA: Colaborador[] = [
     "efetivo": true,
     "cargo": "Chefe do Departamento",
     "direcao": "Gabinete do Diretor-Geral",
-    "departamento": "Planificação Estudos e Projetos",
+    "departamento": "Departamento de Planificação Estudos e Projetos",
     "id": "VLV117780880"
   },
   {

@@ -21,7 +21,7 @@ export const ABBREVIATIONS = [
   { sigla: "GDG", significado: "Gabinete do Diretor-Geral" },
   {
     sigla: "DPEP",
-    significado: "Departamento de Planificação, Estudos e Projetos",
+    significado: "Departamento de Planificação Estudos e Projetos",
   },
   { sigla: "UGEA", significado: "Unidade Gestora Executiva de Aquisições" },
   { sigla: "TIC", significado: "Tecnologias de Informação e Comunicação" },

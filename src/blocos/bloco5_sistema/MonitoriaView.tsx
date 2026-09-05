@@ -638,7 +638,7 @@ export default function MonitoriaView({
                       </h1>
                       <div className="w-24 h-1 bg-slate-900 mx-auto"></div>
                       <p className="text-lg font-bold text-slate-700">
-                        DPEP - Departamento de Planificação, Estudos e Projetos
+                        DPEP - Departamento de Planificação Estudos e Projetos
                         (DPEP)
                       </p>
                     </div>

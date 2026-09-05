@@ -3028,7 +3028,7 @@ export const SECOES = [
   "Conselho Técnico e de Qualidade",
   "Chefe do GDG",
   "Secretaria Executiva",
-  "Departamento de Planificação, Estudos e Projetos (DPEP)",
+  "Departamento de Planificação Estudos e Projetos (DPEP)",
   "Unidade Gestora e Executora de Aquisições (UGEA)",
   "Departamento de Cooperação e Relações Exteriores (DCRE)",
   "Departamento de Controlo Técnico e de Qualidade (DCTQ)",

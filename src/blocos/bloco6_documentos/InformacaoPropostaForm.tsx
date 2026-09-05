@@ -336,7 +336,7 @@ function ModalDespachoAssinatura({
         };
       case "dpep":
         return {
-          title: "Departamento de Planificação, Estudos e Projectos (DPEP)",
+          title: "Departamento de Planificação Estudos e Projetos (DPEP)",
           subtitle: "Parecer Técnico e Alinhamento com o Plano de Actividades",
           nomeDefault: formData.nomeChefeDpep || "Chefe do DPEP",
           cargoDefault: formData.cargoChefeDpep || "Chefe do DPEP",

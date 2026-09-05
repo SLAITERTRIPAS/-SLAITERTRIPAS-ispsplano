@@ -974,7 +974,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
         novoStatus = "Devolvido ao Remetente";
         proximoDestino = selectedDoc.remetente || "Remetente";
       } else {
-        proximoDestino = isViagemDoc ? "DPEP - Planificação, Estudos e Projetos" : destinatario || "Setor Técnico / Administrativo";
+        proximoDestino = isViagemDoc ? "DPEP - Departamento de Planificação Estudos e Projetos" : destinatario || "Setor Técnico / Administrativo";
         acaoTitulo = `Protocolado & Encaminhado para ${proximoDestino}`;
         parecerFinal = parecerTexto || `Documento protocolado na Secretaria Geral e encaminhado para ${proximoDestino}.`;
         novoStatus = `Em Análise - ${proximoDestino}`;
@@ -2251,7 +2251,7 @@ Data de Emissão: ${new Date().toLocaleString("pt-MZ")}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all appearance-none"
                   >
                     <option value="">Selecione o destino institucional...</option>
-                    <option value="DPEP - Planificação, Estudos e Projetos">DPEP - Planificação e Projetos</option>
+                    <option value="DPEP - Departamento de Planificação Estudos e Projetos">DPEP - Departamento de Planificação Estudos e Projetos</option>
                     <option value="Departamento de Administração e Finanças (DAF)">DAF - Administração e Finanças</option>
                     <option value="Repartição de Transporte">Repartição de Transporte</option>
                     <option value="Direção da DICOSAFA">Direção da DICOSAFA</option>

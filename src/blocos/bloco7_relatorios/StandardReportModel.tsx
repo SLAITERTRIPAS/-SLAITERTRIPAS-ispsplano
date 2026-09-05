@@ -330,7 +330,7 @@ export default function StandardReportModel({
                       Instituto Superior Politécnico de Songo
                     </p>
                     <p className="text-slate-600">
-                      Departamento de Planificação, Estudos e Projetos (DPEP)
+                      Departamento de Planificação Estudos e Projetos (DPEP)
                     </p>
                   </div>
                 </td>
