@@ -384,24 +384,13 @@ export async function createServer() {
       return res.status(404).json({ error: "API endpoint não encontrado" });
     }
 
+    // No Vercel, deixamos o Vercel servir o index.html via vercel.json
+    // Mas mantemos esta lógica como fallback ou para ambiente local de produção
     if (fs.existsSync(INDEX_HTML)) {
       res.sendFile(INDEX_HTML);
     } else {
-      console.error(
-        `❌ Erro Crítico: index.html não encontrado em ${INDEX_HTML}`,
-      );
-      res.status(404).send(`
-        <div style="font-family: sans-serif; padding: 2rem; color: #333; line-height: 1.6;">
-          <h1 style="color: #e53e3e;">Erro 404: SIGEP não encontrado</h1>
-          <p>O servidor não conseguiu localizar os ficheiros necessários para abrir a aplicação.</p>
-          <div style="background: #f7fafc; padding: 1rem; border-radius: 4px; border: 1px solid #edf2f7; margin: 1rem 0;">
-             <strong>Detalhes técnicos para o suporte:</strong><br>
-             <code style="font-size: 0.85rem;">Caminho: ${INDEX_HTML}</code><br>
-             <code style="font-size: 0.85rem;">Diretório: ${process.cwd()}</code>
-          </div>
-          <p><strong>Sugestão:</strong> Tente atualizar a página ou aguarde um momento enquanto o sistema sincroniza.</p>
-        </div>
-      `);
+      // Se estivermos no Vercel, não devemos chegar aqui se o vercel.json estiver correto
+      res.status(404).send(`SIGEP: Recurso não encontrado`);
     }
   });
 
