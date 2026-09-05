@@ -7625,7 +7625,7 @@ export default function PlanoWorkflowView({
                           "PlanoWorkflowView: Processando atividade:",
                           activity.title,
                         );
-                        if (editingActivity && editingActivity.id && !data._forceNewRecord && !initialData?._forceNewRecord) {
+                        if (editingActivity && editingActivity.id && !data._forceNewRecord) {
                           console.log(
                             "PlanoWorkflowView: Atualizando atividade existente ID:",
                             editingActivity.id,

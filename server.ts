@@ -85,7 +85,7 @@ function getGeminiClient(): GoogleGenAI {
   return aiClient;
 }
 
-async function startServer() {
+export async function createServer() {
   const app = express();
   const PORT = 3000;
 
@@ -405,15 +405,23 @@ async function startServer() {
     }
   });
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`----------------------------------------`);
-    console.log(`🚀 SIGEP Server running on port ${PORT}`);
-    console.log(`🏠 Mode: ${IS_PROD ? "Production" : "Development"}`);
-    console.log(`----------------------------------------`);
-  });
+  // Somente iniciar o listen se não estivermos no Vercel
+  if (!process.env.VERCEL) {
+    const PORT = 3000;
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`----------------------------------------`);
+      console.log(`🚀 SIGEP Server running on port ${PORT}`);
+      console.log(`🏠 Mode: ${IS_PROD ? "Production" : "Development"}`);
+      console.log(`----------------------------------------`);
+    });
+  }
+
+  return app;
 }
 
-startServer().catch((err) => {
-  console.error("Failed to start server:", err);
-  process.exit(1);
-});
+const appPromise = createServer();
+
+export default async (req: any, res: any) => {
+  const app = await appPromise;
+  return app(req, res);
+};
