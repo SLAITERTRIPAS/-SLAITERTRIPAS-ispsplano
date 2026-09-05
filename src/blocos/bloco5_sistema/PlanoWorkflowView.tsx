@@ -6957,20 +6957,21 @@ export default function PlanoWorkflowView({
                           sectorName={user.setor}
                           year={selectedYear}
                           isPlanificacaoHeader={isPlanificacao}
+                          title="Plano Económico e Social e Orçamento da Entidade (PESOE)"
                         />
 
-                        {/* Subcabeçalho Padronizado do Plano */}
+                        {/* Subcabeçalho Padronizado do PESOE */}
                         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 border border-slate-200/80 p-4 rounded-2xl bg-white shadow-sm print:hidden mt-2">
                           <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2.5 rounded-xl shadow-md text-white">
+                            <div className="bg-[#ea580c] p-2.5 rounded-xl shadow-md text-white">
                               <ShieldCheck size={22} />
                             </div>
                             <div>
                               <h3 className="text-sm md:text-base font-black text-slate-900 tracking-tight  leading-none">
-                                Plano Institucional Consolidado
+                                PESOE - Plano Económico e Social e Orçamento da Entidade ({selectedYear})
                               </h3>
-                              <p className="text-[9px] font-bold text-slate-400  tracking-widest mt-1">
-                                Visualização Oficial do DPEP
+                              <p className="text-[9px] font-bold text-slate-500  tracking-widest mt-1">
+                                Visualização Oficial do PESOE • Exclusivamente Atividades Aprovadas
                               </p>
                             </div>
                           </div>
@@ -7004,6 +7005,15 @@ export default function PlanoWorkflowView({
                               {(
                                 Object.entries(
                                   filteredActivities
+                                    .filter((a) => {
+                                      const isApproved =
+                                        a.statusAprovacao === "aprovada" ||
+                                        a.status === "institucional" ||
+                                        a.aprovada === true ||
+                                        a.aprovado === true ||
+                                        a.isPESOE === true;
+                                      return isApproved;
+                                    })
                                     .sort((a, b) =>
                                       compareActivitiesStandardOrder(
                                         a,
@@ -7055,7 +7065,7 @@ export default function PlanoWorkflowView({
                                           <span>🏢 DIREÇÃO: {direction}</span>
                                           <div className="flex gap-4 items-center">
                                             <span className="bg-white/10 px-3 py-1 rounded-lg border border-white/20">
-                                              {activities.length} Atividades
+                                              {activities.length} Atividades Aprovadas
                                             </span>
                                             <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-lg border border-amber-500/30 font-mono">
                                               Total Direção:{" "}
@@ -7099,7 +7109,8 @@ export default function PlanoWorkflowView({
                                         index={idx}
                                         isDPEP={isDPEP}
                                         user={user}
-                                        isBossOrAdmin={isBossOrAdmin}
+                                        isBossOrAdmin={false}
+                                        isReadOnly={true}
                                         getActivityTotal={getActivityTotal}
                                         actions={
                                           <button
@@ -7107,9 +7118,10 @@ export default function PlanoWorkflowView({
                                               setEditingActivity(act);
                                               setShowAddForm(true);
                                             }}
-                                            className="text-blue-600 hover:text-blue-800 font-black  text-[9px] tracking-tighter"
+                                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors"
+                                            title="Visualizar Atividade"
                                           >
-                                            Editar
+                                            <Eye size={13} />
                                           </button>
                                         }
                                       />
@@ -7365,7 +7377,7 @@ export default function PlanoWorkflowView({
                     {/* Cabeçalho Institucional Oficial Padronizado */}
                     <InstitutionalHeader
                       unidadeName="Instituto Superior Politécnico de Songo"
-                      direcaoName="Direção de Planificação e Estudos Prospectivos"
+                      direcaoName="Departamento de Planificação Estudos e Projetos"
                       departamentoName=""
                       reparticaoName=""
                       sectorName=""
@@ -7500,7 +7512,8 @@ export default function PlanoWorkflowView({
                                       index={idx}
                                       isDPEP={true}
                                       user={user}
-                                      isBossOrAdmin={true}
+                                      isBossOrAdmin={false}
+                                      isReadOnly={true}
                                       getActivityTotal={getActivityTotal}
                                       onUpdateExecution={onUpdateExecution}
                                       onUpdateRelatorio={onUpdateRelatorio}

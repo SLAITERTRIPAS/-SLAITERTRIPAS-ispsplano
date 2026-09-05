@@ -27,6 +27,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
   isDPEP,
   user,
   isBossOrAdmin,
+  isReadOnly = false,
 }: {
   activity: any;
   getActivityTotal: (act: any) => number;
@@ -44,6 +45,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
   selectedActivityIds?: string[];
   onToggleSelect?: (id: string) => void;
   onEditActivity?: (activity: any) => void;
+  isReadOnly?: boolean;
 }) {
   if (!activity || !isValidActivity(activity)) return null;
 
@@ -135,21 +137,21 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
               <input
                 type="checkbox"
                 checked={Boolean(isSelected)}
-                onChange={() => onToggleSelect?.(activity.id)}
-                readOnly={!onToggleSelect}
-                disabled={!onToggleSelect}
+                onChange={() => !isReadOnly && onToggleSelect?.(activity.id)}
+                readOnly={isReadOnly || !onToggleSelect}
+                disabled={isReadOnly || !onToggleSelect}
                 className="cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
               />
             </td>
             {/* Nº */}
             <td
-              className="p-1 text-center font-bold border-r border-slate-300 text-slate-900 bg-[#c6d9f1] cursor-pointer hover:bg-[#b8cdf0] transition-colors group relative w-10 text-xs"
-              onClick={() => onToggleSelect?.(activity.id)}
-              title="Clique para selecionar esta atividade e todas as suas necessidades"
+              className={`p-1 text-center font-bold border-r border-slate-300 text-slate-900 bg-[#c6d9f1] transition-colors group relative w-10 text-xs ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-[#b8cdf0]"}`}
+              onClick={() => !isReadOnly && onToggleSelect?.(activity.id)}
+              title={isReadOnly ? undefined : "Clique para selecionar esta atividade e todas as suas necessidades"}
               rowSpan={rubricas.length}
               hidden={rIdx > 0}
             >
-              {isBossOrAdmin || activity.userId === user?.id ? (
+              {!isReadOnly && (isBossOrAdmin || activity.userId === user?.id) ? (
                 <input
                   type="text"
                   defaultValue={
@@ -309,14 +311,14 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                 "-"}
             </td>
             <td
-              className="p-1.5 border-r border-slate-300 text-[10px] font-black text-slate-900 whitespace-normal break-words leading-tight cursor-pointer hover:bg-blue-50/50 transition-colors"
-              onClick={() => setShowOptionsModal(true)}
-              title="Clique sobre a atividade para gerir Opções (Aprovada / Reconduzida para ano+1)"
+              className={`p-1.5 border-r border-slate-300 text-[10px] font-black text-slate-900 whitespace-normal break-words leading-tight transition-colors ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-blue-50/50"}`}
+              onClick={isReadOnly ? undefined : () => setShowOptionsModal(true)}
+              title={isReadOnly ? undefined : "Clique sobre a atividade para gerir Opções (Aprovada / Reconduzida para ano+1)"}
               rowSpan={rubricas.length}
               hidden={rIdx > 0}
             >
               <div className="flex flex-col gap-1">
-                <span className="underline decoration-dotted decoration-blue-500">
+                <span className={isReadOnly ? "" : "underline decoration-dotted decoration-blue-500"}>
                   {activity.title}
                 </span>
                 <div className="flex flex-wrap gap-1 mt-0.5">
