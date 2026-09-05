@@ -15,7 +15,7 @@ import { isSuperBossUser, getUserWorkspace } from "../lib/auth";
 
 // Lazy loading heavy views
 const SistemaView = lazy(() => import("../blocos/bloco5_sistema/SistemaView"));
-import DirectorDashboard from "../blocos/bloco2_orgaos_gestao/DirectorDashboard";
+const DirectorDashboard = lazy(() => import("../blocos/bloco2_orgaos_gestao/DirectorDashboard"));
 const ReposicaoTesteView = lazy(() => import("../blocos/bloco3_unidades_organicas/ReposicaoTesteView"));
 const WorkflowRequisicaoView = lazy(() => import("../blocos/bloco5_sistema/WorkflowRequisicaoView"));
 const MatrixView = lazy(() => import("../blocos/bloco5_sistema/MatrixView"));
