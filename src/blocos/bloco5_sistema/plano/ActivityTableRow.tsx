@@ -66,6 +66,23 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
     activity.fonteReceita || activity.orcamento || "Orçamento do Estado",
   );
 
+  const isAuthorizedForPESOE = useMemo(() => {
+    if (isDPEP || isBossOrAdmin) return true;
+    if (!user) return false;
+    const dept = String(user.departamento || "").toUpperCase();
+    const rep = String(user.reparticao || "").toUpperCase();
+    const set = String(user.setor || "").toUpperCase();
+    const tit = String(user.titulo || user.role || "").toUpperCase();
+    return (
+      dept.includes("DPEP") ||
+      dept.includes("PLANIFICA") ||
+      rep.includes("PLANIFICA") ||
+      set.includes("PLANIFICA") ||
+      tit.includes("DPEP") ||
+      tit.includes("PLANIFICA")
+    );
+  }, [isDPEP, isBossOrAdmin, user]);
+
   const rubricas = useMemo(
     () =>
       Array.isArray(activity.rubricas) && activity.rubricas.length > 0
@@ -338,7 +355,9 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                   >
                     <h3 className="text-sm font-black text-slate-900  tracking-tight mb-2">
                       {isApproving
-                        ? "Aprovar Atividade (Plano 2027 & PESOE 2027)"
+                        ? isAuthorizedForPESOE
+                          ? "Aprovar Atividade (Plano 2027 & PESOE 2027)"
+                          : "Aprovar Atividade (Plano 2027)"
                         : "Opções da Atividade"}
                     </h3>
                     <p className="text-[11px] text-slate-500 mb-4 font-medium leading-relaxed">
@@ -383,8 +402,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                         </div>
                         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-medium">
                           Ao aprovar, esta atividade será alocada para o{" "}
-                          <strong>Plano 2027</strong> e{" "}
-                          <strong>PESOE 2027</strong>.
+                          <strong>Plano 2027</strong>{isAuthorizedForPESOE ? <span> e <strong>PESOE 2027</strong></span> : null}.
                         </div>
                         <div className="flex gap-2 justify-end pt-2">
                           <button
@@ -426,7 +444,9 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                                 setShowOptionsModal(false);
                                 setIsApproving(false);
                                 alert(
-                                  "Atividade aprovada com sucesso e distribuída para: Setor de Monitoria, PESOE e Plano Institucional!",
+                                  isAuthorizedForPESOE
+                                    ? "Atividade aprovada com sucesso e distribuída para: Setor de Monitoria, PESOE e Plano Institucional!"
+                                    : "Atividade aprovada com sucesso e distribuída para: Setor de Monitoria e Plano Institucional!"
                                 );
                               } catch (err) {
                                 console.error(err);
@@ -450,7 +470,7 @@ export const ActivityTableRow = React.memo(function ActivityTableRow({
                             }}
                             className="w-full p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 text-emerald-800 rounded-2xl font-black text-xs text-left flex items-center justify-between group transition-all cursor-pointer"
                           >
-                            <span>APROVAR PARA 2027 (PESOE)</span>
+                            <span>{isAuthorizedForPESOE ? "APROVAR PARA 2027 (PESOE)" : "APROVAR PARA 2027"}</span>
                             <span className="p-1.5 bg-emerald-600 text-white rounded-lg group-hover:scale-110 transition-transform">✓</span>
                           </button>
                           

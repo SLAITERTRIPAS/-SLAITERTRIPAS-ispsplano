@@ -133,7 +133,7 @@ export default function App() {
   const [statsActiveItem, setStatsActiveItem] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [authReady, setAuthReady] = useState(false);
-  const [bootComplete, setBootComplete] = useState(false);
+  const [bootComplete, setBootComplete] = useState(true);
   const [initStatus, setInitStatus] = useState("A inicializar Firebase...");
   const [subMenuStack, setSubMenuStack] = useState<
     {
@@ -599,13 +599,11 @@ export default function App() {
 
     window.addEventListener("focus", checkActiveSession);
     document.addEventListener("visibilitychange", checkActiveSession);
-    const interval = setInterval(checkActiveSession, 10000);
 
     return () => {
       if (unsubSnapshot) unsubSnapshot();
       window.removeEventListener("focus", checkActiveSession);
       document.removeEventListener("visibilitychange", checkActiveSession);
-      clearInterval(interval);
     };
   }, [user?.id, user?.email, user?.nuit, authReady]);
 

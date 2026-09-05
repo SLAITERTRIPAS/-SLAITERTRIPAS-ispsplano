@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Printer,
   TrendingUp,
+  Activity,
   Filter,
   Search,
   Plus,
@@ -1620,6 +1621,10 @@ export default function PlanoWorkflowView({
     | "plano_orcamento"
     | "necessidades_quantidades"
   >("plano_orcamento");
+
+  const [chefeDPEPSubTab, setChefeDPEPSubTab] = useState<
+    "plano_dpep" | "pesoe" | "validacao_colegial"
+  >("plano_dpep");
 
   const groupedNecessidadesPlanificadas = useMemo(() => {
     const planActivities = filteredActivities.filter(
@@ -3671,13 +3676,33 @@ export default function PlanoWorkflowView({
         {workflowMode === "landing" && (
           <DPEPDashboard 
             activities={authorizedActivities} 
+            user={user}
+            isChefeDPEP={isChefeDPEP}
+            isPlanificacao={isPlanificacao}
             onSelectWorkflow={(mode) => {
               if (mode === 'planning') {
                 setSelectedYear(2027);
                 setEditingActivity(null);
-                setShowAddForm(true);
+                if (isChefeDPEP) {
+                  setSelectedRoleMode("Chefe DPEP");
+                  setChefeDPEPSubTab("plano_dpep");
+                } else {
+                  setShowAddForm(true);
+                }
+                setWorkflowMode('planning');
+              } else if (mode === 'pesoe') {
+                setSelectedYear(2027);
+                if (isChefeDPEP) {
+                  setSelectedRoleMode("Chefe DPEP");
+                  setChefeDPEPSubTab("pesoe");
+                } else {
+                  setSelectedRoleMode("Planificação");
+                  setActiveSubTab("pesoe");
+                }
+                setWorkflowMode('planning');
+              } else {
+                setWorkflowMode(mode);
               }
-              setWorkflowMode(mode);
             }}
             onImport={() => fileInputRef.current?.click()}
             selectedYear={selectedYear === 2026 ? 2027 : selectedYear}
@@ -5468,16 +5493,18 @@ export default function PlanoWorkflowView({
                     >
                       Plano Institucional
                     </button>
-                    <button
-                      onClick={() => setActiveSubTab("pesoe")}
-                      className={`px-6 py-3 rounded-xl font-black text-xs  tracking-wider transition-all border ${
-                        activeSubTab === "pesoe"
-                          ? "bg-slate-900 text-white border-slate-950 shadow-md"
-                          : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
-                      }`}
-                    >
-                      DE
-                    </button>
+                    {(isChefeDPEP || isPlanificacao) && (
+                      <button
+                        onClick={() => setActiveSubTab("pesoe")}
+                        className={`px-6 py-3 rounded-xl font-black text-xs  tracking-wider transition-all border ${
+                          activeSubTab === "pesoe"
+                            ? "bg-slate-900 text-white border-slate-950 shadow-md"
+                            : "bg-white text-slate-600 hover:bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        PESOE
+                      </button>
+                    )}
                     {isPlanificacao && (
                       <button
                         onClick={() => setShowScheduleModal(true)}
@@ -6961,9 +6988,11 @@ export default function PlanoWorkflowView({
                                 className="w-full text-xs font-bold pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-blue-500 transition-all"
                               />
                             </div>
-                            <span className="text-xs font-black  border border-slate-300 py-1.5 px-3.5 text-slate-800 bg-white rounded-lg whitespace-nowrap shadow-sm">
-                              PESOE: {selectedYear}
-                            </span>
+                            {(isChefeDPEP || isPlanificacao) && (
+                              <span className="text-xs font-black  border border-slate-300 py-1.5 px-3.5 text-slate-800 bg-white rounded-lg whitespace-nowrap shadow-sm">
+                                PESOE: {selectedYear}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -7115,119 +7144,525 @@ export default function PlanoWorkflowView({
               </div>
             )}
 
-            {/* --- LEVEL 5: CHEFE DO DPEP (Validação e Envio ao Órgão Colegial) --- */}
+            {/* --- LEVEL 5: CHEFE DO DPEP (Separação entre Plano do DPEP, PESOE e Envio ao Órgão Colegial) --- */}
             {selectedRoleMode === "Chefe DPEP" && (
-              <div className="p-8 md:p-12 space-y-8 flex-1 bg-white">
-                <InstitutionalHeader
-                  unidadeName="Instituto Superior Politécnico de Songo"
-                  direcaoName="Departamento de Planificação Estudos e Projetos"
-                  departamentoName="Gabinete do Chefe do DPEP"
-                  year={selectedYear}
-                  isOwner={true}
-                />
-
-                <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-xl border border-indigo-700/50 space-y-6">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/10 pb-6">
-                    <div>
-                      <span className="text-[10px] font-black  tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
-                        Apreciação do Chefe do DPEP
-                      </span>
-                      <h3 className="text-2xl font-black mt-2 text-white  tracking-tight font-serif">
-                        Proposta do Plano Institucional (PESOE {selectedYear})
-                      </h3>
-                      <p className="text-xs text-slate-300 mt-1 max-w-2xl">
-                        O Setor de Planificação consolidou todas as atividades das 5 Direções. Como Chefe do DPEP, valide a proposta e envie-a para apreciação e homologação do Órgão Colegial.
-                      </p>
-                    </div>
+              <div className="flex-1 bg-slate-50 flex flex-col min-h-screen">
+                {/* Submenu de Navegação do Chefe do DPEP */}
+                <div className="bg-white border-b border-slate-200 px-6 md:px-12 py-3.5 flex flex-wrap items-center justify-between gap-4 print:hidden sticky top-0 z-20 shadow-xs">
+                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                     <button
-                      onClick={handleSendChefeDPEPToOrgaoColegial}
-                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-6 py-3.5 rounded-2xl text-xs  tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 whitespace-nowrap"
+                      onClick={() => setChefeDPEPSubTab("plano_dpep")}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all flex items-center gap-2 border ${
+                        chefeDPEPSubTab === "plano_dpep"
+                          ? "bg-slate-900 text-white border-slate-950 shadow-sm"
+                          : "bg-white text-slate-700 hover:bg-slate-100 border-slate-200"
+                      }`}
                     >
-                      <Send size={16} strokeWidth={2.5} /> Enviar Proposta ao Órgão Colegial
+                      <Activity size={15} />
+                      Plano do DPEP
+                    </button>
+                    <button
+                      onClick={() => setChefeDPEPSubTab("pesoe")}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all flex items-center gap-2 border ${
+                        chefeDPEPSubTab === "pesoe"
+                          ? "bg-[#ea580c] text-white border-[#c2410c] shadow-sm"
+                          : "bg-white text-slate-700 hover:bg-orange-50 hover:text-orange-700 border-slate-200"
+                      }`}
+                    >
+                      <Layers size={15} />
+                      PESOE ({selectedYear})
+                    </button>
+                    <button
+                      onClick={() => setChefeDPEPSubTab("validacao_colegial")}
+                      className={`px-5 py-2.5 rounded-xl font-black text-xs tracking-wider transition-all flex items-center gap-2 border ${
+                        chefeDPEPSubTab === "validacao_colegial"
+                          ? "bg-indigo-900 text-white border-indigo-950 shadow-sm"
+                          : "bg-white text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border-slate-200"
+                      }`}
+                    >
+                      <Send size={15} />
+                      Envio ao Órgão Colegial
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Total de Atividades</span>
-                      <span className="text-2xl font-black text-white font-mono">{filteredActivities.length}</span>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Orçamento Atividades</span>
-                      <span className="text-2xl font-black text-amber-400 font-mono">
-                        {filteredActivities.reduce((acc, a) => acc + getActivityTotal(a), 0).toLocaleString("pt-MZ", { minimumFractionDigits: 2 })} MZN
-                      </span>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Direções Integradas</span>
-                      <span className="text-2xl font-black text-emerald-400 font-mono">
-                        {new Set(filteredActivities.map((a) => a.direcao).filter(Boolean)).size} / 5
-                      </span>
-                    </div>
-                    <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
-                      <span className="text-[10px] font-bold text-slate-400  tracking-wider block">Destino da Proposta</span>
-                      <span className="text-sm font-black text-slate-200  mt-1 block">Órgão Colegial</span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handlePrint()}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-slate-300 shadow-xs"
+                      title="Imprimir visualização atual"
+                    >
+                      <Printer size={14} /> Imprimir
+                    </button>
+                    {chefeDPEPSubTab === "plano_dpep" && (
+                      <button
+                        onClick={() => {
+                          setEditingActivity(null);
+                          setShowAddForm(true);
+                        }}
+                        className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black tracking-wider transition-all flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus size={15} /> Nova Actividade (DPEP)
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* Tabela do Plano Institucional para Validação do Chefe do DPEP */}
-                <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-                  <div className="bg-slate-900 text-white p-5 flex justify-between items-center">
-                    <div>
-                      <h4 className="text-base font-black  tracking-wide">
-                        Matriz Geral de Atividades Consolidadas
-                      </h4>
-                      <p className="text-[10px] text-slate-400">Atividades prontas para encaminhamento ao Órgão Colegial</p>
+                {/* CONTEÚDO DA SUB-ABA 1: PLANO DO DPEP */}
+                {chefeDPEPSubTab === "plano_dpep" && (
+                  <div id="plano-print-area" data-print-type="plano" className="p-6 md:p-12 space-y-6 flex-1 bg-white">
+                    <InstitutionalHeader
+                      unidadeName="Instituto Superior Politécnico de Songo"
+                      direcaoName="Departamento de Planificação Estudos e Projetos"
+                      departamentoName="Gabinete do Chefe do DPEP"
+                      reparticaoName=""
+                      sectorName=""
+                      year={selectedYear}
+                      isOwner={true}
+                      title="Plano de Actividade do DPEP"
+                    />
+
+                    {/* Barra de Ações e Filtro do Plano DPEP */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 border border-slate-200 p-4 rounded-2xl bg-slate-50/70 shadow-xs print:hidden">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-slate-900 p-2.5 rounded-xl text-white shadow-xs">
+                          <Activity size={20} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm md:text-base font-black text-slate-900 tracking-tight leading-none">
+                            Plano de Atividades do DPEP
+                          </h3>
+                          <p className="text-[10px] font-bold text-slate-500 tracking-wider mt-1">
+                            Atividades planificadas internamente pelo Departamento de Planificação ({selectedYear})
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                          <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            size={14}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Pesquisar no plano DPEP..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full text-xs font-bold pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-hidden focus:border-slate-900 transition-all"
+                          />
+                        </div>
+                        <span className="text-xs font-mono font-bold bg-slate-900 text-white px-3.5 py-2 rounded-xl whitespace-nowrap shadow-xs">
+                          {filteredActivities.filter((a) => {
+                            const dir = (a.direcao || "").toUpperCase();
+                            const dep = (a.departamento || "").toUpperCase();
+                            const rep = (a.reparticao || "").toUpperCase();
+                            const set = (a.setor || "").toUpperCase();
+                            return (
+                              dir.includes("DPEP") ||
+                              dir.includes("PLANIFICA") ||
+                              dep.includes("DPEP") ||
+                              dep.includes("PLANIFICA") ||
+                              rep.includes("PLANIFICA") ||
+                              set.includes("PLANIFICA") ||
+                              a.userId === user?.id
+                            );
+                          }).length} Atividades DPEP
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs font-mono font-bold text-amber-400">
-                      {filteredActivities.length} Atividades Registadas
-                    </span>
-                  </div>
-                  <div className="overflow-x-auto print:overflow-visible w-full">
-                    <table className="w-full text-left border-collapse font-sans text-xs print-table-compact">
-                      <ActivityTableHeader isDPEP={true} />
-                      <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
-                        {filteredActivities.length === 0 ? (
-                          <tr>
-                            <td colSpan={15} className="py-12 text-center text-slate-400 font-medium text-xs">
-                              Nenhum plano ou proposta submetida ao Chefe do DPEP até ao momento. Todos os campos estão totalmente limpos.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredActivities.map((act, idx) => (
-                            <ActivityTableRow
-                              key={act.id}
-                              activity={act}
-                              onViewHistory={setActivityForHistory}
-                              index={idx}
-                              isDPEP={true}
-                              user={user}
-                              isBossOrAdmin={true}
-                              getActivityTotal={getActivityTotal}
-                              onUpdateExecution={onUpdateExecution}
-                              onUpdateRelatorio={onUpdateRelatorio}
-                              actions={
-                                <div className="flex justify-center items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingActivity(act);
-                                      setShowAddForm(true);
-                                    }}
-                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
-                                    title="Visualizar"
-                                  >
-                                    <Eye size={13} />
-                                  </button>
-                                </div>
+
+                    {/* Tabela de Atividades do DPEP */}
+                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                      <div className="overflow-x-auto print:overflow-visible w-full">
+                        <table className="w-full text-left border-collapse font-sans text-xs print-table-compact">
+                          <ActivityTableHeader isDPEP={true} />
+                          <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                            {(() => {
+                              const dpepActivities = filteredActivities
+                                .filter((a) => {
+                                  const dir = (a.direcao || "").toUpperCase();
+                                  const dep = (a.departamento || "").toUpperCase();
+                                  const rep = (a.reparticao || "").toUpperCase();
+                                  const set = (a.setor || "").toUpperCase();
+                                  return (
+                                    dir.includes("DPEP") ||
+                                    dir.includes("PLANIFICA") ||
+                                    dep.includes("DPEP") ||
+                                    dep.includes("PLANIFICA") ||
+                                    rep.includes("PLANIFICA") ||
+                                    set.includes("PLANIFICA") ||
+                                    a.userId === user?.id
+                                  );
+                                })
+                                .filter((a) =>
+                                  (a.title || a.designacao || a.descricao || "")
+                                    .toLowerCase()
+                                    .includes(searchTerm.toLowerCase())
+                                )
+                                .sort((a, b) =>
+                                  compareActivitiesStandardOrder(a, b, getActMonthIndex)
+                                );
+
+                              if (dpepActivities.length === 0) {
+                                return (
+                                  <tr>
+                                    <td
+                                      colSpan={45}
+                                      className="py-12 text-center text-slate-400 font-medium text-xs"
+                                    >
+                                      Nenhuma atividade registada no Plano do DPEP para o ano {selectedYear}. Clique em "+ Nova Actividade (DPEP)" para iniciar o planeamento.
+                                    </td>
+                                  </tr>
+                                );
                               }
-                            />
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+
+                              return dpepActivities.map((act, idx) => (
+                                <ActivityTableRow
+                                  key={act.id}
+                                  activity={act}
+                                  onViewHistory={setActivityForHistory}
+                                  index={idx}
+                                  isDPEP={true}
+                                  user={user}
+                                  isBossOrAdmin={true}
+                                  getActivityTotal={getActivityTotal}
+                                  onUpdateExecution={onUpdateExecution}
+                                  onUpdateRelatorio={onUpdateRelatorio}
+                                  actions={
+                                    <div className="flex justify-center items-center gap-1">
+                                      <button
+                                        onClick={() => {
+                                          setEditingActivity(act);
+                                          setShowAddForm(true);
+                                        }}
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="Editar Atividade"
+                                      >
+                                        <Edit2 size={13} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDelete(act.id)}
+                                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                        title="Eliminar Atividade"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  }
+                                />
+                              ));
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* CONTEÚDO DA SUB-ABA 2: PESOE (COM CABEÇALHO INSTITUCIONAL E APENAS ATIVIDADES APROVADAS POR DIREÇÃO) */}
+                {chefeDPEPSubTab === "pesoe" && (
+                  <div id="pesoe-print-area" data-print-type="plano" className="p-6 md:p-12 space-y-6 flex-1 bg-white">
+                    {/* Cabeçalho Institucional Oficial Padronizado */}
+                    <InstitutionalHeader
+                      unidadeName="Instituto Superior Politécnico de Songo"
+                      direcaoName="Direção de Planificação e Estudos Prospectivos"
+                      departamentoName=""
+                      reparticaoName=""
+                      sectorName=""
+                      year={selectedYear}
+                      isPlanificacaoHeader={true}
+                      title="Plano Económico e Social e Orçamento da Entidade (PESOE)"
+                    />
+
+                    {/* Subcabeçalho Padronizado do PESOE */}
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 border border-slate-200 p-4 rounded-2xl bg-white shadow-xs print:hidden">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-[#ea580c] p-2.5 rounded-xl shadow-xs text-white">
+                          <ShieldCheck size={22} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm md:text-base font-black text-slate-900 tracking-tight leading-none">
+                            PESOE - Plano Económico e Social e Orçamento da Entidade ({selectedYear})
+                          </h3>
+                          <p className="text-[10px] font-bold text-slate-500 tracking-wider mt-1">
+                            Visualização Oficial por Direção • Exclusivamente Atividades Aprovadas
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="relative w-full md:w-64">
+                          <Search
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                            size={14}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Procurar atividade no PESOE..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full text-xs font-bold pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-hidden focus:bg-white focus:border-[#ea580c] transition-all"
+                          />
+                        </div>
+                        <span className="text-xs font-black border border-orange-200 py-2 px-3.5 text-orange-950 bg-orange-50 rounded-xl whitespace-nowrap shadow-xs">
+                          PESOE: {selectedYear}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tabela do PESOE - Atividades Agrupadas por Direção (Apenas Aprovadas) */}
+                    <div className="overflow-x-auto print:overflow-visible border border-slate-200 rounded-2xl shadow-xs w-full">
+                      <table className="w-full text-left border-collapse font-sans text-xs print-table-compact">
+                        <ActivityTableHeader isDPEP={true} />
+                        <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                          {(() => {
+                            // Filtro estrito de atividades aprovadas para o PESOE
+                            const pesoeApprovedActivities = filteredActivities
+                              .filter((a) => {
+                                const isApproved =
+                                  a.statusAprovacao === "aprovada" ||
+                                  a.status === "institucional" ||
+                                  a.aprovada === true ||
+                                  a.aprovado === true ||
+                                  a.isPESOE === true;
+                                return isApproved;
+                              })
+                              .filter((a) =>
+                                (a.title || a.designacao || a.descricao || "")
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase())
+                              )
+                              .sort((a, b) =>
+                                compareActivitiesStandardOrder(a, b, getActMonthIndex)
+                              );
+
+                            const groupedByDirection = pesoeApprovedActivities.reduce(
+                              (acc: Record<string, any[]>, act: any) => {
+                                const dir = act.direcao || "Gabinete do Diretor-Geral";
+                                if (!acc[dir]) acc[dir] = [];
+                                acc[dir].push(act);
+                                return acc;
+                              },
+                              {} as Record<string, any[]>
+                            );
+
+                            const entries = Object.entries(groupedByDirection) as [string, any[]][];
+
+                            if (entries.length === 0) {
+                              return (
+                                <tr>
+                                  <td
+                                    colSpan={45}
+                                    className="py-12 text-center text-slate-400 font-medium text-xs"
+                                  >
+                                    Nenhuma atividade com estado de aprovação registada no PESOE {selectedYear}. Apenas atividades aprovadas constam do PESOE.
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return entries.map(([direction, activities]) => {
+                              const directionTotalBudget = activities.reduce(
+                                (sum, act) => sum + getActivityTotal(act),
+                                0
+                              );
+
+                              return (
+                                <React.Fragment key={direction}>
+                                  <tr className="bg-slate-900 text-white border-y-2 border-slate-950">
+                                    <td
+                                      colSpan={45}
+                                      className="p-4 text-[12px] font-black tracking-[0.2em] bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950"
+                                    >
+                                      <div className="flex flex-wrap justify-between items-center gap-2">
+                                        <span>🏢 DIREÇÃO: {direction}</span>
+                                        <div className="flex gap-3 items-center">
+                                          <span className="bg-white/10 px-3 py-1 rounded-lg border border-white/20 text-xs">
+                                            {activities.length} Atividades Aprovadas
+                                          </span>
+                                          <span className="bg-amber-500/20 text-amber-300 px-3 py-1 rounded-lg border border-amber-500/30 font-mono text-xs">
+                                            Total Direção:{" "}
+                                            {directionTotalBudget.toLocaleString("pt-MZ", {
+                                              minimumFractionDigits: 2,
+                                              maximumFractionDigits: 2,
+                                            })}{" "}
+                                            MZN
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {activities.map((act, idx) => (
+                                    <ActivityTableRow
+                                      key={act.id}
+                                      activity={act}
+                                      onViewHistory={setActivityForHistory}
+                                      index={idx}
+                                      isDPEP={true}
+                                      user={user}
+                                      isBossOrAdmin={true}
+                                      getActivityTotal={getActivityTotal}
+                                      onUpdateExecution={onUpdateExecution}
+                                      onUpdateRelatorio={onUpdateRelatorio}
+                                      actions={
+                                        <div className="flex justify-center items-center gap-1">
+                                          <button
+                                            onClick={() => {
+                                              setEditingActivity(act);
+                                              setShowAddForm(true);
+                                            }}
+                                            className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors"
+                                            title="Visualizar Atividade"
+                                          >
+                                            <Eye size={13} />
+                                          </button>
+                                        </div>
+                                      }
+                                    />
+                                  ))}
+                                </React.Fragment>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Assinaturas Institucionais no Rodapé */}
+                    <div className="pt-12 pb-6 border-t border-slate-200 grid grid-cols-2 gap-8 text-center text-xs font-bold text-slate-800">
+                      <div>
+                        <p className="border-b border-black w-48 mx-auto mb-2"></p>
+                        <p>O RESPONSÁVEL DO PLANO</p>
+                        <p className="text-[10px] text-slate-500">
+                          Departamento de Planificação Estudos e Projetos
+                        </p>
+                      </div>
+                      <div>
+                        <p className="border-b border-black w-48 mx-auto mb-2"></p>
+                        <p>O DIRETOR CENTRAL</p>
+                        <p className="text-[10px] text-slate-500">
+                          Instituto Superior Politécnico de Songo
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* CONTEÚDO DA SUB-ABA 3: VALIDAÇÃO & ENVIO AO ÓRGÃO COLEGIAL */}
+                {chefeDPEPSubTab === "validacao_colegial" && (
+                  <div className="p-6 md:p-12 space-y-6 flex-1 bg-white">
+                    <InstitutionalHeader
+                      unidadeName="Instituto Superior Politécnico de Songo"
+                      direcaoName="Departamento de Planificação Estudos e Projetos"
+                      departamentoName="Gabinete do Chefe do DPEP"
+                      year={selectedYear}
+                      isOwner={true}
+                    />
+
+                    <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-xl border border-indigo-700/50 space-y-6">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/10 pb-6">
+                        <div>
+                          <span className="text-[10px] font-black tracking-widest text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full border border-amber-400/20">
+                            Apreciação do Chefe do DPEP
+                          </span>
+                          <h3 className="text-2xl font-black mt-2 text-white tracking-tight font-serif">
+                            Proposta do Plano Institucional (PESOE {selectedYear})
+                          </h3>
+                          <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                            O Setor de Planificação consolidou todas as atividades das 5 Direções. Como Chefe do DPEP, valide a proposta e envie-a para apreciação e homologação do Órgão Colegial.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleSendChefeDPEPToOrgaoColegial}
+                          className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-6 py-3.5 rounded-2xl text-xs tracking-wider transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 whitespace-nowrap"
+                        >
+                          <Send size={16} strokeWidth={2.5} /> Enviar Proposta ao Órgão Colegial
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <span className="text-[10px] font-bold text-slate-400 tracking-wider block">Total de Atividades</span>
+                          <span className="text-2xl font-black text-white font-mono">{filteredActivities.length}</span>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <span className="text-[10px] font-bold text-slate-400 tracking-wider block">Orçamento Atividades</span>
+                          <span className="text-2xl font-black text-amber-400 font-mono">
+                            {filteredActivities.reduce((acc, a) => acc + getActivityTotal(a), 0).toLocaleString("pt-MZ", { minimumFractionDigits: 2 })} MZN
+                          </span>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <span className="text-[10px] font-bold text-slate-400 tracking-wider block">Direções Integradas</span>
+                          <span className="text-2xl font-black text-emerald-400 font-mono">
+                            {new Set(filteredActivities.map((a) => a.direcao).filter(Boolean)).size} / 5
+                          </span>
+                        </div>
+                        <div className="bg-white/5 border border-white/10 p-4 rounded-2xl">
+                          <span className="text-[10px] font-bold text-slate-400 tracking-wider block">Destino da Proposta</span>
+                          <span className="text-sm font-black text-slate-200 mt-1 block">Órgão Colegial</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tabela do Plano Institucional para Validação do Chefe do DPEP */}
+                    <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
+                      <div className="bg-slate-900 text-white p-5 flex justify-between items-center">
+                        <div>
+                          <h4 className="text-base font-black tracking-wide">
+                            Matriz Geral de Atividades Consolidadas
+                          </h4>
+                          <p className="text-[10px] text-slate-400">Atividades prontas para encaminhamento ao Órgão Colegial</p>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-amber-400">
+                          {filteredActivities.length} Atividades Registadas
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto print:overflow-visible w-full">
+                        <table className="w-full text-left border-collapse font-sans text-xs print-table-compact">
+                          <ActivityTableHeader isDPEP={true} />
+                          <tbody className="divide-y divide-slate-200 text-slate-700 font-medium">
+                            {filteredActivities.length === 0 ? (
+                              <tr>
+                                <td colSpan={45} className="py-12 text-center text-slate-400 font-medium text-xs">
+                                  Nenhum plano ou proposta submetida ao Chefe do DPEP até ao momento. Todos os campos estão totalmente limpos.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredActivities.map((act, idx) => (
+                                <ActivityTableRow
+                                  key={act.id}
+                                  activity={act}
+                                  onViewHistory={setActivityForHistory}
+                                  index={idx}
+                                  isDPEP={true}
+                                  user={user}
+                                  isBossOrAdmin={true}
+                                  getActivityTotal={getActivityTotal}
+                                  onUpdateExecution={onUpdateExecution}
+                                  onUpdateRelatorio={onUpdateRelatorio}
+                                  actions={
+                                    <div className="flex justify-center items-center gap-2">
+                                      <button
+                                        onClick={() => {
+                                          setEditingActivity(act);
+                                          setShowAddForm(true);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded"
+                                        title="Visualizar"
+                                      >
+                                        <Eye size={13} />
+                                      </button>
+                                    </div>
+                                  }
+                                />
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

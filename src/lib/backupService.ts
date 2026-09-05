@@ -1262,6 +1262,12 @@ export async function runAutomaticBackupIfNeeded(): Promise<SystemBackupRecord |
 
 export async function autoRestoreOnStartup(onProgress?: (msg: string) => void): Promise<boolean> {
   try {
+    const localUser = localStorage.getItem("sigep_logged_in_user") || localStorage.getItem("sigep_user");
+    const localMatrix = localStorage.getItem("sigep_local_matrix_activities") || localStorage.getItem("sigep_matrix_activities");
+    if (localUser || localMatrix) {
+      return true;
+    }
+
     // Check if Firestore database already contains users or matrix activities
     const existingUsers = await firestoreService.users.get().catch(() => []);
     const existingActivities = await firestoreService.matrixActivities.get().catch(() => []);

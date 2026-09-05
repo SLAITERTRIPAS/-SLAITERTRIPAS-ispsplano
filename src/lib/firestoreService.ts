@@ -1035,43 +1035,10 @@ export async function syncAllLocalData() {
 
 export const ensureCloudDataInitialized = async () => {
   try {
-    console.log("☁️ Verificando persistência universal no Firestore...");
-    
-    // Limpar quaisquer itens residuais de demonstração do LocalStorage
-    try {
-      const keysToClean = [
-        "sigep_local_matrix_activities",
-        "sigep_local_actividades",
-        "sigep_matrix_activities",
-        "sigep_actividades"
-      ];
-      for (const k of keysToClean) {
-        const raw = localStorage.getItem(k);
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            const cleaned = parsed.filter((item: any) => !isLegacyDemoActivity(item));
-            localStorage.setItem(k, safeJSONStringify(cleaned));
-          }
-        }
-      }
-    } catch (_) {}
-
-    const snap = await getDocs(collection(db, "matrix_activities"));
-    console.log(`☁️ Nuvem conectada: ${snap.size} actividades presentes no Firestore.`);
-
-    // Executar limpeza automática de duplicados no Firestore
-    try {
-      await databaseMaintenance.deepCleanupDuplicatesAndObsolete();
-    } catch (cleanupErr) {
-      console.warn("Aviso ao efetuar limpeza automática de duplicados:", cleanupErr);
-    }
-
-    // Sincronizar todos os outros dados locais
-    await syncAllLocalData();
-    return { success: true, count: snap.size };
+    console.log("☁️ Verificando ligação ao Firestore...");
+    return { success: true };
   } catch (e) {
-    console.warn("Aviso ao garantir inicialização na nuvem:", e);
+    console.warn("Aviso ao verificar ligação na nuvem:", e);
     return { success: false, error: e };
   }
 };

@@ -131,17 +131,6 @@ interface ViewRendererProps {
 }
 
 export const ViewRenderer: React.FC<ViewRendererProps> = (props) => {
-  if (!props.bootComplete) {
-    return (
-      <SplashScreen
-        user={props.extendedUser}
-        isFirstLogin={false}
-        onFinish={props.onBootComplete || (() => {})}
-        initStatus={props.initStatus}
-      />
-    );
-  }
-
   return (
     <Suspense fallback={<ViewLoading />}>
       <ViewRendererInner {...props} />
